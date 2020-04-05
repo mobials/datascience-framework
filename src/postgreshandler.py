@@ -35,6 +35,17 @@ def get_tradalgo_staging_connection():
     connection = psycopg2.connect(**connection_string)
     return connection
 
+def get_tradalgo_canada_connection():
+    connection_string = {
+        "dbname": tradalgo_canada_username,
+        "user": tradalgo_canada_username,
+        "password": tradalgo_canada_password,
+        "host": tradalgo_canada_host,
+        "port": tradalgo_canada_port
+    }
+    connection = psycopg2.connect(**connection_string)
+    return connection
+
 
 def get_s3_versions(connection,script):
     query = '''
@@ -59,7 +70,7 @@ def get_s3_completed_files(connection,script):
                 FROM
                     s3
                 WHERE 
-                    script = %(script)s
+                    script = %(script)s;
             '''
     with connection.cursor() as cursor:
         parameters = {'script':script}
@@ -67,27 +78,30 @@ def get_s3_completed_files(connection,script):
         for row in cursor.fetchall():
             yield row[0]
 
-def insert_s3_completed_file(connection,script,file):
+def insert_s3_completed_file(connection,script,file,last_modified):
     query = '''
                 INSERT INTO
                     s3
                 (
                     file,
+                    last_modified,
                     script,
-                    date
+                    scanned
                 )
                 VALUES
                 (
                     %(file)s,
+                    %(last_modified)s,
                     %(script)s,
-                    %(date)s
+                    %(scanned)s
                 )
                 RETURNING id;
             '''
     data = {
             'file':file,
+            'last_modified':last_modified,
             'script':script,
-            'date':datetime.datetime.utcnow()
+            'scanned':datetime.datetime.utcnow()
     }
 
     with connection.cursor() as cursor:

@@ -6,13 +6,12 @@ import psycopg2
 
 dotenv.load_dotenv()
 
+tradalgo_canada_username = os.getenv('TRADALGO_CANADA_USERNAME')
+tradalgo_canada_password = os.getenv('TRADALGO_CANADA_PASSWORD')
+tradalgo_canada_database = os.getenv('TRADALGO_CANADA_DATABASE')
+tradalgo_canada_port = os.getenv('TRADALGO_CANADA_PORT')
+tradalgo_canada_host = os.getenv('TRADALGO_CANADA_HOST')
 
-#collectPath = pathlib.Path.cwd().joinpath('src','collect')
-
-#dataPath = pathlib.Path.cwd().joinpath('data')
-#collectPath = pathlib.Path.cwd().joinpath('src','collect')
-#logPath = pathlib.Path.cwd().joinpath('log')
-#reportPath = pathlib.Path.cwd().joinpath('reports')
 
 tradalgo_staging_user = os.getenv("TRADALGO_STAGING_USER")
 tradalgo_staging_pass = os.getenv("TRADALGO_STAGING_PASS")
