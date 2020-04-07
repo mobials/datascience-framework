@@ -47,7 +47,7 @@ with postgreshandler.get_dashboard_connection() as connection:
 
 bucket = src.settings.s3_firehose_bucket
 
-client = boto3.client('s3')
+#client = boto3.client('s3')
 
 resource = boto3.resource('s3')
 
@@ -72,7 +72,7 @@ for object_summary in objects:
     z = zipfile.ZipFile(buffer)
     with  z.open(z.infolist()[0]) as f:
         with postgreshandler.get_dashboard_connection() as connection:
-            s3_id = postgreshandler.insert_s3_completed_file(connection, script, file)
+            s3_id = postgreshandler.insert_s3_file(connection, script, file, last_modified)
             for line in f:
                 try:
                     info = json.loads(line)

@@ -14,34 +14,34 @@ import psycopg2
 import psycopg2.extras
 import pytz
 
-zuora_insert_query =    '''
-                            INSERT INTO 
-                                zuora_invoice_item_created
-                            (
-                                s3_id,
-                                event_id,
-                                happened_at,
-                                account_account_number,
-                                account_status,
-                                product_id,
-                                product_name,
-                                product_sku,
-                                product_rate_plan_id,
-                                product_rate_plan_name,
-                                rate_plan_id,
-                                rate_plan_name,
-                                subscription_creator_account_id,
-                                subscription_creator_invoice_owner_id,
-                                subscription_invoice_owner_id,
-                                subscription_is_invoice_separate,
-                                subscription_original_id,
-                                subscription_previous_subscription_id,
-                                subscription_id,
-                                subscription_status
-                            )
-                            VALUES 
-                                %s
-                        '''
+zuora_subscription_updated_insert_query =   '''
+                                                INSERT INTO 
+                                                    zuora_subscription_updated
+                                                (
+                                                    s3_id,
+                                                    event_id,
+                                                    happened_at,
+                                                    account_account_number,
+                                                    account_status,
+                                                    product_id,
+                                                    product_name,
+                                                    product_sku,
+                                                    product_rate_plan_id,
+                                                    product_rate_plan_name,
+                                                    rate_plan_id,
+                                                    rate_plan_name,
+                                                    subscription_creator_account_id,
+                                                    subscription_creator_invoice_owner_id,
+                                                    subscription_invoice_owner_id,
+                                                    subscription_is_invoice_separate,
+                                                    subscription_original_id,
+                                                    subscription_previous_subscription_id,
+                                                    subscription_id,
+                                                    subscription_status
+                                                )
+                                                VALUES 
+                                                    %s
+                                            '''
 
 script = os.path.basename(__file__)
 
@@ -78,11 +78,13 @@ for object_summary in objects:
     z = zipfile.ZipFile(buffer)
     with  z.open(z.infolist()[0]) as f:
         with postgreshandler.get_dashboard_connection() as connection:
-            s3_id = postgreshandler.insert_s3_completed_file(connection, script, file)
+            s3_id = postgreshandler.insert_s3_file(connection, script, file, last_modified)
             for line in f:
                 try:
                     info = json.loads(line)
-                    if 'event_name' not in info or info['event_name'] != 'zuora.subscription.updated':
+                    if 'event_name' not in info:
+                        continue
+                    if info['event_name'] != 'zuora.subscription.updated':
                         continue
                     event_id = info['event_id'],
                     happened_at = datetime.datetime.strptime(info['happened_at'], "%Y-%m-%dT%H:%M:%S+00:00"),
@@ -100,7 +102,7 @@ for object_summary in objects:
                     subscription_invoice_owner_id = info['Subscription.InvoiceOwnerId'],
                     subscription_is_invoice_separate = info['Subscription.IsInvoiceSeparate'],
                     subscription_original_id = info['Subscription.OriginalId'],
-                    subscription_previous_subscription_id = info['Subscription.PreviousSubscriptionId'],
+                    subscription_previous_subscription_id = info['Subscription.PreviousSubscriptionId'] if info['Subscription.PreviousSubscriptionId'] is not '' else None,
                     subscription_id = info['Subscription.Id']
                     subscription_status = info['Subscription.Status']
 
@@ -133,7 +135,7 @@ for object_summary in objects:
 
             if len(tuples) > 0:
                 with connection.cursor() as cursor:
-                    psycopg2.extras.execute_values(cursor, zuora_insert_query, tuples)
+                    psycopg2.extras.execute_values(cursor, zuora_subscription_updated_insert_query, tuples)
 
 print('finished')
 

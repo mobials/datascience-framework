@@ -60,7 +60,7 @@ for version in versions:
     with gzip.GzipFile(fileobj=obj) as gzipfile:
         with postgreshandler.get_tradalgo_canada_connection() as connection:
 
-            s3_id = postgreshandler.insert_s3_completed_file(connection,script,file,last_modified)
+            s3_id = postgreshandler.insert_s3_file(connection,script,file,last_modified)
 
             tuples = {}
 

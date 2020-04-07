@@ -24,6 +24,17 @@ def get_datascience_connection():
     connection = psycopg2.connect(**connection_string)
     return connection
 
+def get_analytics_connection():
+    connection_string = {
+                            "dbname": analytics_database,
+                            "user": analytics_username,
+                            "password": analytics_password,
+                            "host": analytics_host,
+                            "port":analytics_port
+                        }
+    connection = psycopg2.connect(**connection_string)
+    return connection
+
 def get_tradalgo_staging_connection():
     connection_string = {
                             "dbname": tradalgo_staging_db,
@@ -78,7 +89,7 @@ def get_s3_completed_files(connection,script):
         for row in cursor.fetchall():
             yield row[0]
 
-def insert_s3_completed_file(connection,script,file,last_modified):
+def insert_s3_file(connection, script, file, last_modified):
     query = '''
                 INSERT INTO
                     s3

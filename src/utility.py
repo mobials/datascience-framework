@@ -6,6 +6,10 @@ def add_days(date,days):
     result.replace(tzinfo = date.tzinfo)
     return result
 
+def get_day(date):
+    result = datetime.datetime(date.year,date.month,date.day).replace(tzinfo=date.tzinfo)
+    return result
+
 def cdc_body_type_to_dataone(body_type,vehicle_type):
     lower_body_type = body_type.lower()
     lower_vehicle_type = vehicle_type.lower()
