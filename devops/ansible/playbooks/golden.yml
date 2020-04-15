@@ -1,0 +1,10 @@
+---
+- name: golden images
+  hosts: localhost
+  become: yes
+  connection: local
+  roles:
+    - system/common
+    - system/users
+    - service/github
+    - system/mobica-server-config

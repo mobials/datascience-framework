@@ -1,0 +1,57 @@
+{
+  "variables": {
+    "env": "",
+    "bastion": "",
+    "vpc": "",
+    "subnet": "",
+    "security_group_id": ""
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "communicator": "ssh",
+    "ssh_agent_auth": true,
+    "ssh_bastion_agent_auth": true,
+    "ssh_bastion_host": "{{ user `bastion` }}",
+    "ssh_bastion_username": "ubuntu",
+    "ssh_interface": "private_ip",
+    "ssh_keypair_name": "reviewsii-dev",
+    "region": "us-east-1",
+    "source_ami_filter": {
+      "filters": {
+        "virtualization-type": "hvm",
+        "name": "ubuntu/images/*ubuntu-bionic-18.04-amd64-server-*",
+        "root-device-type": "ebs"
+      },
+      "owners": ["099720109477"],
+      "most_recent": true
+    },
+    "instance_type": "t3.nano",
+    "ssh_username": "ubuntu",
+    "ami_name": "{{ user `env` }}-datascience-base-{{isotime \"2006.01.02.15.04.05\" }}",
+    "subnet_id": "{{ user `subnet` }}",
+    "vpc_id": "{{ user `vpc` }}",
+    "security_group_id": "{{ user `security_group_id` }}"
+  }],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "sleep 10",
+        "sudo apt-get -y update",
+        "sudo apt-get install -y python-apt",
+        "sudo apt-get install -y python-dev python-pip",
+        "sudo pip install ansible",
+        "ssh-keyscan github.com >> ~/.ssh/known_hosts"
+      ]
+    },
+    {
+      "type": "ansible-local",
+      "playbook_file": "ansible/playbooks/golden.yml",
+      "playbook_dir": "ansible/",
+      "clean_staging_directory": true,
+      "galaxy_file": "ansible/roles/requirements.yml",
+      "group_vars": "ansible/inventories/{{ user `env` }}/group_vars/",
+      "role_paths": ["ansible/roles"]
+    }
+  ]
+}
