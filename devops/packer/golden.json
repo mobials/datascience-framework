@@ -27,7 +27,7 @@
     },
     "instance_type": "t3.nano",
     "ssh_username": "ubuntu",
-    "ami_name": "{{ user `env` }}-datascience-base-{{isotime \"2006.01.02.15.04.05\" }}",
+    "ami_name": "{{ user `env` }}-datascience-etl-base-{{isotime \"2006.01.02.15.04.05\" }}",
     "subnet_id": "{{ user `subnet` }}",
     "vpc_id": "{{ user `vpc` }}",
     "security_group_id": "{{ user `security_group_id` }}"
