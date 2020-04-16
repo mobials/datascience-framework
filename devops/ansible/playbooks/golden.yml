@@ -8,3 +8,4 @@
     - system/users
     - service/github
     - system/mobica-server-config
+    - geerlingguy.postgresql

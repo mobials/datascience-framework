@@ -58,8 +58,8 @@
 
     - name: Gather facts for first time
       setup:
-  roles:
-    - geerlingguy.postgresql
+  # roles:
+  #   - geerlingguy.postgresql
 
 
 # send slack notification for completed deployment
