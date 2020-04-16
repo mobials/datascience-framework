@@ -1,15 +1,6 @@
 ---
 # tasks file for airflow
 
-- name: Add the airflow group
-  group:
-    name: airflow
-
-- name: Add the airflow user
-  user:
-    name: airflow
-    group: airflow
-
 - name: Install airflow
   pip: 
     executable: /usr/bin/pip3

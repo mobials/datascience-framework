@@ -57,6 +57,15 @@
 
     - name: Gather facts for first time
       setup:
+    
+    - name: Add the airflow group
+      group:
+        name: airflow
+      
+    - name: Add the airflow user
+      user:
+        name: airflow
+        group: airflow
   roles:
     - install-app
 
