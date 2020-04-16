@@ -39,3 +39,7 @@ ec2_instance_type: t3.micro
 
 airflow:
   pip_package: "apache-airflow[async,aws,postgres]"
+
+etls:
+  - file: src/dashboard/etl/zuora_invoice_item_created.py
+  - file: src/dashboard/etl/zuora_subscription_updated.py
