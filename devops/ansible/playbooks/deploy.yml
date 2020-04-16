@@ -50,7 +50,6 @@
 - hosts: tag_service_etl
   name: Install postgres, airflow and the etls
   gather_facts: no
-  become: true
   pre_tasks:
     - name: Wait for system to become reachable
       wait_for_connection:
@@ -60,8 +59,12 @@
       setup:
   roles:
     - install-app
-    - airflow
 
+- hosts: tag_service_etl
+  name: Install postgres, airflow and the etls
+  gather_facts: no
+  become: true
+    - airflow
 
 # send slack notification for completed deployment
 - hosts: localhost
