@@ -39,7 +39,7 @@
         "sleep 10",
         "sudo apt-get -y update",
         "sudo apt-get install -y python-apt",
-        "sudo apt-get install -y python-dev python-pip",
+        "sudo apt-get install -y python-dev python-pip python3-pip",
         "sudo pip install ansible",
         "ssh-keyscan github.com >> ~/.ssh/known_hosts"
       ]
