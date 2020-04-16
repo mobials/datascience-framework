@@ -6,8 +6,16 @@
     executable: /usr/bin/pip3
     name: "{{ airflow.pip_package }}"
 
-# - name: Create airflow environment file
-# - name: Init the airflow db
+- name: Create airflow environment file
+  template:
+    src: .env.airflow.j2
+    dest: "{{ app_deploy_directory }}/.env.airflow"
+    owner: airflow
+    group: airflow
+    mode: '0644'
+
+- name: Init the airflow db
+  command: airflow initdb
 
 # - name: Create the airflow webserver service
 # - name: Create the airflow scheduler service

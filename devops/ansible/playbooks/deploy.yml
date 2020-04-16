@@ -59,6 +59,7 @@
     - name: Gather facts for first time
       setup:
   roles:
+    - install-app
     - airflow
 
 
