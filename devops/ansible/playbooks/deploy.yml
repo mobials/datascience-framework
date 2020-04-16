@@ -48,7 +48,7 @@
 
 # necessary step as we wait on ec2
 - hosts: tag_service_etl
-  name: Install postgres, airflow and the etls
+  name: Install the application and create users
   gather_facts: no
   pre_tasks:
     - name: Wait for system to become reachable
@@ -72,9 +72,10 @@
     - install-app
 
 - hosts: tag_service_etl
-  name: Install postgres, airflow and the etls
+  name: airflow and the etls
   gather_facts: no
   become: true
+  roles:
     - airflow
 
 # send slack notification for completed deployment
