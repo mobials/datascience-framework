@@ -1,5 +1,15 @@
 ---
 # tasks file for airflow
 
-# - name: Install airflow
-#   pip: 
+- name: Install airflow
+  pip: 
+    executable: /usr/bin/pip3
+    name: "{{ airflow.pip_package }}"
+
+# - name: Create airflow environment file
+# - name: Init the airflow db
+
+# - name: Create the airflow webserver service
+# - name: Create the airflow scheduler service
+# - name: Configure Dags
+

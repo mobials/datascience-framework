@@ -41,6 +41,7 @@
         "sudo apt-get install -y python-apt",
         "sudo apt-get install -y python-dev python-pip python3-pip",
         "sudo pip install ansible",
+        "sudo pip install psycopg2-binary",
         "ssh-keyscan github.com >> ~/.ssh/known_hosts"
       ]
     },
