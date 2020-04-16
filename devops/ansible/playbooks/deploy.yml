@@ -61,11 +61,13 @@
     - name: Add the airflow group
       group:
         name: airflow
+      become: true
       
     - name: Add the airflow user
       user:
         name: airflow
         group: airflow
+      become: true
   roles:
     - install-app
 
