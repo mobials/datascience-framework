@@ -64,3 +64,10 @@
 
 # - name: Configure Dags
 
+- name: Make sure airflow has access to everything
+  file: 
+    dest: "{{ airflow.home }} "
+    owner: airflow 
+    group: airflow 
+    mode: 0775 
+    recurse: true
