@@ -27,9 +27,9 @@
 
     - name: Launch instance from AMI
       include_role:
-        name: deployment/launch-ami
+        name: launch-ami
       vars:
-        subnet_id: "{{ private_subnet_id }}"
+        subnet_id: "{{ public_subnet_id }}"
         instance_name: "{{ env }}-{{ app_name }}"
         service: etl
         ami_id: "{{ ami_result.results[0].ami_id }}"
