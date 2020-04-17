@@ -1,10 +1,20 @@
 ---
 # tasks file for airflow
 
+- name: Make sure the /etc/airflow directory exists
+  file:
+    path: /etc/airflow
+    state: directory
+    owner: airflow
+    group: airflow
+    mode: 0775
+
 - name: Install airflow
   pip: 
     executable: /usr/bin/pip3
     name: "{{ airflow.pip_package }}"
+  environment:
+    AIRFLOW_HOME: /etc/airflow
 
 - name: Create airflow environment file
   template:
@@ -14,8 +24,8 @@
     group: airflow
     mode: '0644'
 
-- name: Init the airflow db
-  command: airflow initdb
+# - name: Init the airflow db
+#   command: airflow initdb
 
 # - name: Create the airflow webserver service
 # - name: Create the airflow scheduler service
