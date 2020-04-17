@@ -46,6 +46,8 @@ postgres_users_no_log: false
 
 airflow:
   pip_package: "apache-airflow[async,aws,postgres]"
+  home: /etc/airflow
+  db: postgresql://airflow:airflow@localhost:5432/airflow
 
 etls:
   - etl_location: src/dashboard/etl/zuora_invoice_item_created.py

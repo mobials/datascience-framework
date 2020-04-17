@@ -22,7 +22,7 @@ After=network.target postgresql.service
 Wants=postgresql.service
 
 [Service]
-EnvironmentFile=/etc/airflow/.env
+EnvironmentFile={{ airflow.home }}/.env
 User=airflow
 Group=airflow
 Type=simple
