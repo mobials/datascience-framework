@@ -31,12 +31,22 @@
     AIRFLOW_HOME: "{{ airflow.home }}"
     AIRFLOW__CORE__SQL_ALCHEMY_CONN: "{{ airflow.db }}"
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: False
 
 - name: Configure airflow db connection
   lineinfile:
     path: "{{ airflow.home }}/airflow.cfg"
     regexp: '^sql_alchemy_conn = '
     line: "sql_alchemy_conn = {{ airflow.db }}"
+  notify: 
+    - restart_airflow_webserver
+    - restart_airflow_scheduler
+
+- name: Disable examples
+  lineinfile:
+    path: "{{ airflow.home }}/airflow.cfg"
+    regexp: '^load_examples = '
+    line: "load_examples = false"
   notify: 
     - restart_airflow_webserver
     - restart_airflow_scheduler
