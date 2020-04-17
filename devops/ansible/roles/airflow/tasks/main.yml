@@ -19,13 +19,17 @@
 - name: Create airflow environment file
   template:
     src: .env.airflow.j2
-    dest: "{{ app_deploy_directory }}/.env.airflow"
+    dest: /etc/airflow/.env
     owner: airflow
     group: airflow
     mode: '0644'
 
-# - name: Init the airflow db
-#   command: airflow initdb
+- name: Init the airflow db
+  command: airflow initdb
+  environment:
+    AIRFLOW_HOME: /etc/airflow
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql://airflow:airflow@localhost:5432/airflow
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
 
 # - name: Create the airflow webserver service
 # - name: Create the airflow scheduler service
