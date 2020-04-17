@@ -73,7 +73,7 @@
   notify: restart_airflow_scheduler
 
 - name: Copy Dags
-  command: "cp {{ airflow.dags }} {{ airflow.home }}/dags"
+  command: "cp -r {{ airflow.dags }} {{ airflow.home }}/dags/"
 
 - name: Make sure airflow has access to everything
   command: chown -R airflow:airflow .
