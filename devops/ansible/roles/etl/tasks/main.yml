@@ -3,6 +3,7 @@
 
 - name: Install requirements
   pip:
+    executable: /usr/bin/pip3
     requirements: "{{ app_deploy_directory }}/requirements.txt"
 
 - name: Copy Dags

@@ -57,19 +57,9 @@
 
     - name: Gather facts for first time
       setup:
-
-    - name: Add the airflow group
-      group:
-        name: airflow
-      become: true
-      
-    - name: Add the airflow user
-      user:
-        name: airflow
-        group: airflow
-      become: true
   roles:
     - install-app
+
 
 - hosts: tag_service_etl
   name: airflow and the etls
@@ -78,6 +68,7 @@
   roles:
     - airflow
     - etl
+
 
 # send slack notification for completed deployment
 - hosts: localhost
