@@ -1,0 +1,14 @@
+---
+# tasks file for etl
+
+- name: Install requirements
+  pip:
+    requirements: "{{ app_deploy_directory }}/requirements.txt"
+
+- name: Copy Dags
+  shell: "cp {{ airflow.dags }} {{ airflow.home }}/dags/"
+
+- name: Make sure airflow has access to everything
+  command: chown -R airflow:airflow .
+  args:
+    chdir: "{{ airflow.home }}"

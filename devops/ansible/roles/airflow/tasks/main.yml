@@ -1,5 +1,15 @@
 ---
 # tasks file for airflow
+- name: Add the airflow group
+  group:
+    name: airflow
+  become: true
+
+- name: Add the airflow user
+  user:
+    name: airflow
+    group: airflow
+  become: true
 
 - name: Make sure the /etc/airflow directory exists, along with the dags dir
   file:
@@ -71,9 +81,6 @@
     src: airflow-scheduler.service.j2
     dest: /etc/systemd/system/airflow-scheduler.service
   notify: restart_airflow_scheduler
-
-- name: Copy Dags
-  shell: "cp -r {{ airflow.dags }} {{ airflow.home }}/dags/"
 
 - name: Make sure airflow has access to everything
   command: chown -R airflow:airflow .

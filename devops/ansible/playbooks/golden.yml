@@ -1,7 +1,7 @@
 ---
 - name: golden images
   hosts: localhost
-  become: yes
+  become: true
   connection: local
   roles:
     - system/common
@@ -9,3 +9,4 @@
     - service/github
     - system/mobica-server-config
     - geerlingguy.postgresql
+    - airflow

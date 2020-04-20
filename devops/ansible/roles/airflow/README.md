@@ -1,38 +1,38 @@
-Role Name
-=========
-
-A brief description of the role goes here.
+airflow
+=======
+Install airflow as a service.
 
 Requirements
 ------------
-
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+This role has a requirement on postgres being available for airflow.
 
 Role Variables
 --------------
+The airflow variable needs to be set:
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+airflow:
+  pip_package: The airflow package to install - "apache-airflow[async,aws,postgres]"
+  home: Location to install airflow - "/etc/airflow"
+  db: The credentials to login to postgres - postgresql://airflow:airflow@localhost:5432/airflow
+  dags: The location of the dags to copy to airflow - "{{ app_deploy_directory }}/src/dashboard/dags/*"
 
 Dependencies
 ------------
-
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+This role has a soft dependency on geerlingguy.postgresql, it is not 100% needed but we are using it for our local db in most cases.
 
 Example Playbook
 ----------------
-
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```
+- hosts: localhost
+  become: true
+  roles:
+    - airflow
+```
 
 License
 -------
-
 BSD
 
 Author Information
 ------------------
-
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Jared Rietdyk, jrietdyk@mobials.com
