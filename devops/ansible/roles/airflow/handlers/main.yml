@@ -1,0 +1,16 @@
+---
+# handlers file for airflow
+
+- name: restart_airflow_webserver
+  systemd:
+    name: airflow-webserver
+    daemon_reload: true
+    enabled: true
+    state: restarted
+
+- name: restart_airflow_scheduler
+  systemd:
+    name: airflow-scheduler
+    daemon_reload: true
+    enabled: true
+    state: restarted

@@ -1,0 +1,27 @@
+---
+- name: Launch ec2 instance from AMI
+  ec2:
+    key_name: "{{ keypair_name }}"
+    region: "{{ region }}"
+    vpc_subnet_id: "{{ subnet_id }}"
+    instance_type: "{{ ec2_instance_type }}"
+    instance_profile_name: "{{ ec2_instance_iam_role }}"
+    image: "{{ ami_id }}"
+    wait: yes
+    wait_timeout: 500
+    exact_count: "{{ ec2_instance_count }}"
+    group: "{{ security_groups }}"
+    # the count_tag attribute allows us to specify which ec2 instances ansible is considering for exact count
+    count_tag:
+      env: "{{ env }}"
+      service: "{{ service }}"
+      app: "{{ app_name }}"
+    instance_tags:
+      env: "{{ env }}"
+      service: "{{ service }}"
+      Name: "{{ instance_name }}"
+      app: "{{ app_name }}"
+      department: datascience
+    monitoring: yes
+    assign_public_ip: yes
+  register: ec2

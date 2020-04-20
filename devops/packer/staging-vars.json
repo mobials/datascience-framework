@@ -1,0 +1,7 @@
+{
+  "env": "staging",
+  "bastion": "bastion.staging.mobials.com",
+  "vpc": "vpc-0c176c69",
+  "subnet": "subnet-9b8439c2",
+  "security_group_id": "sg-36a31352"
+}

@@ -1,0 +1,5 @@
+---
+- src: geerlingguy.postgresql
+- src: git@github.com:mobials/devops.git
+  scm: git
+  name: devops
