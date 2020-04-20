@@ -130,3 +130,6 @@ dmypy.json
 
 scratch.py
 #postgreshandler.py
+# Ansible
+vendor/
+.fact_cache

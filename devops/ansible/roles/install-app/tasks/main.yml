@@ -1,0 +1,50 @@
+---
+- name: create the www root directy
+  file:
+    path: "{{ app_deploy_directory }}"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+  become: yes
+  become_user: root
+
+# now we revert ownership back to ubuntu so that it can use the files as normal without having to be a root user
+- name: ensure ownership belongs to ubuntu user
+  file:
+    path: "{{ app_deploy_directory }}"
+    owner: ubuntu
+    group: ubuntu
+    recurse: yes
+  become: yes
+  become_user: root
+
+# we download the repo as the root user in order to maintain our ssh-agent key forwarding. This is a bit of a flaw
+# with ansible in general...
+- name: download the repo
+  git:
+    repo: "{{ app_github_repo }}"
+    dest: "{{ app_deploy_directory }}"
+    version: "{{ app_branch_name | default('master') }}"
+    force: yes
+    accept_hostkey: yes
+
+# now we revert ownership back to airflow so that it can use the files as normal without having to be a root user
+- name: revert ownership back to airflow user
+  file:
+    path: "{{ app_deploy_directory }}"
+    owner: airflow
+    group: airflow
+    recurse: yes
+  become: yes
+  become_user: root
+
+# copy over our template files to the appropriate directories
+- name: create our .env files for the project
+  template:
+    src: env.j2
+    dest: "{{ app_deploy_directory }}/.env"
+    owner: airflow
+    group: airflow
+    mode: '0666'
+  become: yes
+  become_user: root

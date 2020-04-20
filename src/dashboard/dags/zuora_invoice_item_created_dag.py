@@ -16,5 +16,3 @@ task = airflow.operators.BashOperator(
     task_id='1',
     bash_command='python /src/dasboard/etl/zuora_invoice_item_created.py',
     dag=dag)
-
-task
