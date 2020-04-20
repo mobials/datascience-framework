@@ -121,3 +121,66 @@ def insert_s3_file(connection, script, file, last_modified):
         if result is not None:
             return result[0]
 
+def create_create_table_statement(schema, table, column_names):
+    column_definitions = ''
+
+    for column_index in range(len(column_names)):
+        column_definitions = column_definitions + column_names[column_index] + ' text' + (',' if column_index < len(column_names) - 1 else '')
+
+    result = '''
+                CREATE TABLE {0}.{1} 
+                (
+                    {2}
+                )
+            '''.format(schema, table, column_definitions)
+
+    return result
+
+
+def create_insert_query(schema, table, column_names):
+
+    result =  '''
+                            INSERT INTO 
+                                {0}.{1}
+                            (
+                                {2}
+                            ) 
+                            VALUES 
+                                %s
+                        '''.format(schema,table,','.join(column_names))
+
+    return result
+
+
+def create_table_from_list(connection, schema, table, column_names):
+    query = create_create_table_statement(schema,table,column_names)
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+
+
+def create_table_from_delimited_file(connection,schema,file_path,delimiter=',',quote_character='"'):
+    import csv
+    with open(file_path) as f:
+        reader = csv.reader(f, delimiter=delimiter, quotechar=quote_character)
+        column_names = None
+        tuples = []
+        insert_query = None
+        for row in reader:
+            if not column_names:
+                column_names = row
+                file_name, file_extention = os.path.splitext(file_path)
+                base_file_name = os.path.basename(file_path)
+                file_name = base_file_name[:-len(file_extention)].lower()
+                create_table_from_list(connection, schema, file_name, column_names)
+                insert_query = create_insert_query(schema, file_name, column_names)
+            else:
+                tuples.append(tuple(row))
+                print(len(tuples))
+
+
+        if len(tuples) > 0:
+            with connection.cursor() as cursor:
+                print('inserting data')
+                psycopg2.extras.execute_values(cursor, insert_query, tuples)
+
+

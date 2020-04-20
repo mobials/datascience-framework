@@ -19,3 +19,9 @@ CREATE TABLE IF NOT EXISTS avr_widget_impressions_daily(
     CONSTRAINT avr_widget_impressions_daily_pk PRIMARY KEY (date,master_business_id,integration_settings_id,ip_address,product,device_type)
 );
 
+CREATE INDEX avr_widget_impressions_daily_s3_id_idx ON avr_widget_impressions_daily (s3_id);
+
+CREATE TABLE IF NOT EXISTS authenticom_sales_data (
+    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
+    payload jsonb
+);

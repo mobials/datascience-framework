@@ -13,6 +13,7 @@ import datetime
 import psycopg2
 import psycopg2.extras
 import pytz
+import resource
 
 zuora_subscription_updated_insert_query =   '''
                                                 INSERT INTO 
@@ -55,13 +56,13 @@ bucket = src.settings.s3_firehose_bucket
 
 client = boto3.client('s3')
 
-resource = boto3.resource('s3')
+r = boto3.resource('s3')
 
-objects = resource.Bucket(bucket).objects.all()
+objects = r.Bucket(bucket).objects.all()
 
 for object_summary in objects:
     last_modified = object_summary.last_modified
-    print(last_modified)
+    #print(last_modified)
     if last_modified < datetime.datetime(2020,3,31).replace(tzinfo=pytz.utc):
         continue
     key = object_summary.key
@@ -70,7 +71,7 @@ for object_summary in objects:
         continue
     tuples = []
 
-    object = resource.Object(
+    object = r.Object(
         bucket_name=bucket,
         key=key
     )
@@ -136,6 +137,10 @@ for object_summary in objects:
             if len(tuples) > 0:
                 with connection.cursor() as cursor:
                     psycopg2.extras.execute_values(cursor, zuora_subscription_updated_insert_query, tuples)
+
+
+            max = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            print(max*0.000001)
 
 print('finished')
 

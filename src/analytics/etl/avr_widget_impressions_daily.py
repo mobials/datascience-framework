@@ -1,6 +1,5 @@
 import sys
 sys.path.insert(0,'../..')
-#sys.path.append('/Users/caseywood/Documents/GitHub/analytics-framework/src/utility.py')
 import boto3
 import src.settings
 import io
@@ -14,7 +13,9 @@ import psycopg2.extras
 import utility
 import pytz
 
-avr_widget_impressions_daily_insert_query =  '''
+script = os.path.basename(__file__)[:-3]
+
+insert_query =  '''
                     INSERT INTO
                         avr_widget_impressions_daily
                     (
@@ -31,8 +32,6 @@ avr_widget_impressions_daily_insert_query =  '''
                     ON CONFLICT ON CONSTRAINT avr_widget_impressions_daily_pk
                     DO NOTHING
                 '''
-
-script = os.path.basename(__file__)
 
 s3_completed_files = []
 with postgreshandler.get_analytics_connection() as connection:
@@ -70,6 +69,10 @@ for object_summary in objects:
             s3_id = postgreshandler.insert_s3_file(connection, script, file, last_modified)
             for line in f:
                 info = json.loads(line)
+                if'event_name' not in info:
+                    continue
+                if info['event_name'] != 'avr.widget.impression':
+                    continue
                 happened_at = datetime.datetime.strptime(info['happened_at'], "%Y-%m-%dT%H:%M:%S+00:00")
                 date = utility.get_day(happened_at)
                 master_business_id = info['master_business_id']
@@ -92,6 +95,6 @@ for object_summary in objects:
     if len(tuples) > 0:
         with postgreshandler.get_datascience_connection() as connection:
             with connection.cursor() as cursor:
-                psycopg2.extras.execute_values(cursor,avr_widget_impressions_daily_insert_query,tuples)
+                psycopg2.extras.execute_values(cursor,insert_query,tuples)
 
 
