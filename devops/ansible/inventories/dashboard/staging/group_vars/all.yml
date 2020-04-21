@@ -20,6 +20,8 @@ bastion_server_dns: bastion.staging.mobials.com
 # this line allows ansible to connect to our private instances via the bastion server
 ansible_ssh_common_args: '-o ControlMaster=auto -o StrictHostKeyChecking=no -o ControlPersist=60s -o ForwardAgent=yes -o ProxyCommand="ssh -W %h:%p -q ubuntu@{{ bastion_server_dns }}"'
 
+ansible_python_interpreter: python
+
 # we are using only ubuntu servers
 ansible_user: ubuntu
 
