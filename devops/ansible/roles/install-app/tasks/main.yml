@@ -41,7 +41,7 @@
 # copy over our template files to the appropriate directories
 - name: create our .env files for the project
   template:
-    src: "{{inventory_dir}}/templates/.env.j2"
+    src: "{{inventory_dir}}/../templates/.env.j2"
     dest: "{{ app_deploy_directory }}/.env"
     owner: airflow
     group: airflow
