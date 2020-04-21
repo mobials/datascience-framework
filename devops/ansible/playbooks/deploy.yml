@@ -19,7 +19,7 @@
   gather_facts: yes
   tasks:
     - name: Search for the latest AMI
-      ec2_ami_facts:
+      ec2_ami_find:
         is_public: no
         region: "{{ region }}"
         name: "{{ provisioned_ami_prefix }}-*"
