@@ -4,6 +4,8 @@ echo "Beginning deployment..."
 
 sh bin/devops-setup.sh
 
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+
 GIT_BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
 
 cd devops/ansible
