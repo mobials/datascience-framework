@@ -4,7 +4,7 @@
   pre_tasks:
     - name: change python interpreter if on macosx
       set_fact:
-        ansible_python_interpreter: /usr/bin/python3
+        ansible_python_interpreter: /usr/local/bin/python3
       when: ansible_distribution == "MacOSX"
   roles:
     - deployment/deployment-protection
