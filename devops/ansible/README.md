@@ -99,6 +99,6 @@ NOTE: for the deploy script to work, you must have your current branch pushed to
 To deploy on mac, you need to create a python 7 venv and install ansible/boto in it
 
 `python -m virtualenv deploy_venv`
-`source deploy_venv`
+`source deploy_venv/bin/activate`
 `pip install ansible==2.8 boto boto3 botocore`
 `bin/deploy-{etl}-{env}.sh`
