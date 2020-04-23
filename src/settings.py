@@ -4,6 +4,9 @@ import dotenv
 import os
 import psycopg2
 
+
+
+
 dotenv.load_dotenv()
 
 tradalgo_canada_username = os.getenv('TRADALGO_CANADA_USERNAME')

@@ -1,5 +1,10 @@
+import sys
+import pathlib
+sys.path.append(str(pathlib.Path.cwd().joinpath('src')))
 import src.postgreshandler
 import psycopg2
+
+
 
 file_path = '../ddl/relations.sql'
 
