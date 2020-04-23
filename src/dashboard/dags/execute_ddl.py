@@ -10,7 +10,7 @@ default_args = {
     'retries': 0
 }
 
-dag = airflow.DAG('boot', default_args=default_args,schedule_interval=None)
+dag = airflow.DAG('execute_ddl', default_args=default_args,schedule_interval=None)
 
 task = airflow.operators.BashOperator(
     task_id='1',
