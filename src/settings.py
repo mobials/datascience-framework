@@ -4,9 +4,6 @@ import dotenv
 import os
 import psycopg2
 
-
-
-
 dotenv.load_dotenv()
 
 tradalgo_canada_username = os.getenv('TRADALGO_CANADA_USERNAME')
@@ -14,7 +11,6 @@ tradalgo_canada_password = os.getenv('TRADALGO_CANADA_PASSWORD')
 tradalgo_canada_database = os.getenv('TRADALGO_CANADA_DATABASE')
 tradalgo_canada_port = os.getenv('TRADALGO_CANADA_PORT')
 tradalgo_canada_host = os.getenv('TRADALGO_CANADA_HOST')
-
 
 tradalgo_staging_user = os.getenv('TRADALGO_STAGING_USER')
 tradalgo_staging_pass = os.getenv('TRADALGO_STAGING_PASS')

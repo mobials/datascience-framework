@@ -1,58 +1,60 @@
 import psycopg2
-from src.settings import *
+import sys
+sys.path.append('/var/www/datascience-framework/src/')
+import settings
 import datetime
 
 def get_dashboard_connection():
     connection_string = {
-        "dbname": dashboard_database,
-        "user": dashboard_username,
-        "password": dashboard_password,
-        "host": dashboard_host,
-        "port": dashboard_port
+        "dbname": settings.dashboard_database,
+        "user": settings.dashboard_username,
+        "password": settings.dashboard_password,
+        "host": settings.dashboard_host,
+        "port": settings.dashboard_port
     }
     connection = psycopg2.connect(**connection_string)
     return connection
 
 def get_datascience_connection():
     connection_string = {
-                            "dbname": datascience_db,
-                            "user": datascience_user,
-                            "password": datascience_pass,
-                            "host": datascience_host,
-                            "port":datascience_port
+                            "dbname": settings.datascience_db,
+                            "user": settings.datascience_user,
+                            "password": settings.datascience_pass,
+                            "host": settings.datascience_host,
+                            "port":settings.datascience_port
                         }
     connection = psycopg2.connect(**connection_string)
     return connection
 
 def get_analytics_connection():
     connection_string = {
-                            "dbname": analytics_database,
-                            "user": analytics_username,
-                            "password": analytics_password,
-                            "host": analytics_host,
-                            "port":analytics_port
+                            "dbname": settings.analytics_database,
+                            "user": settings.analytics_username,
+                            "password": settings.analytics_password,
+                            "host": settings.analytics_host,
+                            "port":settings.analytics_port
                         }
     connection = psycopg2.connect(**connection_string)
     return connection
 
 def get_tradalgo_staging_connection():
     connection_string = {
-                            "dbname": tradalgo_staging_db,
-                            "user": tradalgo_staging_user,
-                            "password": tradalgo_staging_pass,
-                            "host": tradalgo_staging_host,
-                            "port": tradalgo_staging_port
+                            "dbname": settings.tradalgo_staging_db,
+                            "user": settings.tradalgo_staging_user,
+                            "password": settings.tradalgo_staging_pass,
+                            "host": settings.tradalgo_staging_host,
+                            "port": settings.tradalgo_staging_port
                         }
     connection = psycopg2.connect(**connection_string)
     return connection
 
 def get_tradalgo_canada_connection():
     connection_string = {
-        "dbname": tradalgo_canada_username,
-        "user": tradalgo_canada_username,
-        "password": tradalgo_canada_password,
-        "host": tradalgo_canada_host,
-        "port": tradalgo_canada_port
+        "dbname": settings.tradalgo_canada_username,
+        "user": settings.tradalgo_canada_username,
+        "password": settings.tradalgo_canada_password,
+        "host": settings.tradalgo_canada_host,
+        "port": settings.tradalgo_canada_port
     }
     connection = psycopg2.connect(**connection_string)
     return connection
