@@ -132,3 +132,4 @@ dmypy.json
 # Ansible
 vendor/
 .fact_cache
+scratch.py
