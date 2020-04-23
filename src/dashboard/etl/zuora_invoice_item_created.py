@@ -2,10 +2,8 @@ import sys
 sys.path.insert(0,'../..')
 import boto3
 import src.settings
-import s3streaming
 import io
 import zipfile
-import sys
 import json
 import postgreshandler
 import os

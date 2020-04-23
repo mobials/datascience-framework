@@ -1,12 +1,6 @@
 import sys
 sys.path.insert(0,'../..')
-import boto3
-import src.settings
-import io
 import postgreshandler
-import json
-import os
-import datetime
 import psycopg2
 
 file_path = '../ddl/relations.sql'
