@@ -14,5 +14,5 @@ dag = airflow.DAG('zuora_invoice_item_created', default_args=default_args,schedu
 
 task = airflow.operators.BashOperator(
     task_id='1',
-    bash_command='python /var/www/datascience-framework/src/dashboard/etl/zuora_invoice_item_created.py',
+    bash_command='python3 /var/www/datascience-framework/src/dashboard/etl/zuora_invoice_item_created.py',
     dag=dag)
