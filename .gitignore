@@ -108,6 +108,7 @@ env/
 venv/
 ENV/
 env.bak/
+*_venv/
 venv.bak/
 
 # Spyder project settings
@@ -133,3 +134,4 @@ scratch.py
 # Ansible
 vendor/
 .fact_cache
+scratch.py

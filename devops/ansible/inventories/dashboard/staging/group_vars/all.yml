@@ -28,10 +28,9 @@ region: us-east-1
 vpc_id: vpc-0c176c69
 keypair_name: reviewsii-dev
 
-private_subnet_id: subnet-9b8439c2  #us-east-1c
 public_subnet_id: subnet-9a8439c3   #us-east-1c
 
-ec2_instance_iam_role: Ec2DefaultPolicy # this will need to change, but default for now.
+ec2_instance_iam_role: datascience_etl_role
 
 provisioned_ami_prefix: "{{ env }}-datascience-etl-base"
 
