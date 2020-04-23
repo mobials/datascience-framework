@@ -72,6 +72,15 @@
     - restart_airflow_webserver
     - restart_airflow_scheduler
 
+- name: Expose the config on the webserver
+  lineinfile:
+    path: "{{ airflow.home }}/airflow.cfg"
+    regexp: '^expose_config = '
+    line: "expose_config = True"
+  notify: 
+    - restart_airflow_webserver
+    - restart_airflow_scheduler
+
 - name: Create the airflow webserver service
   template:
     src: airflow-webserver.service.j2
