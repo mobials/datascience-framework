@@ -1,11 +1,11 @@
-import sys
-sys.path.insert(0,'../..')
-import postgreshandler
+#import sys
+#sys.path.insert(0,'../..')
+import src.postgreshandler
 import psycopg2
 
 file_path = '../ddl/relations.sql'
 
-with postgreshandler.get_dashboard_connection() as connection:
+with src.postgreshandler.get_dashboard_connection() as connection:
     with open(file_path,'r') as file:
         text = file.read().replace('\n', '')
         queries = text.split(';')
