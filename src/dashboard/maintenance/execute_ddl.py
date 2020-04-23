@@ -16,7 +16,6 @@ with postgreshandler.get_dashboard_connection() as connection:
         text = file.read().replace('\n', '')
         queries = text.split(';')
         for query in queries:
-            print(query)
             if len(query) > 0:
                 with connection.cursor() as cursor:
                     cursor.execute(query)
