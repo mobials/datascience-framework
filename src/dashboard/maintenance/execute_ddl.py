@@ -5,7 +5,7 @@ sys.path.append('/var/www/datascience-framework/src/')
 import postgreshandler
 import psycopg2
 
-file_path = '../ddl/relations.sql'
+#file_path = '../ddl/relations.sql'
 file_path = '/var/www/datascience-framework/src/dashboard/ddl/relations.sql'
 with postgreshandler.get_dashboard_connection() as connection:
     with open(file_path,'r') as file:

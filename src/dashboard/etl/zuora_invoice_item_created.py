@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0,'../..')
 sys.path.append('/var/www/datascience-framework/src/')
 import boto3
-import src.settings
+import settings
 import io
 import zipfile
 import json
@@ -32,7 +32,7 @@ with postgreshandler.get_dashboard_connection() as connection:
         s3_completed_files.append(file)
     s3_completed_files = set(s3_completed_files)
 
-bucket = src.settings.s3_firehose_bucket
+bucket = settings.s3_firehose_bucket
 
 resource = boto3.resource('s3')
 
