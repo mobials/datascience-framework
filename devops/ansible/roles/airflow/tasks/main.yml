@@ -23,6 +23,7 @@
   pip: 
     executable: /usr/bin/pip3
     name: "{{ airflow.pip_package }}"
+  register: first_install
 
 - name: Create airflow environment file
   template:
@@ -42,6 +43,7 @@
     AIRFLOW__CORE__SQL_ALCHEMY_CONN: "{{ airflow.db }}"
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__LOAD_EXAMPLES: False
+  when: first_install.changed
 
 - name: Configure airflow db connection
   lineinfile:
