@@ -69,7 +69,7 @@ for version in versions:
             for line in gzipfile:
                 count += 1
                 text = line.decode()
-                split_text = ['"{}"'.format(x) for x in list(csv.reader([text], delimiter=',', quotechar='"'))[0]]
+                split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter=',', quotechar='"'))[0]]
 
                 #strip out double quotes
                 for item_index in range(len(split_text)):

@@ -9,7 +9,7 @@ import os
 import datetime
 import psycopg2
 
-file_path = '../sql/tables.sql'
+file_path = '../ddl/tables.ddl'
 
 with postgreshandler.get_analytics_connection() as connection:
     with open(file_path,'r') as file:

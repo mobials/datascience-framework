@@ -14,7 +14,7 @@ dag = airflow.DAG('boot', default_args=default_args,schedule_interval=None)
 
 task = airflow.operators.BashOperator(
     task_id='1',
-    bash_command='python /src/dasboard/maintenance/ddl.py',
+    bash_command='python /src/dasboard/maintenance/execute_ddl.py',
     dag=dag)
 
 task

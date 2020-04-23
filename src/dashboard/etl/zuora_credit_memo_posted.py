@@ -74,6 +74,6 @@ for object_summary in objects:
 
             if len(tuples) > 0:
                 with connection.cursor() as cursor:
-                    psycopg2.extras.execute_values(cursor, insert_query, tuples)
+                    psycopg2.extras.execute_values(cursor, zuora_invoice_item_created_insert_query, tuples)
 
 
