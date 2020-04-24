@@ -11,7 +11,7 @@ default_args = {
     'retries': 0
 }
 
-dag = airflow.DAG('execute_ddl', default_args=default_args,schedule_interval=None,max_active_runs=1,max_threads=1)
+dag = airflow.DAG('execute_ddl', default_args=default_args,schedule_interval=None,max_active_runs=1)
 
 task = airflow.operators.BashOperator(
     task_id='1',
