@@ -3,14 +3,14 @@ sys.path.insert(0,'../..')
 import airflow
 import datetime
 
-start_date = datetime.datetime(2000,1,1)
+start_date = datetime.datetime.now() - datetime.timedelta(minutes=60)
 
 default_args = {
     'start_date' : start_date,
     'retries': 0
 }
 
-dag = airflow.DAG('zuora_invoice_item_created', default_args=default_args,schedule_interval='0 * * * *')
+dag = airflow.DAG('zuora_invoice_item_created', default_args=default_args,schedule_interval='0 * * * *', max_active_runs=1)
 
 task = airflow.operators.BashOperator(
     task_id='1',

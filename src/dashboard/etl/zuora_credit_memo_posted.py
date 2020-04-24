@@ -62,7 +62,7 @@ for object_summary in objects:
                 info = json.loads(line)
                 if 'event_name' not in info:
                     continue
-                if info['event_name'] != 'zuora.invoice_item.created':
+                if info['event_name'] != 'zuora.credit_memo.posted':
                     continue
 
                 tuple = (
@@ -74,6 +74,6 @@ for object_summary in objects:
 
             if len(tuples) > 0:
                 with connection.cursor() as cursor:
-                    psycopg2.extras.execute_values(cursor, zuora_invoice_item_created_insert_query, tuples)
+                    psycopg2.extras.execute_values(cursor, insert_query, tuples)
 
 

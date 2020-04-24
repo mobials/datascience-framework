@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS zuora_invoice_item_created (
 
 CREATE UNIQUE INDEX IF NOT EXISTS zuora_invoice_item_created_unq_idx ON zuora_invoice_item_created(((payload->>'event_id')::uuid));
 
+CREATE TABLE IF NOT EXISTS zuora_credit_memo_posted (
+    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
+    payload jsonb
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS zuora_credit_memo_posted_unq_idx ON zuora_credit_memo_posted(((payload->>'event_id')::uuid));
+
 CREATE OR REPLACE VIEW v_active_queries AS
     SELECT pg_stat_activity.datid,
     pg_stat_activity.datname,
