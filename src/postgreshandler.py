@@ -76,7 +76,28 @@ def get_s3_versions(connection,script):
             result = result[0]
         return result
 
-def get_s3_completed_files(connection,script):
+def get_s3_scanned_max_last_modified_date(connection,script):
+     query =    '''
+                    SELECT
+                        last_modified
+                    FROM
+                        s3
+                    WHERE
+                        script = %(script)s
+                    ORDER BY 
+                        last_modified DESC
+                    LIMIT 1
+                '''
+     result = None
+     with connection.cursor() as cursor:
+         parameters = {'script': script}
+         cursor.execute(query, parameters)
+         row = cursor.fetchone()
+         if row is not None:
+             result = row[0]
+     return result
+
+def get_s3_scanned_files(connection, script):
     query = '''
                 SELECT 
                     file

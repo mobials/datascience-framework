@@ -58,6 +58,7 @@ s3_firehose_bucket = os.getenv('S3_FIREHOSE_BUCKET')
 
 #dataone
 s3_dataone_bucket = os.getenv('S3_DATAONE_BUCKET')
+s3_dataone_key = os.getenv('S3_DATAONE_KEY')
 
 #authenticom
 s3_authenticom = os.getenv('S3_AUTHENTICOM_PRODUCTION')

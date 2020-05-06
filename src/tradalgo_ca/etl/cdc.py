@@ -71,11 +71,11 @@ for version in versions:
                 text = line.decode()
                 split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter=',', quotechar='"'))[0]]
 
-                #strip out double quotes
-                for item_index in range(len(split_text)):
-                    t = split_text[item_index]
-                    if split_text[item_index].startswith('"') and split_text[item_index].endswith('"'):
-                        split_text[item_index] = split_text[item_index][1:-1]
+                # #strip out double quotes
+                # for item_index in range(len(split_text)):
+                #     t = split_text[item_index]
+                #     if split_text[item_index].startswith('"') and split_text[item_index].endswith('"'):
+                #         split_text[item_index] = split_text[item_index][1:-1]
 
                 if not column_headings:
                     column_headings = split_text
