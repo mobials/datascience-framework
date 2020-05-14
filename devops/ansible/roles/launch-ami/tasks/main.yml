@@ -11,6 +11,10 @@
     wait_timeout: 500
     exact_count: "{{ ec2_instance_count }}"
     group: "{{ security_groups }}"
+    volumes:
+      - device_name: /dev/xvdb
+        volume_type: gp2
+        volume_size: "{{ ec2_volume_size }}"
     # the count_tag attribute allows us to specify which ec2 instances ansible is considering for exact count
     count_tag:
       env: "{{ env }}"
