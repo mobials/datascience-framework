@@ -183,6 +183,7 @@ def create_table_from_list(connection, schema, table, column_names):
 
 def create_table_from_delimited_file(connection,schema,file_path,delimiter=',',quote_character='"'):
     import csv
+    import os
     with open(file_path) as f:
         reader = csv.reader(f, delimiter=delimiter, quotechar=quote_character)
         column_names = None

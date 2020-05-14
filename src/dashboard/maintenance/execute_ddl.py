@@ -10,9 +10,9 @@ import psycopg2
 file_path = None
 cwd = os.getcwd()
 if cwd.startswith('/Users/caseywood/'):
-    file_path = '../ddl/relations.ddl'
+    file_path = '../ddl/relations.sql'
 else:
-    file_path = '/var/www/datascience-framework/src/dashboard/ddl/relations.ddl'
+    file_path = '/var/www/datascience-framework/src/dashboard/ddl/relations.sql'
 
 with postgreshandler.get_dashboard_connection() as connection:
     with open(file_path,'r') as file:

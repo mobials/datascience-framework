@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS cdc (
 	CONSTRAINT cdc_vin_miles_price_pk PRIMARY KEY (vin,miles,price)
 );
 
+CREATE INDEX IF NOT EXISTS cdc_tax_vin_idx ON cdc(taxonomy_vin);
+
 CREATE TABLE IF NOT EXISTS dataone (
     s3_id BIGINT references  s3(id) ON DELETE CASCADE,
     vin_pattern TEXT NOT NULL,
@@ -31,7 +33,7 @@ CREATE TABLE IF NOT EXISTS dataone (
     trim TEXT NOT NULL,
     style TEXT NOT NULL,
     body_type TEXT NOT NULL,
-    msrp double precision NOT NULL,
+    msrp double precision NULL,
     CONSTRAINT  dataone_vin_pat_veh_id_idx PRIMARY KEY (vin_pattern,vehicle_id)
 );
 
@@ -76,27 +78,83 @@ CREATE OR REPLACE VIEW v_blocking_statements AS
 
 
 CREATE OR REPLACE VIEW v_vacuum_stats AS
-    SELECT pg_stat_user_tables.relid,
-    pg_stat_user_tables.schemaname,
-    pg_stat_user_tables.relname,
-    pg_stat_user_tables.seq_scan,
-    pg_stat_user_tables.seq_tup_read,
-    pg_stat_user_tables.idx_scan,
-    pg_stat_user_tables.idx_tup_fetch,
-    pg_stat_user_tables.n_tup_ins,
-    pg_stat_user_tables.n_tup_upd,
-    pg_stat_user_tables.n_tup_del,
-    pg_stat_user_tables.n_tup_hot_upd,
-    pg_stat_user_tables.n_live_tup,
-    pg_stat_user_tables.n_dead_tup,
-    pg_stat_user_tables.n_mod_since_analyze,
-    pg_stat_user_tables.last_vacuum,
-    pg_stat_user_tables.last_autovacuum,
-    pg_stat_user_tables.last_analyze,
-    pg_stat_user_tables.last_autoanalyze,
-    pg_stat_user_tables.vacuum_count,
-    pg_stat_user_tables.autovacuum_count,
-    pg_stat_user_tables.analyze_count,
-    pg_stat_user_tables.autoanalyze_count
-   FROM pg_stat_user_tables
+    SELECT
+           pg_stat_user_tables.relid,
+        pg_stat_user_tables.schemaname,
+        pg_stat_user_tables.relname,
+        pg_stat_user_tables.seq_scan,
+        pg_stat_user_tables.seq_tup_read,
+        pg_stat_user_tables.idx_scan,
+        pg_stat_user_tables.idx_tup_fetch,
+        pg_stat_user_tables.n_tup_ins,
+        pg_stat_user_tables.n_tup_upd,
+        pg_stat_user_tables.n_tup_del,
+        pg_stat_user_tables.n_tup_hot_upd,
+        pg_stat_user_tables.n_live_tup,
+        pg_stat_user_tables.n_dead_tup,
+        pg_stat_user_tables.n_mod_since_analyze,
+        pg_stat_user_tables.last_vacuum,
+        pg_stat_user_tables.last_autovacuum,
+        pg_stat_user_tables.last_analyze,
+        pg_stat_user_tables.last_autoanalyze,
+        pg_stat_user_tables.vacuum_count,
+        pg_stat_user_tables.autovacuum_count,
+        pg_stat_user_tables.analyze_count,
+        pg_stat_user_tables.autoanalyze_count
+   FROM
+        pg_stat_user_tables
   ORDER BY pg_stat_user_tables.n_dead_tup DESC;
+
+CREATE OR REPLACE VIEW v_dataone_t1 AS
+    SELECT
+        dataone.vin_pattern,
+        dataone.vehicle_id,
+        dataone."year",
+        dataone.make,
+        dataone.model,
+        dataone.trim,
+        dataone."style",
+        dataone.body_type,
+        dataone.msrp,
+        avg(dataone.msrp) OVER (PARTITION BY dataone.vin_pattern, dataone.market) AS vin_pattern_market_avg_msrp,
+        count(*) OVER (PARTITION BY dataone.vin_pattern) AS trims
+    FROM
+        dataone;
+
+CREATE OR REPLACE VIEW v_training_set AS
+    SELECT
+        v_dataone_t1.vin_pattern,
+        v_dataone_t1.vehicle_id,
+        cdc.vin,
+        v_dataone_t1."year",
+        v_dataone_t1.make,
+        v_dataone_t1.model,
+        v_dataone_t1.trim,
+        v_dataone_t1."style",
+        v_dataone_t1.body_type,
+        cdc.miles,
+        cdc.price,
+        count(*) OVER (PARTITION BY vin_pattern,vehicle_id) AS vehicles
+    FROM
+        v_dataone_t1,
+        cdc
+    WHERE
+        cdc.taxonomy_vin = v_dataone_t1.vin_pattern
+    AND
+    (
+            v_dataone_t1.trims = 1
+        OR
+        (
+            (
+                (
+                        v_dataone_t1.vin_pattern_market_avg_msrp > 0
+                    AND
+                        abs(v_dataone_t1.msrp - v_dataone_t1.vin_pattern_market_avg_msrp) / v_dataone_t1.vin_pattern_market_avg_msrp < 0.05
+                )
+                OR
+                    lower(v_dataone_t1."trim") ~~ (('%'::text || lower(cdc.trim_orig)) || '%'::text)
+            )
+            AND
+                v_dataone_t1.body_type = cdc.body_type
+        )
+    );

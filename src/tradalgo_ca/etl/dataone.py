@@ -10,6 +10,7 @@ import pytz
 import gzip
 import csv
 import re
+import psycopg2.extras
 
 script = os.path.basename(__file__)[:-3]
 
@@ -73,7 +74,24 @@ def transform_info(info):
     if info['MAKE'] == 'Hyundai' and info['MODEL'] == 'Veracruz':
         info['BODY_TYPE'] = 'SUV'
 
-    info['STYLE'] = re.sub(' [0-9]*.[0-9]* ft. ', ' ')
+    info['STYLE'] = re.sub(' [0-9]*.[0-9]* ft. ', ' ',info['STYLE'])
+
+    if 'Ram Pickup ' in info['MODEL'] and info['MAKE'] == 'Ram':
+        info['MODEL'] = info['MODEL'].replace('Ram Pickup ', '')
+
+    trim_words = info['TRIM'].split()
+    style_string = ''
+    for style_word in info['STYLE'].split(' '):
+        if style_word not in trim_words:
+            style_string += style_word + ' '
+    info['STYLE'] = style_string.strip()
+
+    model_words = info['MODEL'].split()
+    trim_string = ''
+    for trim_word in info['TRIM'].split(' '):
+        if trim_word not in model_words:
+            trim_string += trim_word + ' '
+    info['TRIM'] = trim_string.strip()
 
     return info
 
@@ -84,6 +102,7 @@ if last_modified is None:
     last_modified = datetime.datetime(2020,1,1).replace(tzinfo=pytz.utc)
 
 bucket = settings.s3_dataone_bucket
+
 key = settings.s3_dataone_key
 
 resource = boto3.resource('s3')
@@ -93,57 +112,59 @@ object = resource.Object(bucket, key)
 file = bucket + '/' + key + '/' + object.version_id
 
 if object.last_modified > last_modified:
+    last_modified = object.last_modified
     body = object.get()['Body']
     with gzip.GzipFile(fileobj=body) as gzipfile:
+        with postgreshandler.get_tradalgo_canada_connection() as connection:
+            s3_id = postgreshandler.insert_s3_file(connection, script, file, last_modified)
+            tuples = []
 
-        s3_id = postgreshandler.insert_s3_file(connection, script, file, last_modified)
-        tuples = []
+            column_headings = None
+            for line in gzipfile:
+                text = line.decode()
+                split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter='\t'))[0]]
 
-        column_headings = None
-        count = 0
-        for line in gzipfile:
-            count += 1
-            text = line.decode()
-            split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter='\t'))[0]]
-
-            if not column_headings:
-                column_headings = split_text
-                continue
-            else:
-                info = dict(zip(column_headings, split_text))
-
-                if '(ends ' in info['STYLE'] :
+                if not column_headings:
+                    column_headings = split_text
                     continue
+                else:
+                    info = dict(zip(column_headings, split_text))
 
-                if int(info['YEAR']) < datetime.datetime.utcnow().year - 20:
-                    continue
+                    if '(ends ' in info['STYLE'] :
+                        continue
 
-                info = transform_info(info)
+                    if int(info['YEAR']) < datetime.datetime.utcnow().year - 20:
+                        continue
 
-                vin_pattern = info['VIN_PATTERN']
-                vehicle_id = int(info['VEHICLE_ID'])
-                market = info['MARKET']
-                year = int(info['YEAR'])
-                make = info['MAKE']
-                model = info['MODEL']
-                trim = info['TRIM']
-                style = info['STYLE']
-                body_type = info['BODY_TYPE']
-                msrp = float(info['MSRP'])  if info['MSRP'] != '' else None
+                    info = transform_info(info)
 
-                tuple = (
-                    s3_id,
-                    vin_pattern,
-                    vehicle_id,
-                    market,
-                    year,
-                    make,
-                    trim,
-                    style,
-                    body_type,
-                    msrp
-                )
+                    vin_pattern = info['VIN_PATTERN']
+                    vehicle_id = int(info['VEHICLE_ID'])
+                    market = info['MARKET']
+                    year = int(info['YEAR'])
+                    make = info['MAKE']
+                    model = info['MODEL']
+                    trim = info['TRIM']
+                    style = info['STYLE']
+                    body_type = info['BODY_TYPE']
+                    msrp = float(info['MSRP'])  if info['MSRP'] != '' else None
 
-                tuples.append(tuple)
+                    tuple = (
+                        s3_id,
+                        vin_pattern,
+                        vehicle_id,
+                        market,
+                        year,
+                        make,
+                        model,
+                        trim,
+                        style,
+                        body_type,
+                        msrp
+                    )
 
+                    tuples.append(tuple)
 
+            if len(tuples) > 0:
+                with connection.cursor() as cursor:
+                    psycopg2.extras.execute_values(cursor, insert_query, tuples)

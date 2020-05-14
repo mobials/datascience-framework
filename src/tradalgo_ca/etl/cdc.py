@@ -13,7 +13,7 @@ import os
 import gzip
 import resource
 
-script = os.path.basename(__file__)
+script = os.path.basename(__file__)[:-3]
 
 cdc_insert_query =  '''
                         INSERT INTO
@@ -39,7 +39,7 @@ cdc_insert_query =  '''
 
 s3_completed_files = []
 with postgreshandler.get_tradalgo_canada_connection() as connection:
-    for file in postgreshandler.get_s3_completed_files(connection,script):
+    for file in postgreshandler.get_s3_scanned_files(connection,script):
         s3_completed_files.append(file)
     s3_completed_files = set(s3_completed_files)
 
@@ -51,6 +51,7 @@ versions = s3.Bucket(s3_cdc_ca_bucket).object_versions.filter(Prefix=s3_cdc_ca_k
 
 for version in versions:
     last_modified = version.last_modified
+    print(last_modified)
     if last_modified < utility.add_days(datetime.datetime.utcnow().replace(tzinfo=pytz.utc),-365):
         continue
     file = s3_cdc_ca_bucket + '/' + s3_cdc_ca_key + '/' + version.version_id
@@ -65,17 +66,9 @@ for version in versions:
             tuples = {}
 
             column_headings = None
-            count = 0
             for line in gzipfile:
-                count += 1
                 text = line.decode()
                 split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter=',', quotechar='"'))[0]]
-
-                # #strip out double quotes
-                # for item_index in range(len(split_text)):
-                #     t = split_text[item_index]
-                #     if split_text[item_index].startswith('"') and split_text[item_index].endswith('"'):
-                #         split_text[item_index] = split_text[item_index][1:-1]
 
                 if not column_headings:
                     column_headings = split_text
@@ -107,6 +100,10 @@ for version in versions:
                     continue
 
                 status_date = datetime.datetime.strptime(info['status_date_dts'], "%Y-%m-%dT%H:%M:%SZ")
+
+                if status_date < utility.add_days(datetime.datetime.utcnow(),-365):
+                    continue
+
                 vin = info['vin_ss']
                 taxonomy_vin = info['taxonomy_vin_ss']
                 original_body_type = info['body_type_ss'].strip()
@@ -128,17 +125,13 @@ for version in versions:
                 else:
                     tuples[tuple] = (status_date,taxonomy_vin,body_type,trim_orig,s3_id)
 
-                # if len(tuples) == 20000:
-                #     break
-                # print(count)
-
             tuples = [key + value for key,value in tuples.items()]
 
             if len(tuples) > 0:
                 with connection.cursor() as cursor:
                     psycopg2.extras.execute_values(cursor, cdc_insert_query, tuples)
 
-            max = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-            print(max*0.000001)
+            #max = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            #print(max*0.000001)
 
 #print('finished')

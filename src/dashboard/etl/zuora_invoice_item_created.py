@@ -28,7 +28,7 @@ insert_query =  '''
 
 s3_completed_files = []
 with postgreshandler.get_dashboard_connection() as connection:
-    for file in postgreshandler.get_s3_completed_files(connection,script):
+    for file in postgreshandler.get_s3_scanned_files(connection,script):
         s3_completed_files.append(file)
     s3_completed_files = set(s3_completed_files)
 

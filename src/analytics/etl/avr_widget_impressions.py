@@ -13,11 +13,13 @@ import psycopg2.extras
 import utility
 import pytz
 
+import time
+
 script = os.path.basename(__file__)[:-3]
 
 insert_query =  '''
                     INSERT INTO
-                        avr_widget_impressions_daily
+                        {0}
                     (
                         s3_id,
                         date,
@@ -25,17 +27,18 @@ insert_query =  '''
                         integration_settings_id,
                         ip_address,
                         product,
-                        device_type
+                        device_type,
+                        referrer_url
                     )
                     VALUES
                         %s
-                    ON CONFLICT ON CONSTRAINT avr_widget_impressions_daily_pk
+                    ON CONFLICT ON CONSTRAINT {0}_pk
                     DO NOTHING
-                '''
+                '''.format(script)
 
 s3_completed_files = []
 with postgreshandler.get_analytics_connection() as connection:
-    for file in postgreshandler.get_s3_completed_files(connection,script):
+    for file in postgreshandler.get_s3_scanned_files(connection,script):
         s3_completed_files.append(file)
     s3_completed_files = set(s3_completed_files)
 
@@ -73,13 +76,14 @@ for object_summary in objects:
                     continue
                 if info['event_name'] != 'avr.widget.impression':
                     continue
-                happened_at = datetime.datetime.strptime(info['happened_at'], "%Y-%m-%dT%H:%M:%S+00:00")
-                date = utility.get_day(happened_at)
+
+                date = datetime.datetime.strptime(info['happened_at'], "%Y-%m-%dT%H:%M:%S+00:00")
                 master_business_id = info['master_business_id']
                 integration_settings_id = info['integration_settings_id']
                 ip_address = info['ip_address']
-                product = info['product']
+                product = 'reviews' if info['product'] == 'home' else info['product']
                 device_type = info['deviceType'] if 'deviceType' in info else 'unknown'
+                referrer_url = info['referrerUrl'] if 'referrerUrl' in info and info['referrerUrl'] != None and info['referrerUrl'] != '' else None
                 tuple = (
                             s3_id,
                             date,
@@ -88,13 +92,14 @@ for object_summary in objects:
                             ip_address,
                             product,
                             device_type,
+                            referrer_url,
                 )
 
                 tuples.append(tuple)
-    tuples = set(tuples)
-    if len(tuples) > 0:
-        with postgreshandler.get_datascience_connection() as connection:
-            with connection.cursor() as cursor:
-                psycopg2.extras.execute_values(cursor,insert_query,tuples)
 
+            tuples = set(tuples)
+
+            if len(tuples) > 0:
+                with connection.cursor() as cursor:
+                    psycopg2.extras.execute_values(cursor,insert_query,tuples)
 
