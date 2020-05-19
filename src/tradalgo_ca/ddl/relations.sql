@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS cdc (
 	trim_orig text NULL,
 	miles double precision NOT NULL,
 	price double precision NOT NULL,
-	CONSTRAINT cdc_vin_miles_price_pk PRIMARY KEY (vin,miles,price)
+	CONSTRAINT cdc_vin_pk PRIMARY KEY (vin)
 );
 
 CREATE INDEX IF NOT EXISTS cdc_tax_vin_idx ON cdc(taxonomy_vin);
@@ -37,30 +37,59 @@ CREATE TABLE IF NOT EXISTS dataone (
     CONSTRAINT  dataone_vin_pat_veh_id_idx PRIMARY KEY (vin_pattern,vehicle_id)
 );
 
+CREATE TABLE IF NOT EXISTS sessions
+(
+	id BIGSERIAL NOT NULL,
+	session_info jsonb NOT NULL,
+	CONSTRAINT sessions_pk PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS list_price_models
+(
+    session_id  BIGINT REFERENCES sessions (id) ON DELETE CASCADE,
+    vin_pattern text  NOT NULL,
+    vehicle_id  BIGINT   NOT NULL,
+    model_info        jsonb NOT NULL,
+    CONSTRAINT list_price_models_pk PRIMARY KEY (session_id,vin_pattern,vehicle_id)
+);
+
+CREATE TABLE IF NOT EXISTS list_price_model_training_data
+(
+  session_id BIGINT REFERENCES sessions (id) ON DELETE CASCADE,
+  vin_pattern text NOT NULL,
+  vehicle_id BIGINT NOT NULL,
+  dataone_s3_id BIGINT,
+  cdc_s3_id BIGINT,
+  status text NOT NULL
+);
+
 CREATE OR REPLACE VIEW v_active_queries AS
-    SELECT pg_stat_activity.datid,
-    pg_stat_activity.datname,
-    pg_stat_activity.pid,
-    pg_stat_activity.usesysid,
-    pg_stat_activity.usename,
-    pg_stat_activity.application_name,
-    pg_stat_activity.client_addr,
-    pg_stat_activity.client_hostname,
-    pg_stat_activity.client_port,
-    pg_stat_activity.backend_start,
-    pg_stat_activity.xact_start,
-    pg_stat_activity.query_start,
-    pg_stat_activity.state_change,
-    pg_stat_activity.wait_event_type,
-    pg_stat_activity.wait_event,
-    pg_stat_activity.state,
-    pg_stat_activity.backend_xid,
-    pg_stat_activity.backend_xmin,
-    pg_stat_activity.query,
-    pg_stat_activity.backend_type,
-    now() - pg_stat_activity.query_start AS running_time
-   FROM pg_stat_activity
-  WHERE pg_stat_activity.state = 'active'::text;
+    SELECT
+        datid,
+        datname,
+        pid,
+        usesysid,
+        usename,
+        application_name,
+        client_addr,
+        client_hostname,
+        client_port,
+        backend_start,
+        xact_start,
+        query_start,
+        state_change,
+        wait_event_type,
+        wait_event,
+        state,
+        backend_xid,
+        backend_xmin,
+        query,
+        backend_type,
+        now() - query_start AS running_time
+    FROM
+        pg_stat_activity
+    WHERE
+        state = 'active';
 
 
 CREATE OR REPLACE VIEW v_blocking_statements AS
@@ -79,31 +108,32 @@ CREATE OR REPLACE VIEW v_blocking_statements AS
 
 CREATE OR REPLACE VIEW v_vacuum_stats AS
     SELECT
-           pg_stat_user_tables.relid,
-        pg_stat_user_tables.schemaname,
-        pg_stat_user_tables.relname,
-        pg_stat_user_tables.seq_scan,
-        pg_stat_user_tables.seq_tup_read,
-        pg_stat_user_tables.idx_scan,
-        pg_stat_user_tables.idx_tup_fetch,
-        pg_stat_user_tables.n_tup_ins,
-        pg_stat_user_tables.n_tup_upd,
-        pg_stat_user_tables.n_tup_del,
-        pg_stat_user_tables.n_tup_hot_upd,
-        pg_stat_user_tables.n_live_tup,
-        pg_stat_user_tables.n_dead_tup,
-        pg_stat_user_tables.n_mod_since_analyze,
-        pg_stat_user_tables.last_vacuum,
-        pg_stat_user_tables.last_autovacuum,
-        pg_stat_user_tables.last_analyze,
-        pg_stat_user_tables.last_autoanalyze,
-        pg_stat_user_tables.vacuum_count,
-        pg_stat_user_tables.autovacuum_count,
-        pg_stat_user_tables.analyze_count,
-        pg_stat_user_tables.autoanalyze_count
+        relid,
+        schemaname,
+        relname,
+        seq_scan,
+        seq_tup_read,
+        idx_scan,
+        idx_tup_fetch,
+        n_tup_ins,
+        n_tup_upd,
+        n_tup_del,
+        n_tup_hot_upd,
+        n_live_tup,
+        n_dead_tup,
+        n_mod_since_analyze,
+        last_vacuum,
+        last_autovacuum,
+        last_analyze,
+        last_autoanalyze,
+        vacuum_count,
+        autovacuum_count,
+        analyze_count,
+        autoanalyze_count
    FROM
         pg_stat_user_tables
-  ORDER BY pg_stat_user_tables.n_dead_tup DESC;
+  ORDER BY
+        n_dead_tup DESC;
 
 CREATE OR REPLACE VIEW v_dataone_t1 AS
     SELECT
@@ -117,7 +147,8 @@ CREATE OR REPLACE VIEW v_dataone_t1 AS
         dataone.body_type,
         dataone.msrp,
         avg(dataone.msrp) OVER (PARTITION BY dataone.vin_pattern, dataone.market) AS vin_pattern_market_avg_msrp,
-        count(*) OVER (PARTITION BY dataone.vin_pattern) AS trims
+        count(*) OVER (PARTITION BY dataone.vin_pattern) AS trims,
+        s3_id
     FROM
         dataone;
 
@@ -132,9 +163,13 @@ CREATE OR REPLACE VIEW v_training_set AS
         v_dataone_t1.trim,
         v_dataone_t1."style",
         v_dataone_t1.body_type,
+        v_dataone_t1.msrp,
         cdc.miles,
         cdc.price,
-        count(*) OVER (PARTITION BY vin_pattern,vehicle_id) AS vehicles
+        count(*) OVER (PARTITION BY vin_pattern,vehicle_id) AS vehicles,
+        rank() OVER (PARTITION BY v_dataone_t1.vin_pattern,v_dataone_t1.vehicle_id ORDER BY cdc.status_date DESC) AS rank,
+        v_dataone_t1.s3_id as dataone_s3_id,
+        cdc.s3_id as cdc_s3_id
     FROM
         v_dataone_t1,
         cdc
@@ -158,3 +193,46 @@ CREATE OR REPLACE VIEW v_training_set AS
                 v_dataone_t1.body_type = cdc.body_type
         )
     );
+
+CREATE OR REPLACE VIEW v_table_size as
+	SELECT a.oid,
+        a.table_schema,
+        a.table_name,
+        a.row_estimate,
+        a.total_bytes,
+        a.index_bytes,
+        a.toast_bytes,
+        a.table_bytes,
+        pg_size_pretty(a.total_bytes) AS total,
+        pg_size_pretty(a.index_bytes) AS index,
+        pg_size_pretty(a.toast_bytes) AS toast,
+        pg_size_pretty(a.table_bytes) AS "table"
+   FROM ( SELECT a_1.oid,
+            a_1.table_schema,
+            a_1.table_name,
+            a_1.row_estimate,
+            a_1.total_bytes,
+            a_1.index_bytes,
+            a_1.toast_bytes,
+            a_1.total_bytes - a_1.index_bytes - COALESCE(a_1.toast_bytes, 0::bigint) AS table_bytes
+           FROM ( SELECT c.oid,
+                    n.nspname AS table_schema,
+                    c.relname AS table_name,
+                    c.reltuples AS row_estimate,
+                    pg_total_relation_size(c.oid::regclass) AS total_bytes,
+                    pg_indexes_size(c.oid::regclass) AS index_bytes,
+                    pg_total_relation_size(c.reltoastrelid::regclass) AS toast_bytes
+                   FROM pg_class c
+                     LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+                  WHERE c.relkind = 'r'::"char") a_1) a
+  ORDER BY a.total_bytes DESC;
+
+CREATE OR REPLACE VIEW v_relation_size AS
+    SELECT n.nspname,
+        c.relname,
+        pg_size_pretty(pg_relation_size(c.oid::regclass)) AS size
+   FROM pg_class c
+     LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname <> ALL (ARRAY['pg_catalog'::name, 'information_schema'::name])
+  ORDER BY (pg_relation_size(c.oid::regclass)) desc;
+

@@ -30,11 +30,16 @@ cdc_insert_query =  '''
                         )
                         VALUES 
                             %s
-                        ON CONFLICT ON CONSTRAINT cdc_vin_miles_price_pk
+                        ON CONFLICT ON CONSTRAINT cdc_vin_pk
                         DO UPDATE 
                         SET 
-                            status_date = case when cdc.status_date > EXCLUDED.status_date then cdc.status_date else EXCLUDED.status_date end,
-                            s3_id = case when cdc.status_date > EXCLUDED.status_date then cdc.s3_id else EXCLUDED.s3_id end
+                            status_date = case when cdc.status_date < EXCLUDED.status_date then EXCLUDED.status_date else cdc.status_date end,
+                            s3_id = case when cdc.status_date < EXCLUDED.status_date then EXCLUDED.s3_id else cdc.s3_id end,
+                            miles = case when cdc.status_date < EXCLUDED.status_date then EXCLUDED.miles else cdc.miles end,
+                            price = case when cdc.status_date < EXCLUDED.status_date then EXCLUDED.price else cdc.price end,
+                            body_type = case when cdc.status_date < EXCLUDED.status_date then EXCLUDED.body_type else cdc.body_type end,
+                            trim_orig = case when cdc.status_date < EXCLUDED.status_date then EXCLUDED.trim_orig else cdc.trim_orig end,
+                            taxonomy_vin = case when cdc.status_date < EXCLUDED.status_date then EXCLUDED.taxonomy_vin else cdc.taxonomy_vin end
                     '''
 
 s3_completed_files = []
@@ -52,8 +57,6 @@ versions = s3.Bucket(s3_cdc_ca_bucket).object_versions.filter(Prefix=s3_cdc_ca_k
 for version in versions:
     last_modified = version.last_modified
     print(last_modified)
-    if last_modified < utility.add_days(datetime.datetime.utcnow().replace(tzinfo=pytz.utc),-365):
-        continue
     file = s3_cdc_ca_bucket + '/' + s3_cdc_ca_key + '/' + version.version_id
     if file in s3_completed_files:
         continue
@@ -99,39 +102,33 @@ for version in versions:
                 if price < 500:
                     continue
 
-                status_date = datetime.datetime.strptime(info['status_date_dts'], "%Y-%m-%dT%H:%M:%SZ")
-
-                if status_date < utility.add_days(datetime.datetime.utcnow(),-365):
+                if price == miles:
                     continue
+
+                status_date = datetime.datetime.strptime(info['status_date_dts'], "%Y-%m-%dT%H:%M:%SZ")
 
                 vin = info['vin_ss']
                 taxonomy_vin = info['taxonomy_vin_ss']
                 original_body_type = info['body_type_ss'].strip()
                 vehicle_type = info['vehicle_type_ss'].strip()
                 body_type = utility.cdc_body_type_to_dataone(original_body_type,vehicle_type) if original_body_type is not '' else None
-                trim_orig = info['trim_orig_ss'] if info['trim_orig_ss'] is not '' else None
+                trim_orig = info['trim_orig_ss'] if 'trim_orig_ss' in info and info['trim_orig_ss'] is not '' else None
 
                 tuple = (
                     vin,
-                    miles,
-                    price,
                 )
 
                 if tuple in tuples:
                     existing_values = tuples[tuple]
-                    existing_status_date = existing_values[0]
-                    if existing_status_date > status_date:
-                        tuples[tuple] = (status_date,taxonomy_vin,body_type,trim_orig,s3_id)
+                    existing_status_date = existing_values[2]
+                    if existing_status_date < status_date:
+                        tuples[tuple] = (miles,price,status_date,taxonomy_vin,body_type,trim_orig,s3_id)
                 else:
-                    tuples[tuple] = (status_date,taxonomy_vin,body_type,trim_orig,s3_id)
+                    tuples[tuple] = (miles,price,status_date,taxonomy_vin,body_type,trim_orig,s3_id)
 
             tuples = [key + value for key,value in tuples.items()]
+
 
             if len(tuples) > 0:
                 with connection.cursor() as cursor:
                     psycopg2.extras.execute_values(cursor, cdc_insert_query, tuples)
-
-            #max = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-            #print(max*0.000001)
-
-#print('finished')

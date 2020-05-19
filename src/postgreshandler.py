@@ -1,8 +1,9 @@
-import psycopg2
 import sys
 sys.path.append('/var/www/datascience-framework/src/')
 import settings
 import datetime
+import psycopg2
+import psycopg2.extras
 
 def get_dashboard_connection():
     connection_string = {
@@ -201,10 +202,31 @@ def create_table_from_delimited_file(connection,schema,file_path,delimiter=',',q
                 tuples.append(tuple(row))
                 print(len(tuples))
 
-
         if len(tuples) > 0:
             with connection.cursor() as cursor:
                 print('inserting data')
                 psycopg2.extras.execute_values(cursor, insert_query, tuples)
+
+def insert_tradalgo_session(connection,session_info):
+    query = '''
+                    INSERT INTO
+                        sessions
+                    (
+                        session_info
+                    )
+                    VALUES
+                    (
+                        %(session_info)s
+                    )
+                    RETURNING 
+                        id
+                '''
+    _session_info = psycopg2.extras.Json(session_info)
+    with connection.cursor() as cursor:
+        cursor.execute(query, {'session_info': _session_info})
+        result = cursor.fetchone()
+        if result is not None and result[0] is not None:
+            result = result[0]
+            return result
 
 

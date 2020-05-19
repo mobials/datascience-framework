@@ -147,7 +147,7 @@ if object.last_modified > last_modified:
                     trim = info['TRIM']
                     style = info['STYLE']
                     body_type = info['BODY_TYPE']
-                    msrp = float(info['MSRP'])  if info['MSRP'] != '' else None
+                    msrp = float(info['MSRP'])  if info['MSRP'] != '' and info['MSRP'] != 0 else None
 
                     tuple = (
                         s3_id,
