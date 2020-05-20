@@ -8,15 +8,11 @@
   become: yes
   become_user: root
 
-# now we revert ownership back to ubuntu so that it can use the files as normal without having to be a root user
-- name: ensure ownership belongs to ubuntu user
-  file:
-    path: "{{ app_deploy_directory }}"
-    owner: ubuntu
-    group: ubuntu
-    recurse: yes
-  become: yes
-  become_user: root
+- name: stop supervisor
+  service:
+    name: supervisor
+    state: stopped
+  become: true
 
 # we download the repo as the root user in order to maintain our ssh-agent key forwarding. This is a bit of a flaw
 # with ansible in general...
@@ -28,23 +24,41 @@
     force: yes
     accept_hostkey: yes
 
-# now we revert ownership back to airflow so that it can use the files as normal without having to be a root user
-- name: revert ownership back to airflow user
-  file:
-    path: "{{ app_deploy_directory }}"
-    owner: airflow
-    group: airflow
-    recurse: yes
-  become: yes
-  become_user: root
-
 # copy over our template files to the appropriate directories
 - name: create our .env files for the project
   template:
-    src: "{{inventory_dir}}/../templates/.env.j2"
+    src: "{{ inventory_dir }}/templates/.env.j2"
     dest: "{{ app_deploy_directory }}/.env"
-    owner: airflow
-    group: airflow
+    owner: ubuntu
+    group: ubuntu
     mode: '0666'
   become: yes
   become_user: root
+
+- name: Install requirements
+  pip:
+    executable: /usr/bin/pip3
+    requirements: "{{ app_deploy_directory }}/requirements.txt"
+
+- name: Copy supervisor config
+  template:
+    src: "{{ etl_home }}/config/etls.conf"
+    dest: "/etc/supervisor/conf.d/etls.conf"
+
+
+- name: Copy supervisor config
+  copy:
+    src: "{{ item }}"
+    dest: /etc/supervisor/conf.d/
+    owner: root
+    mode: 0666
+  become: yes
+  become_user: root
+  with_fileglob:
+    - "{{ etl_home }}/config/*"
+
+- name: reload supervisor
+  service:
+    name: supervisor
+    state: reloaded
+  become: true

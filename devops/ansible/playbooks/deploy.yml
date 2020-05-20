@@ -51,7 +51,6 @@
       with_items: "{{ ec2.instances }}"
 
 
-# necessary step as we wait on ec2
 - hosts: tag_service_etl
   name: Install the application and create users
   gather_facts: no
@@ -59,20 +58,10 @@
     - name: Wait for system to become reachable
       wait_for_connection:
       register: connection_result
-
     - name: Gather facts for first time
       setup:
   roles:
     - install-app
-
-
-- hosts: tag_service_etl
-  name: airflow and the etls
-  gather_facts: no
-  become: true
-  roles:
-    - airflow
-    - etl
 
 
 # send slack notification for completed deployment
