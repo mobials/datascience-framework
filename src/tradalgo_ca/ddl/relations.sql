@@ -58,8 +58,9 @@ CREATE TABLE IF NOT EXISTS list_price_model_training_data
   session_id BIGINT REFERENCES sessions (id) ON DELETE CASCADE,
   vin_pattern text NOT NULL,
   vehicle_id BIGINT NOT NULL,
-  dataone_s3_id BIGINT,
-  cdc_s3_id BIGINT,
+  dataone_s3_id BIGINT NOT NULL,
+  cdc_s3_id BIGINT NOT NULL,
+  vin text NOT NULL,
   status text NOT NULL
 );
 
@@ -236,3 +237,11 @@ CREATE OR REPLACE VIEW v_relation_size AS
   WHERE n.nspname <> ALL (ARRAY['pg_catalog'::name, 'information_schema'::name])
   ORDER BY (pg_relation_size(c.oid::regclass)) desc;
 
+create table if not exists scheduler
+(
+    script text not null,
+    start_date timestamptz not null,
+    frequency interval not null,
+    status text,
+    active boolean default FALSE
+)
