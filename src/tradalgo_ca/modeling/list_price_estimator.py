@@ -15,8 +15,7 @@ import matplotlib.pyplot
 import pyod
 import psycopg2
 import psycopg2.extras
-
-#pandas.options.mode.chained_assignment = None
+import copy
 
 def get_msrp_outliers(vehicle_data,multiplier):
     result = vehicle_data[(vehicle_data.msrp > 0) & (vehicle_data.price > vehicle_data.msrp * multiplier)]
@@ -26,7 +25,6 @@ def get_msrp_outliers(vehicle_data,multiplier):
 def get_price_outliers(vehicle_data,multiplier):
     avg = numpy.mean(vehicle_data.price)
     result = vehicle_data[(vehicle_data.price > (avg * multiplier))]
-    #vehicle_data.loc[(vehicle_data.price > (avg * multiplier)),'status'] = status_map['outlier']
     return result
 
 def get_elliptic_envelope_outliers(training_set_data, features):
@@ -52,17 +50,38 @@ def get_outliers(training_set,session_info):
             raise NotImplementedError(method)
     return result
 
+# def plot_outliers(training_set,session_info):
+#     categories = []
+#     for index in training_set_data.index:
+#         if outliers.index.contains(index):
+#             categories.append(1)
+#         else:
+#             categories.append(0)
+#
+#     matplotlib.pyplot.scatter(
+#         training_set_data[session_info['features']].values.flatten(),
+#         training_set_data[session_info['target']].values.flatten(),
+#         c = numpy.array(categories)
+#     )
+#
+#     m, b = numpy.polyfit(training_set_data.drop(outliers.index)[session_info['features']].values.flatten(), training_set_data.drop(outliers.index)[session_info['target']].values.flatten(), 1)
+#
+#     matplotlib.pyplot.plot(training_set_data.drop(outliers.index)[session_info['features']].values.flatten(), m * training_set_data.drop(outliers.index)[session_info['features']].values.flatten() + b)
+#     matplotlib.pyplot.show()
 
-maximum_vehicles = 200000
-minimium_vehicles = 20
+maximum_vehicles = 100
+minimium_vehicles = 15
 
 training_set_query =    '''
                             SELECT 
                                 *
                             FROM
                                 v_training_set
-                            --LIMIT 362
-                        '''
+                            WHERE
+                                rank <= {0}
+                        '''.format(maximum_vehicles)
+
+#training_set_query = '''select * from m_training_set_hyundai'''
 
 list_price_model_insert_query =    '''
                                         INSERT INTO
@@ -86,6 +105,7 @@ list_price_model_training_data_insert_query =    '''
                                                         vehicle_id,
                                                         dataone_s3_id,
                                                         cdc_s3_id,
+                                                        vin,
                                                         status
                                                     )
                                                     VALUES 
@@ -109,11 +129,12 @@ session_info = {
                             'method': 'msrp',
                             'multiplier':1.5
                         },
-{
+                        {
                             'method': 'price',
                             'multiplier':3
                         }
-                    ]
+                    ],
+                    'match_msrp_multiplier':0.05
                 }
 
 status_map = {
@@ -134,12 +155,14 @@ with postgreshandler.get_tradalgo_canada_connection() as connection:
     training_set_grouping = training_set.groupby(session_info['vehicle_grouping_features'])
     total_vehicles = len(training_set_grouping)
     list_price_model_tuples = []
+    modelled_keys = []
 
-    modelled_count = 0
+    modelled_vehicles = {}
+    matched_vehicles = {}
     vehicle_count = 0
     for vehicle_key, vehicle_data in training_set_grouping:
         vehicle_count += 1
-        print(modelled_count,vehicle_count,total_vehicles)
+        print(len(modelled_vehicles),len(matched_vehicles),len(modelled_vehicles) + len(matched_vehicles), vehicle_count,total_vehicles)
 
         vehicles = len(vehicle_data)
         if vehicles < session_info['minimum_vehicles']:
@@ -153,29 +176,8 @@ with postgreshandler.get_tradalgo_canada_connection() as connection:
 
         outlier_count = len(outlier_indices)
         if len(vehicle_data) - outlier_count < session_info['minimum_vehicles']:
-            training_set.loc[~vehicle_data.index.isin(outlier_indices),'status'] = status_map['too few vehicles']
+            training_set.loc[vehicle_data.drop(outlier_indices).index,'status'] = status_map['too few vehicles']
             continue
-
-        #uncomment this if you want to look at outlier removal
-        # categories = []
-        # for index in training_set_data.index:
-        #     if outliers.index.contains(index):
-        #         categories.append(1)
-        #     else:
-        #         categories.append(0)
-        #
-        # matplotlib.pyplot.scatter(
-        #     training_set_data[session_info['features']].values.flatten(),
-        #     training_set_data[session_info['target']].values.flatten(),
-        #     c = numpy.array(categories)
-        # )
-        #
-        # m, b = numpy.polyfit(training_set_data.drop(outliers.index)[session_info['features']].values.flatten(), training_set_data.drop(outliers.index)[session_info['target']].values.flatten(), 1)
-        #
-        # matplotlib.pyplot.plot(training_set_data.drop(outliers.index)[session_info['features']].values.flatten(), m * training_set_data.drop(outliers.index)[session_info['features']].values.flatten() + b)
-        # matplotlib.pyplot.show()
-        # h = 1
-        # continue
 
         X = vehicle_data.drop(outlier_indices)[session_info['features']]
         y = vehicle_data.drop(outlier_indices)[session_info['target']]
@@ -184,26 +186,23 @@ with postgreshandler.get_tradalgo_canada_connection() as connection:
 
         #check if valid model
         if not model.coef_[0] < 0:
-            training_set.loc[~vehicle_data.index.isin(outlier_indices),'status'] = status_map['bad coefficient']
+            training_set.loc[vehicle_data.drop(outlier_indices).index,'status'] = status_map['bad coefficient']
             continue
 
         if  float(model.intercept_[0]) < 0:
-            training_set.loc[~vehicle_data.index.isin(outlier_indices),'status'] = status_map['bad intercept']
+            training_set.loc[vehicle_data.drop(outlier_indices).index,'status'] = status_map['bad intercept']
             continue
 
         proportion_lost = -1 * session_info['depreciation_mileage'] * model.coef_[0] / model.intercept_
         if proportion_lost < session_info['minimum_depreciation']:
-            training_set.loc[~vehicle_data.index.isin(outlier_indices),'status'] = status_map['depreciation too slow']
+            training_set.loc[vehicle_data.drop(outlier_indices).index,'status'] = status_map['depreciation too slow']
             continue
 
         if proportion_lost > session_info['maximum_depreciation']:
-            training_set.loc[~vehicle_data.index.isin(outlier_indices),'status'] = status_map['depreciation too fast']
+            training_set.loc[vehicle_data.drop(outlier_indices).index,'status'] = status_map['depreciation too fast']
             continue
 
-        if outlier_count > 0:
-            training_set.loc[~vehicle_data.index.isin(outlier_indices),'status'] = status_map['included']
-        else:
-            training_set.loc[vehicle_data.index,'status'] = status_map['included']
+        training_set.loc[vehicle_data.drop(outlier_indices).index,'status'] = status_map['included']
 
         coef_dict = {}
         for coef, feat in zip(model.coef_[0, :], session_info['features']):
@@ -222,37 +221,142 @@ with postgreshandler.get_tradalgo_canada_connection() as connection:
         maximum_list_price = observed.max()
 
         model_info = {
+            'year':vehicle_data.iloc[0]['year'].item(),
+            'make': vehicle_data.iloc[0]['make'],
+            'model':vehicle_data.iloc[0]['model'],
+            'trim': vehicle_data.iloc[0]['trim'],
+            'style': vehicle_data.iloc[0]['style'],
+            'body_type':vehicle_data.iloc[0]['body_type'],
             'coefficients': coef_dict,
             'intercept': float(model.intercept_[0]),
-            'stats': {
-                'r2': r2,
-                'mean_squared_error': mse,
-                'mean_absolute_error': mae,
-                'size': size,
-                'msrp': msrp if not numpy.isnan(msrp) else None,
-                'mean_observed_list_price': mean_observed_list_price,
-                'mean_predicted_list_price': mean_predicted_list_price,
-                'minimum_list_price': float(minimum_list_price),
-                'maximum_list_price': float(maximum_list_price)
-            }
+            'r2': r2,
+            'mean_squared_error': mse,
+            'mean_absolute_error': mae,
+            'size': size,
+            'msrp': msrp if not numpy.isnan(msrp) else None,
+            'mean_observed_list_price': mean_observed_list_price,
+            'mean_predicted_list_price': mean_predicted_list_price,
+            'minimum_list_price': float(minimum_list_price),
+            'maximum_list_price': float(maximum_list_price),
+            'tier':0
         }
 
-        list_price_model_tuples.append(
-            (
-                session_id,
-                vehicle_key[0],
-                int(vehicle_key[1]),
-                psycopg2.extras.Json(model_info),
-            )
-        )
+        modelled_vehicles[vehicle_key] = model_info
 
-        modelled_count += 1
+    for vehicle_key,vehicle_data in training_set_grouping:
+        print(len(modelled_vehicles),len(matched_vehicles),len(modelled_vehicles) + len(matched_vehicles), vehicle_count,total_vehicles)
+        if vehicle_key in modelled_vehicles.keys():
+            continue
 
+        #let's try to find a similar vehicle that's already been modelled
+        year = vehicle_data.iloc[0]['year'].item()
+        make = vehicle_data.iloc[0]['make']
+        model = vehicle_data.iloc[0]['model']
+        trim = vehicle_data.iloc[0]['trim']
+        body_type = vehicle_data.iloc[0]['body_type']
+        style = vehicle_data.iloc[0]['style']
+        msrp = vehicle_data['msrp'].mean()
+
+        matched_key = None
+        tier = None
+        if not numpy.isnan(msrp):
+            #we have msrp
+            #find matches on year, make, model, msrp +=
+            max_msrp = msrp + msrp*session_info['match_msrp_multiplier']
+            min_msrp = msrp - msrp*session_info['match_msrp_multiplier']
+
+            matches = [(key, abs(value['msrp']-msrp)) for key, value in modelled_vehicles.items()
+                       if
+                           value['msrp'] is not None and
+                           value['year'] == year and
+                           value['make'] == make and
+                           value['model'] == model and
+                           value['msrp'] <= max_msrp and
+                           value['msrp'] >= min_msrp
+                       ]
+
+            if len(matches) > 0:
+                min_diff = min([x[1] for x in matches])
+                min_diff_index = [x[1] for x in matches].index(min_diff)
+                matched_key = matches[min_diff_index][0]
+                tier = 1
+            else:
+                matches = [(key, abs(value['msrp'] - msrp)) for key, value in modelled_vehicles.items()
+                           if
+                           value['msrp'] is not None and
+                           value['year'] == year and
+                           value['make'] == make and
+                           value['body_type'] == body_type and
+                           value['msrp'] <= max_msrp and
+                           value['msrp'] >= min_msrp
+                           ]
+
+                if len(matches) > 0:
+                    min_diff = min([x[1] for x in matches])
+                    min_diff_index = [x[1] for x in matches].index(min_diff)
+                    matched_key = matches[min_diff_index][0]
+                    tier = 2
+                else:
+                    matches = [(key, abs(value['msrp'] - msrp)) for key, value in modelled_vehicles.items()
+                               if
+                               value['msrp'] is not None and
+                               value['year'] == year - 1 and
+                               value['make'] == make and
+                               value['model'] == model and
+                               value['trim'] == trim and
+                               value['msrp'] <= max_msrp and
+                               value['msrp'] >= min_msrp
+                               ]
+
+                    if len(matches) > 0:
+                        min_diff = min([x[1] for x in matches])
+                        min_diff_index = [x[1] for x in matches].index(min_diff)
+                        matched_key = matches[min_diff_index][0]
+                        tier = 3
+                    else:
+                        matches = [(key, abs(value['msrp'] - msrp)) for key, value in modelled_vehicles.items()
+                                   if
+                                   value['msrp'] is not None and
+                                   value['year'] == year and
+                                   value['body_type'] == body_type and
+                                   value['msrp'] <= max_msrp and
+                                   value['msrp'] >= min_msrp
+                                   ]
+
+                        if len(matches) > 0:
+                            min_diff = min([x[1] for x in matches])
+                            min_diff_index = [x[1] for x in matches].index(min_diff)
+                            matched_key = matches[min_diff_index][0]
+                            tier = 5
+        else:
+            #no msrp
+            matches = [key for key, value in modelled_vehicles.items()
+                       if
+                       value['year'] == year and
+                       value['make'] == make and
+                       value['model'] == model and
+                       value['trim'] == trim
+                       ]
+
+            if len(matches) > 0:
+                matched_key = matches[0]
+                tier = 4
+
+        if matched_key is not None:
+            model_info = copy.deepcopy(modelled_vehicles[matched_key])
+            model_info['tier'] = tier
+            model_info['match'] = (matched_key[0],int(matched_key[1]))
+            matched_vehicles[vehicle_key] = model_info
+
+    modelled_vehicle_tuples = [(session_id,key[0],int(key[1]),psycopg2.extras.Json(value)) for key,value in modelled_vehicles.items()]
+    matched_vehicle_tuples = [(session_id,key[0],int(key[1]),psycopg2.extras.Json(value)) for key,value in matched_vehicles.items()]
+    list_price_model_tuples = modelled_vehicle_tuples + matched_vehicle_tuples
     print('inserting...')
     if len(list_price_model_tuples) > 0:
-        list_price_model_training_data_tuples = list(training_set[['session_id','vin_pattern','vehicle_id','dataone_s3_id','cdc_s3_id','status']].itertuples(index=False,name=None))
+        list_price_model_training_data_tuples = list(training_set[['session_id','vin_pattern','vehicle_id','dataone_s3_id','cdc_s3_id','vin','status']].itertuples(index=False,name=None))
         with connection.cursor() as cursor:
             psycopg2.extras.execute_values(cursor, list_price_model_insert_query, list_price_model_tuples)
             psycopg2.extras.execute_values(cursor, list_price_model_training_data_insert_query,list_price_model_training_data_tuples)
 
 print('finished')
+

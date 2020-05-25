@@ -20,14 +20,6 @@ CREATE TABLE IF NOT EXISTS avr_widget_impressions(
     CONSTRAINT avr_widget_impressions_pk PRIMARY KEY (ip_address,date,product,integration_settings_id,master_business_id,device_type)
 );
 
-CREATE TABLE IF NOT EXISTS event_names_key_dates(
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
-    event_name TEXT NOT NULL,
-    first_date TIMESTAMPTZ NOT NULL,
-    last_date TIMESTAMPTZ NOT NULL,
-    CONSTRAINT event_name_key_dates_pk PRIMARY KEY (event_name)
-);
-
 CREATE INDEX IF NOT EXISTS avr_widget_impressions_s3_id_idx ON avr_widget_impressions (s3_id);
 CREATE INDEX IF NOT EXISTS avr_widget_impressions_date_idx ON avr_widget_impressions (date);
 
@@ -37,3 +29,33 @@ CREATE TABLE IF NOT EXISTS authenticom_sales_data (
 );
 
 ALTER TABLE avr_widget_impressions ADD COLUMN IF NOT EXISTS referrer_url TEXT;
+
+
+CREATE TABLE IF NOT EXISTS tradesii_leads (
+    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
+    payload jsonb
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS tradesii_leads_event_id_unq_idx ON tradesii_leads(((payload->>'event_id')::uuid));
+
+CREATE TABLE IF NOT EXISTS credsii_leads (
+    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
+    payload jsonb
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS credsii_leads_event_id_unq_idx ON credsii_leads(((payload->>'event_id')::uuid));
+
+CREATE TABLE IF NOT EXISTS insuresii_leads (
+    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
+    payload jsonb
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS insuresii_leads_event_id_unq_idx ON insuresii_leads(((payload->>'event_id')::uuid));
+
+CREATE TABLE IF NOT EXISTS reservesii_reservations (
+    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
+    payload jsonb
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS reservesii_reservations_event_id_unq_idx ON reservesii_reservations(((payload->>'event_id')::uuid));
+

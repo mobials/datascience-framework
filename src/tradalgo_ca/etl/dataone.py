@@ -11,6 +11,7 @@ import gzip
 import csv
 import re
 import psycopg2.extras
+import time
 
 script = os.path.basename(__file__)[:-3]
 
@@ -168,3 +169,6 @@ if object.last_modified > last_modified:
             if len(tuples) > 0:
                 with connection.cursor() as cursor:
                     psycopg2.extras.execute_values(cursor, insert_query, tuples)
+
+
+        #schedule sleep
