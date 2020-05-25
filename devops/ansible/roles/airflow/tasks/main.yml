@@ -81,6 +81,15 @@
     - restart_airflow_webserver
     - restart_airflow_scheduler
 
+- name: Change the max workers per dag
+  lineinfile:
+    path: "{{ airflow.home }}/airflow.cfg"
+    regexp: '^max_active_runs_per_dag = '
+    line: "max_active_runs_per_dag = 1"
+  notify: 
+    - restart_airflow_webserver
+    - restart_airflow_scheduler
+
 - name: Create the airflow webserver service
   template:
     src: airflow-webserver.service.j2
