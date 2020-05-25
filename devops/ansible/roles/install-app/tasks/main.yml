@@ -41,12 +41,6 @@
     requirements: "{{ app_deploy_directory }}/requirements.txt"
 
 - name: Copy supervisor config
-  template:
-    src: "{{ etl_home }}/config/etls.conf"
-    dest: "/etc/supervisor/conf.d/etls.conf"
-
-
-- name: Copy supervisor config
   copy:
     src: "{{ item }}"
     dest: /etc/supervisor/conf.d/
@@ -55,7 +49,7 @@
   become: yes
   become_user: root
   with_fileglob:
-    - "{{ etl_home }}/config/*"
+    - "{{ etl_home }}config/*"
 
 - name: reload supervisor
   service:
