@@ -51,7 +51,6 @@
       "playbook_dir": "ansible/",
       "clean_staging_directory": true,
       "galaxy_file": "ansible/roles/requirements.yml",
-      "group_vars": "ansible/inventories/{{ user `env` }}/group_vars/",
       "role_paths": ["ansible/roles"]
     }
   ]
