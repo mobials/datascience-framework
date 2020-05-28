@@ -11,7 +11,7 @@ import pytz
 from src.settings import *
 import os
 import gzip
-import resource
+import time
 
 script = os.path.basename(__file__)[:-3]
 
@@ -42,93 +42,137 @@ cdc_insert_query =  '''
                             taxonomy_vin = case when cdc.status_date < EXCLUDED.status_date then EXCLUDED.taxonomy_vin else cdc.taxonomy_vin end
                     '''
 
-s3_completed_files = []
-with postgreshandler.get_tradalgo_canada_connection() as connection:
-    for file in postgreshandler.get_s3_scanned_files(connection,script):
-        s3_completed_files.append(file)
-    s3_completed_files = set(s3_completed_files)
+while True:
+    schedule_info = None
+    scheduler_connection = postgreshandler.get_tradalgo_canada_connection()
+    schedule_info = postgreshandler.get_script_schedule(scheduler_connection, script)
+    if schedule_info is None:
+        raise Exception('Schedule not found.')
+    scheduler_connection.close()
 
-csv.field_size_limit(sys.maxsize)
+    now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+    last_run = schedule_info['last_run']
+    start_date = schedule_info['start_date']
+    frequency = schedule_info['frequency']
+    status = schedule_info['status']
+    last_update = schedule_info['last_update']
+    run_time = None
+    next_run = None
+    if last_run is None:
+        next_run = start_date
+    else:
+        next_run = utility.get_next_run(start_date, last_run, frequency)
 
-s3 = boto3.resource("s3")
+    if now < next_run:
+        seconds_between_now_and_next_run = (next_run - now).seconds
+        time.sleep(seconds_between_now_and_next_run)
+        continue  # continue here becuase it forces a second check on the scheduler, which may have changed during the time the script was asleep
 
-versions = s3.Bucket(s3_cdc_ca_bucket).object_versions.filter(Prefix=s3_cdc_ca_key)
+    start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+    etl_connection = postgreshandler.get_tradalgo_canada_connection()
+    try:
+        s3_completed_files = []
+        for file in postgreshandler.get_s3_scanned_files(etl_connection, script):
+            s3_completed_files.append(file)
+        s3_completed_files = set(s3_completed_files)
 
-for version in versions:
-    last_modified = version.last_modified
-    print(last_modified)
-    file = s3_cdc_ca_bucket + '/' + s3_cdc_ca_key + '/' + version.version_id
-    if file in s3_completed_files:
-        continue
-    obj = version.get()['Body']
-    with gzip.GzipFile(fileobj=obj) as gzipfile:
-        with postgreshandler.get_tradalgo_canada_connection() as connection:
+        csv.field_size_limit(sys.maxsize)
 
-            s3_id = postgreshandler.insert_s3_file(connection,script,file,last_modified)
+        s3 = boto3.resource("s3")
 
-            tuples = {}
+        versions = s3.Bucket(s3_cdc_ca_bucket).object_versions.filter(Prefix=s3_cdc_ca_key)
 
-            column_headings = None
-            for line in gzipfile:
-                text = line.decode()
-                split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter=',', quotechar='"'))[0]]
+        for version in versions:
+            last_modified = version.last_modified
+            print(last_modified)
+            file = s3_cdc_ca_bucket + '/' + s3_cdc_ca_key + '/' + version.version_id
+            if file in s3_completed_files:
+                continue
+            obj = version.get()['Body']
+            with gzip.GzipFile(fileobj=obj) as gzipfile:
+                s3_id = postgreshandler.insert_s3_file(etl_connection, script, file, last_modified)
 
-                if not column_headings:
-                    column_headings = split_text
-                    continue
-                else:
-                    info = dict(zip(column_headings,split_text))
+                tuples = {}
 
-                if info['miles_indicator_ss'] != 'KILOMETERS':
-                    continue
+                column_headings = None
+                for line in gzipfile:
+                    text = line.decode()
+                    split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter=',', quotechar='"'))[0]]
 
-                if info['currency_indicator_ss'] != 'CAD':
-                    continue
+                    if not column_headings:
+                        column_headings = split_text
+                        continue
+                    else:
+                        info = dict(zip(column_headings, split_text))
 
-                try:
-                    miles = float(info['miles_fs'])
-                except:
-                    continue
+                    if info['miles_indicator_ss'] != 'KILOMETERS':
+                        continue
 
-                if miles < 1000:
-                    continue
-                if miles > 250000:
-                    continue
-                try:
-                    price = float(info['price_fs'])
-                except:
-                    continue
+                    if info['currency_indicator_ss'] != 'CAD':
+                        continue
 
-                if price < 500:
-                    continue
+                    try:
+                        miles = float(info['miles_fs'])
+                    except:
+                        continue
 
-                if price == miles:
-                    continue
+                    if miles < 1000:
+                        continue
+                    if miles > 250000:
+                        continue
+                    try:
+                        price = float(info['price_fs'])
+                    except:
+                        continue
 
-                status_date = datetime.datetime.strptime(info['status_date_dts'], "%Y-%m-%dT%H:%M:%SZ")
+                    if price < 500:
+                        continue
 
-                vin = info['vin_ss']
-                taxonomy_vin = info['taxonomy_vin_ss']
-                original_body_type = info['body_type_ss'].strip()
-                vehicle_type = info['vehicle_type_ss'].strip()
-                body_type = utility.cdc_body_type_to_dataone(original_body_type,vehicle_type) if original_body_type is not '' else None
-                trim_orig = info['trim_orig_ss'] if 'trim_orig_ss' in info and info['trim_orig_ss'] is not '' else None
+                    if price == miles:
+                        continue
 
-                tuple = (
-                    vin,
-                )
+                    status_date = datetime.datetime.strptime(info['status_date_dts'], "%Y-%m-%dT%H:%M:%SZ")
 
-                if tuple in tuples:
-                    existing_values = tuples[tuple]
-                    existing_status_date = existing_values[2]
-                    if existing_status_date < status_date:
-                        tuples[tuple] = (miles,price,status_date,taxonomy_vin,body_type,trim_orig,s3_id)
-                else:
-                    tuples[tuple] = (miles,price,status_date,taxonomy_vin,body_type,trim_orig,s3_id)
+                    vin = info['vin_ss']
+                    taxonomy_vin = info['taxonomy_vin_ss']
+                    original_body_type = info['body_type_ss'].strip()
+                    vehicle_type = info['vehicle_type_ss'].strip()
+                    body_type = utility.cdc_body_type_to_dataone(original_body_type,
+                                                                 vehicle_type) if original_body_type is not '' else None
+                    trim_orig = info['trim_orig_ss'] if 'trim_orig_ss' in info and info[
+                        'trim_orig_ss'] is not '' else None
 
-            tuples = [key + value for key,value in tuples.items()]
+                    tuple = (
+                        vin,
+                    )
+
+                    if tuple in tuples:
+                        existing_values = tuples[tuple]
+                        existing_status_date = existing_values[2]
+                        if existing_status_date < status_date:
+                            tuples[tuple] = (miles, price, status_date, taxonomy_vin, body_type, trim_orig, s3_id)
+                    else:
+                        tuples[tuple] = (miles, price, status_date, taxonomy_vin, body_type, trim_orig, s3_id)
+
+                tuples = [key + value for key, value in tuples.items()]
+
+                if len(tuples) > 0:
+                    with etl_connection.cursor() as cursor:
+                        psycopg2.extras.execute_values(cursor, cdc_insert_query, tuples)
+                        status = 'success'
+                        last_update = datetime.datetime.utcnow()
+                        etl_connection.commit()
+    except Exception as e:
+        status = str(e)
+    finally:
+        etl_connection.close()
+
+    #update the scheduler
+    scheduler_connection = postgreshandler.get_tradalgo_canada_connection()
+    run_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc) - start_time
+    postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
+    scheduler_connection.commit()
+    scheduler_connection.close()
 
 
-            if len(tuples) > 0:
-                with connection.cursor() as cursor:
-                    psycopg2.extras.execute_values(cursor, cdc_insert_query, tuples)
+

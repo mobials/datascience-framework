@@ -245,19 +245,20 @@ def get_script_schedule(connection,script):
         if result is not None:
             return result
 
-def update_script_schedule(connection,script,last_run,status,run_time):
+def update_script_schedule(connection,script,last_run,status,run_time,last_update):
     query = '''
                 UPDATE
                     scheduler
                 SET 
                     last_run = %(last_run)s,
                     status = %(status)s,
-                    run_time = %(run_time)s
+                    run_time = %(run_time)s,
+                    last_update = %(last_update)s
                 WHERE 
                     script = %(script)s
             '''
     with connection.cursor() as cursor:
-        cursor.execute(query,{'script':script,'last_run':last_run,'status':status,'run_time':run_time})
+        cursor.execute(query,{'script':script,'last_run':last_run,'status':status,'run_time':run_time,'last_update':last_update})
 
 
 

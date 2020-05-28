@@ -244,6 +244,7 @@ CREATE TABLE IF NOT EXISTS scheduler
     start_date timestamptz NOT NULL,
     frequency interval NOT NULL,
     last_run timestamptz,
+    last_update timestamptz,
     status text,
     run_time interval,
     CONSTRAINT scheduler_pk PRIMARY KEY (script)

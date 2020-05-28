@@ -65,9 +65,3 @@ def get_next_run(start_date,last_run,frequency):
     next_run = start_date + (frequency * (units + 1))
     return next_run
 
-def round_date_to_next_interval(start_date,last_run,interval):
-    f = last_run - start_date
-    y = f/interval
-
-    return result
-

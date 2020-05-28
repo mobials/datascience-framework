@@ -99,36 +99,35 @@ def transform_info(info):
 
 while True:
     schedule_info = None
-    connection = postgreshandler.get_tradalgo_canada_connection()
-    try:
-        schedule_info = postgreshandler.get_script_schedule(connection, script)
-        if schedule_info is None:
-            raise Exception('Schedule not found.')
-    finally:
-        connection.close()
+    scheduler_connection = postgreshandler.get_tradalgo_canada_connection()
+    schedule_info = postgreshandler.get_script_schedule(scheduler_connection, script)
+    if schedule_info is None:
+        raise Exception('Schedule not found.')
+    scheduler_connection.close()
 
-    # get next time to run
     now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
     last_run = schedule_info['last_run']
     start_date = schedule_info['start_date']
     frequency = schedule_info['frequency']
+    status = schedule_info['status']
+    last_update = schedule_info['last_update']
+    run_time = None
     next_run = None
     if last_run is None:
         next_run = start_date
     else:
-        next_run = utility.get_next_run(start_date,last_run,frequency)
+        next_run = utility.get_next_run(start_date, last_run, frequency)
 
     if now < next_run:
         seconds_between_now_and_next_run = (next_run - now).seconds
         time.sleep(seconds_between_now_and_next_run)
-        continue #continue here becuase it forces a second check on the scheduler, which may have changed during the time the script was asleep
+        continue  # continue here becuase it forces a second check on the scheduler, which may have changed during the time the script was asleep
 
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-    connection = postgreshandler.get_tradalgo_canada_connection()
-    status = None
-    run_time = None
+
+    etl_connection = postgreshandler.get_tradalgo_canada_connection()
     try:
-        last_modified = postgreshandler.get_s3_scanned_max_last_modified_date(connection, script)
+        last_modified = postgreshandler.get_s3_scanned_max_last_modified_date(etl_connection, script)
         if last_modified is None:
             last_modified = datetime.datetime(2020, 1, 1).replace(tzinfo=pytz.utc)
 
@@ -146,7 +145,7 @@ while True:
             last_modified = object.last_modified
             body = object.get()['Body']
             with gzip.GzipFile(fileobj=body) as gzipfile:
-                s3_id = postgreshandler.insert_s3_file(connection, script, file, last_modified)
+                s3_id = postgreshandler.insert_s3_file(etl_connection, script, file, last_modified)
                 tuples = []
 
                 column_headings = None
@@ -196,16 +195,20 @@ while True:
                         tuples.append(tuple)
 
                 if len(tuples) > 0:
-                    with connection.cursor() as cursor:
-                        psycopg2.extras.execute_values(cursor,insert_query, tuples)
+                    with etl_connection.cursor() as cursor:
+                        psycopg2.extras.execute_values(cursor, insert_query, tuples)
                         status = 'success'
-
-
+                        last_update = datetime.datetime.utcnow()
+                        etl_connection.commit()
     except Exception as e:
         status = str(e)
     finally:
-        run_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc) - start_time
-        postgreshandler.update_script_schedule(connection,script,now,status,run_time)
-        connection.commit()
-        connection.close()
+        etl_connection.close()
+
+    #update the scheduler
+    scheduler_connection = postgreshandler.get_tradalgo_canada_connection()
+    run_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc) - start_time
+    postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
+    scheduler_connection.commit()
+    scheduler_connection.close()
 
