@@ -12,6 +12,7 @@ import csv
 import re
 import psycopg2.extras
 import time
+import utility
 
 script = os.path.basename(__file__)[:-3]
 
@@ -96,79 +97,115 @@ def transform_info(info):
 
     return info
 
-last_modified = None
-with postgreshandler.get_tradalgo_canada_connection() as connection:
-    last_modified = postgreshandler.get_s3_scanned_max_last_modified_date(connection,script)
-if last_modified is None:
-    last_modified = datetime.datetime(2020,1,1).replace(tzinfo=pytz.utc)
+while True:
+    schedule_info = None
+    connection = postgreshandler.get_tradalgo_canada_connection()
+    try:
+        schedule_info = postgreshandler.get_script_schedule(connection, script)
+        if schedule_info is None:
+            raise Exception('Schedule not found.')
+    finally:
+        connection.close()
 
-bucket = settings.s3_dataone_bucket
+    # get next time to run
+    now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+    last_run = schedule_info['last_run']
+    start_date = schedule_info['start_date']
+    frequency = schedule_info['frequency']
+    next_run = None
+    if last_run is None:
+        next_run = start_date
+    else:
+        next_run = utility.get_next_run(start_date,last_run,frequency)
 
-key = settings.s3_dataone_key
+    if now < next_run:
+        seconds_between_now_and_next_run = (next_run - now).seconds
+        time.sleep(seconds_between_now_and_next_run)
+        continue #continue here becuase it forces a second check on the scheduler, which may have changed during the time the script was asleep
 
-resource = boto3.resource('s3')
+    start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+    connection = postgreshandler.get_tradalgo_canada_connection()
+    status = None
+    run_time = None
+    try:
+        last_modified = postgreshandler.get_s3_scanned_max_last_modified_date(connection, script)
+        if last_modified is None:
+            last_modified = datetime.datetime(2020, 1, 1).replace(tzinfo=pytz.utc)
 
-object = resource.Object(bucket, key)
+        bucket = settings.s3_dataone_bucket
 
-file = bucket + '/' + key + '/' + object.version_id
+        key = settings.s3_dataone_key
 
-if object.last_modified > last_modified:
-    last_modified = object.last_modified
-    body = object.get()['Body']
-    with gzip.GzipFile(fileobj=body) as gzipfile:
-        with postgreshandler.get_tradalgo_canada_connection() as connection:
-            s3_id = postgreshandler.insert_s3_file(connection, script, file, last_modified)
-            tuples = []
+        resource = boto3.resource('s3')
 
-            column_headings = None
-            for line in gzipfile:
-                text = line.decode()
-                split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter='\t'))[0]]
+        object = resource.Object(bucket, key)
 
-                if not column_headings:
-                    column_headings = split_text
-                    continue
-                else:
-                    info = dict(zip(column_headings, split_text))
+        file = bucket + '/' + key + '/' + object.version_id
 
-                    if '(ends ' in info['STYLE'] :
+        if object.last_modified > last_modified:
+            last_modified = object.last_modified
+            body = object.get()['Body']
+            with gzip.GzipFile(fileobj=body) as gzipfile:
+                s3_id = postgreshandler.insert_s3_file(connection, script, file, last_modified)
+                tuples = []
+
+                column_headings = None
+                for line in gzipfile:
+                    text = line.decode()
+                    split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter='\t'))[0]]
+
+                    if not column_headings:
+                        column_headings = split_text
                         continue
+                    else:
+                        info = dict(zip(column_headings, split_text))
 
-                    if int(info['YEAR']) < datetime.datetime.utcnow().year - 20:
-                        continue
+                        if '(ends ' in info['STYLE']:
+                            continue
 
-                    info = transform_info(info)
+                        if int(info['YEAR']) < datetime.datetime.utcnow().year - 20:
+                            continue
 
-                    vin_pattern = info['VIN_PATTERN']
-                    vehicle_id = int(info['VEHICLE_ID'])
-                    market = info['MARKET']
-                    year = int(info['YEAR'])
-                    make = info['MAKE']
-                    model = info['MODEL']
-                    trim = info['TRIM']
-                    style = info['STYLE']
-                    body_type = info['BODY_TYPE']
-                    msrp = float(info['MSRP'])  if info['MSRP'] != '' and info['MSRP'] != 0 else None
+                        info = transform_info(info)
 
-                    tuple = (
-                        s3_id,
-                        vin_pattern,
-                        vehicle_id,
-                        market,
-                        year,
-                        make,
-                        model,
-                        trim,
-                        style,
-                        body_type,
-                        msrp
-                    )
+                        vin_pattern = info['VIN_PATTERN']
+                        vehicle_id = int(info['VEHICLE_ID'])
+                        market = info['MARKET']
+                        year = int(info['YEAR'])
+                        make = info['MAKE']
+                        model = info['MODEL']
+                        trim = info['TRIM']
+                        style = info['STYLE']
+                        body_type = info['BODY_TYPE']
+                        msrp = float(info['MSRP']) if info['MSRP'] != '' and info['MSRP'] != 0 else None
 
-                    tuples.append(tuple)
+                        tuple = (
+                            s3_id,
+                            vin_pattern,
+                            vehicle_id,
+                            market,
+                            year,
+                            make,
+                            model,
+                            trim,
+                            style,
+                            body_type,
+                            msrp
+                        )
 
-            if len(tuples) > 0:
-                with connection.cursor() as cursor:
-                    psycopg2.extras.execute_values(cursor, insert_query, tuples)
+                        tuples.append(tuple)
+
+                if len(tuples) > 0:
+                    with connection.cursor() as cursor:
+                        psycopg2.extras.execute_values(cursor,insert_query, tuples)
+                        status = 'success'
 
 
-        #schedule sleep
+    except Exception as e:
+        status = str(e)
+    finally:
+        run_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc) - start_time
+        postgreshandler.update_script_schedule(connection,script,now,status,run_time)
+        connection.commit()
+        connection.close()
+

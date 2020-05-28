@@ -229,4 +229,35 @@ def insert_tradalgo_session(connection,session_info):
             result = result[0]
             return result
 
+def get_script_schedule(connection,script):
+    query = '''
+                SELECT 
+                    *
+                FROM
+                    scheduler
+                WHERE
+                    script = %(script)s
+            '''
+
+    with connection.cursor(cursor_factory = psycopg2.extras.DictCursor) as cursor:
+        cursor.execute(query,{'script':script})
+        result = cursor.fetchone()
+        if result is not None:
+            return result
+
+def update_script_schedule(connection,script,last_run,status,run_time):
+    query = '''
+                UPDATE
+                    scheduler
+                SET 
+                    last_run = %(last_run)s,
+                    status = %(status)s,
+                    run_time = %(run_time)s
+                WHERE 
+                    script = %(script)s
+            '''
+    with connection.cursor() as cursor:
+        cursor.execute(query,{'script':script,'last_run':last_run,'status':status,'run_time':run_time})
+
+
 
