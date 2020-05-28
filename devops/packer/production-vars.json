@@ -1,0 +1,7 @@
+{
+  "env": "production",
+  "bastion": "bastion.mobials.com",
+  "vpc": "vpc-f3d28696",
+  "subnet": "subnet-65098f3c",
+  "security_group_id": "sg-95a830f1"
+}

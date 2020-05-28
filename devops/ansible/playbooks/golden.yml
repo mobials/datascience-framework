@@ -3,19 +3,9 @@
   hosts: localhost
   become: true
   connection: local
-  pre_tasks:
-    - name: Add the airflow group
-      group:
-        name: airflow
-      become: true
-    - name: Add the airflow user
-      user:
-        name: airflow
-        group: airflow
-      become: true
   roles:
     - system/common
     - system/users
     - service/github
+    - service/supervisor
     - system/mobica-server-config
-    - geerlingguy.postgresql
