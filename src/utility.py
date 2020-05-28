@@ -58,3 +58,16 @@ def cdc_body_type_to_dataone(body_type,vehicle_type):
     elif lower_vehicle_type == 'suv':
         result = 'SUV';
     return result;
+
+def get_next_run(start_date,last_run,frequency):
+    diff = last_run - start_date
+    units = int(diff / frequency)
+    next_run = start_date + (frequency * (units + 1))
+    return next_run
+
+def round_date_to_next_interval(start_date,last_run,interval):
+    f = last_run - start_date
+    y = f/interval
+
+    return result
+
