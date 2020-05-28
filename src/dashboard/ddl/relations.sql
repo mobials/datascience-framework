@@ -193,3 +193,18 @@ create or replace view v_zuora_credit_memo_posted as
         case when payload->>'CreditMemo.UpdatedDate' = '' then null else to_timestamp(payload->>'CreditMemo.UpdatedDate','YYYY-MM-DD HH24:MI:SS') end as credit_memo_updated_date
     from
         zuora_credit_memo_posted;
+
+CREATE TABLE IF NOT EXISTS scheduler
+(
+    script text NOT NULL,
+    start_date timestamptz NOT NULL,
+    frequency interval NOT NULL,
+    last_run timestamptz,
+    last_update timestamptz,
+    status text,
+    run_time interval,
+    CONSTRAINT scheduler_pk PRIMARY KEY (script)
+);
+
+INSERT INTO scheduler (script,start_date,frequency) VALUES ('zuora_credit_memo_posted','2020-05-23','1 day') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO scheduler (script,start_date,frequency) VALUES ('zuora_invoice_item_created','2020-05-23','1 day') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;

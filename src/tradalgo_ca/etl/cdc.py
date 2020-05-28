@@ -56,7 +56,7 @@ while True:
     frequency = schedule_info['frequency']
     status = schedule_info['status']
     last_update = schedule_info['last_update']
-    run_time = None
+    run_time = schedule_info['run_time']
     next_run = None
     if last_run is None:
         next_run = start_date
@@ -69,6 +69,8 @@ while True:
         continue  # continue here becuase it forces a second check on the scheduler, which may have changed during the time the script was asleep
 
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+    updated = False
+
     etl_connection = postgreshandler.get_tradalgo_canada_connection()
     try:
         s3_completed_files = []
@@ -159,20 +161,20 @@ while True:
                 if len(tuples) > 0:
                     with etl_connection.cursor() as cursor:
                         psycopg2.extras.execute_values(cursor, cdc_insert_query, tuples)
-                        status = 'success'
-                        last_update = datetime.datetime.utcnow()
-                        etl_connection.commit()
+                        updated = True
+
     except Exception as e:
         status = str(e)
     finally:
+        if updated:
+            status = 'success'
+            last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+            run_time = last_update - start_time
+            etl_connection.commit()
         etl_connection.close()
 
     #update the scheduler
     scheduler_connection = postgreshandler.get_tradalgo_canada_connection()
-    run_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc) - start_time
     postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
     scheduler_connection.commit()
     scheduler_connection.close()
-
-
-

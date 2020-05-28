@@ -111,7 +111,7 @@ while True:
     frequency = schedule_info['frequency']
     status = schedule_info['status']
     last_update = schedule_info['last_update']
-    run_time = None
+    run_time = schedule_info['run_time']
     next_run = None
     if last_run is None:
         next_run = start_date
@@ -126,6 +126,7 @@ while True:
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
     etl_connection = postgreshandler.get_tradalgo_canada_connection()
+    updated = False
     try:
         last_modified = postgreshandler.get_s3_scanned_max_last_modified_date(etl_connection, script)
         if last_modified is None:
@@ -197,18 +198,19 @@ while True:
                 if len(tuples) > 0:
                     with etl_connection.cursor() as cursor:
                         psycopg2.extras.execute_values(cursor, insert_query, tuples)
-                        status = 'success'
-                        last_update = datetime.datetime.utcnow()
-                        etl_connection.commit()
+                        updated = True
     except Exception as e:
         status = str(e)
     finally:
+        if updated:
+            status = 'success'
+            last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+            run_time = last_update - start_time
+            etl_connection.commit()
         etl_connection.close()
 
     #update the scheduler
     scheduler_connection = postgreshandler.get_tradalgo_canada_connection()
-    run_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc) - start_time
     postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
     scheduler_connection.commit()
     scheduler_connection.close()
-

@@ -249,3 +249,6 @@ CREATE TABLE IF NOT EXISTS scheduler
     run_time interval,
     CONSTRAINT scheduler_pk PRIMARY KEY (script)
 );
+
+INSERT INTO scheduler (script,start_date,frequency) VALUES ('cdc','2020-05-23','1 day') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO scheduler (script,start_date,frequency) VALUES ('dataone','2020-05-23','1 day') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
