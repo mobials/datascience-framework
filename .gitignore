@@ -135,3 +135,4 @@ scratch.py
 vendor/
 .fact_cache
 scratch.py
+.terraform

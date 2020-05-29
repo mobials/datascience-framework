@@ -1,0 +1,10 @@
+variable "route53_internal_zone_name" {}
+variable "app_name" {}
+variable "vpc_id" {}
+variable "env" {}
+variable "rds_username" {}
+variable "rds_instance_type" {}
+variable "rds_subnet_group_name" {}
+variable "rds_multi_az" {}
+variable "rds_storage_type" {}
+variable "rds_allocated_storage" {}
