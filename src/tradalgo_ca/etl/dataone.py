@@ -9,7 +9,6 @@ import datetime
 import pytz
 import gzip
 import csv
-import re
 import psycopg2.extras
 import time
 import utility

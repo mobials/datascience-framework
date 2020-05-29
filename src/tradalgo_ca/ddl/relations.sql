@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS sessions
 (
 	id BIGSERIAL NOT NULL,
 	session_info jsonb NOT NULL,
+	validated boolean default false,
 	CONSTRAINT sessions_pk PRIMARY KEY (id)
 );
 
@@ -166,7 +167,7 @@ CREATE OR REPLACE VIEW v_training_set AS
         v_dataone_t1."style",
         v_dataone_t1.body_type,
         v_dataone_t1.msrp,
-        cdc.miles,
+        cdc.miles as mileage,
         cdc.price,
         count(*) OVER (PARTITION BY vin_pattern,vehicle_id) AS vehicles,
         rank() OVER (PARTITION BY v_dataone_t1.vin_pattern,v_dataone_t1.vehicle_id ORDER BY cdc.status_date DESC) AS rank,
@@ -252,3 +253,52 @@ CREATE TABLE IF NOT EXISTS scheduler
 
 INSERT INTO scheduler (script,start_date,frequency) VALUES ('cdc','2020-05-23','1 day') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO scheduler (script,start_date,frequency) VALUES ('dataone','2020-05-23','1 day') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO scheduler (script,start_date,frequency) VALUES ('list_price_estimator','2020-05-18','1 week') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+
+CREATE OR REPLACE VIEW v_models AS
+    SELECT
+        session_id,
+        vehicle_id,
+        (model_info->>'intercept')::float8 as list_price_intercept,
+        model_info->'coefficients' as list_price_coefficients,
+        -2500.0::float8 as trade_value_intercept,
+        json_build_object('estimated_list_price',power(extract(year from current_date) - (model_info->>'year')::int + 2,-0.06)) as trade_value_coefficients,
+        (model_info->>'year')::int as year,
+        model_info->>'make' as make,
+        model_info->>'model' as model,
+        model_info->>'trim' as trim,
+        model_info->>'style' as style,
+        (model_info->>'size')::int as vehicles,
+        model_info->>'body_type' as body_type,
+        (model_info->>'msrp')::float8 as msrp,
+        0.9::float8 as multiplier,
+        (model_info->>'minimum_list_price')::float8 as minimum_list_price,
+        (model_info->>'maximum_list_price')::float8 as maximum_list_price,
+        0.0::float8 as minimum_mileage_threshold
+    FROM
+        list_price_models;
+
+CREATE OR REPLACE VIEW v_latest_models AS
+    SELECT
+        session_id,
+        vehicle_id,
+        (model_info->>'intercept')::float8 as list_price_intercept,
+        model_info->'coefficients' as list_price_coefficients,
+        -2500.0::float8 as trade_value_intercept,
+        json_build_object('estimated_list_price',power(extract(year from current_date) - (model_info->>'year')::int + 2,-0.06)) as trade_value_coefficients,
+        (model_info->>'year')::int as year,
+        model_info->>'make' as make,
+        model_info->>'model' as model,
+        model_info->>'trim' as trim,
+        model_info->>'style' as style,
+        (model_info->>'size')::int as vehicles,
+        model_info->>'body_type' as body_type,
+        (model_info->>'msrp')::float8 as msrp,
+        0.9::float8 as multiplier,
+        (model_info->>'minimum_list_price')::float8 as minimum_list_price,
+        (model_info->>'maximum_list_price')::float8 as maximum_list_price,
+        0.0::float8 as minimum_mileage_threshold
+    FROM
+        list_price_models
+    WHERE
+	    session_id = (SELECT max(id) FROM sessions WHERE validated = true);
