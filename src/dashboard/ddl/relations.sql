@@ -117,7 +117,7 @@ CREATE OR REPLACE VIEW v_zuora_credit_memo_posted_keys AS
 CREATE OR REPLACE VIEW v_zoura_invoice_item_created AS
     SELECT
         s3_id,
-        (payload->>'event_id') as event_id,
+        (payload->>'event_id')::uuid as event_id,
         payload->>'event_name' as event_name,
         to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') as happened_at,
         to_timestamp(payload->>'Invoice.CreatedDate','YYYY-MM-DD HH24:MI:SS') as invoice_created_date,
@@ -148,7 +148,7 @@ CREATE OR REPLACE VIEW v_zoura_invoice_item_created AS
         case when payload->>'InvoiceItem.UOM' = '' then null else payload->>'InvoiceItem.UOM' end as invoice_item_uom,
         payload->>'InvoiceItem.UpdatedById' as invoice_item_updated_by_id,
         to_timestamp(payload->>'InvoiceItem.UpdatedDate','YYYY-MM-DD HH24:MI:SS') as invoice_item_updated_date,
-        case when payload->>'Invoice.PostedDate' = '' then payload->>'Invoice.PostedDate' else to_timestamp(payload->>'Invoice.PostedDate','YYYY-MM-DD HH24:MI:SS') end as invoice_posted_date,
+        case when payload->>'Invoice.PostedDate' = '' then null else to_timestamp(payload->>'Invoice.PostedDate','YYYY-MM-DD HH24:MI:SS') end as invoice_posted_date,
         payload->>'ProductRatePlanCharge.ChargeType' as product_rate_plan_charge_charge_type,
         case when payload->>'ProductRatePlanCharge.UOM' = '' then null else payload->>'ProductRatePlanCharge.UOM' end as product_rate_plan_charge_uom,
         (payload->>'Subscription.CreatorAccountId') as subscription_creator_account_id

@@ -69,8 +69,6 @@ while True:
         continue  # continue here becuase it forces a second check on the scheduler, which may have changed during the time the script was asleep
 
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-    updated = False
-
     etl_connection = postgreshandler.get_tradalgo_canada_connection()
     try:
         s3_completed_files = []
@@ -161,16 +159,15 @@ while True:
                 if len(tuples) > 0:
                     with etl_connection.cursor() as cursor:
                         psycopg2.extras.execute_values(cursor, cdc_insert_query, tuples)
-                        updated = True
+                        status = 'success'
+                        last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+                        run_time = last_update - start_time
+                        etl_connection.commit()
 
     except Exception as e:
         status = str(e)
+        sys.exit(1)
     finally:
-        if updated:
-            status = 'success'
-            last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-            run_time = last_update - start_time
-            etl_connection.commit()
         etl_connection.close()
 
     #update the scheduler
