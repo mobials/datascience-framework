@@ -71,7 +71,7 @@ while True:
 
         for object_summary in objects:
             last_modified = object_summary.last_modified
-            print(last_modified)
+            #print(last_modified)
             if last_modified < datetime.datetime(2020, 4, 1).replace(tzinfo=pytz.utc):
                 continue
             key = object_summary.key
