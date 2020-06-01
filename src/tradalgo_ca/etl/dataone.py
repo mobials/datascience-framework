@@ -12,6 +12,7 @@ import csv
 import psycopg2.extras
 import time
 import utility
+import re
 
 script = os.path.basename(__file__)[:-3]
 
@@ -197,15 +198,14 @@ while True:
                 if len(tuples) > 0:
                     with etl_connection.cursor() as cursor:
                         psycopg2.extras.execute_values(cursor, insert_query, tuples)
-                        updated = True
+                        status = 'success'
+                        last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+                        run_time = last_update - start_time
+                        etl_connection.commit()
     except Exception as e:
         status = str(e)
+        sys.exit(1)
     finally:
-        if updated:
-            status = 'success'
-            last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-            run_time = last_update - start_time
-            etl_connection.commit()
         etl_connection.close()
 
     #update the scheduler

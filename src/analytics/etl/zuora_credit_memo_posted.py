@@ -30,7 +30,7 @@ insert_query =  '''
 
 while True:
     schedule_info = None
-    scheduler_connection = postgreshandler.get_dashboard_connection()
+    scheduler_connection = postgreshandler.get_analytics_connection()
     schedule_info = postgreshandler.get_script_schedule(scheduler_connection, script)
     if schedule_info is None:
         raise Exception('Schedule not found.')
@@ -56,7 +56,7 @@ while True:
 
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
-    etl_connection = postgreshandler.get_dashboard_connection()
+    etl_connection = postgreshandler.get_analytics_connection()
     try:
         s3_completed_files = []
         for file in postgreshandler.get_s3_scanned_files(etl_connection, script):
@@ -116,7 +116,7 @@ while True:
     finally:
         etl_connection.close()
 
-    scheduler_connection = postgreshandler.get_dashboard_connection()
+    scheduler_connection = postgreshandler.get_analytics_connection()
     postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
     scheduler_connection.commit()
     scheduler_connection.close()

@@ -17,6 +17,7 @@ import utility
 import pytz
 import os
 
+
 script = os.path.basename(__file__)[:-3]
 
 def get_msrp_outliers(vehicle_data,multiplier):
@@ -64,40 +65,25 @@ training_set_query =    '''
                                 rank <= {0}
                         '''.format(maximum_vehicles)
 
-#training_set_query = '''select * from m_training_set_hyundai'''
-
 list_price_model_insert_query =    '''
                                         INSERT INTO
                                             list_price_models
                                         (
                                             session_id,
-                                            vin_pattern,
-                                            vehicle_id,
+                                            year,
+                                            make,
+                                            model,
+                                            trim,
+                                            style,
                                             model_info
                                         )
                                         VALUES 
                                             %s
                                     '''
 
-list_price_model_training_data_insert_query =   '''
-                                                    INSERT INTO
-                                                        list_price_model_training_data
-                                                    (
-                                                        session_id,
-                                                        vin_pattern,
-                                                        vehicle_id,
-                                                        dataone_s3_id,
-                                                        cdc_s3_id,
-                                                        vin,
-                                                        status
-                                                    )
-                                                    VALUES 
-                                                        %s
-                                                '''
-
 session_info = {
                     'date': str(datetime.datetime.now()),
-                    'vehicle_grouping_features': ['vin_pattern','vehicle_id'],
+                    'vehicle_grouping_features': ['year','make','model','trim','style'],
                     'features': ['mileage'],
                     'target': ['price'],
                     'minimum_vehicles': minimium_vehicles,
@@ -239,11 +225,11 @@ while True:
             maximum_list_price = observed.max()
 
             model_info = {
-                'year': vehicle_data.iloc[0]['year'].item(),
-                'make': vehicle_data.iloc[0]['make'],
-                'model': vehicle_data.iloc[0]['model'],
-                'trim': vehicle_data.iloc[0]['trim'],
-                'style': vehicle_data.iloc[0]['style'],
+                'year':vehicle_key[0].item(),
+                'make':vehicle_key[1],
+                'model':vehicle_key[2],
+                'trim': vehicle_key[3],
+                'style': vehicle_key[4],
                 'body_type': vehicle_data.iloc[0]['body_type'],
                 'coefficients': coef_dict,
                 'intercept': float(model.intercept_[0]),
@@ -268,14 +254,13 @@ while True:
                 continue
 
             # let's try to find a similar vehicle that's already been modelled
-            year = vehicle_data.iloc[0]['year'].item()
-            make = vehicle_data.iloc[0]['make']
-            model = vehicle_data.iloc[0]['model']
-            trim = vehicle_data.iloc[0]['trim']
+            year = vehicle_key[0].item()
+            make = vehicle_key[1]
+            model = vehicle_key[2]
+            trim = vehicle_key[3]
+            style = vehicle_key[4]
             body_type = vehicle_data.iloc[0]['body_type']
-            style = vehicle_data.iloc[0]['style']
             msrp = vehicle_data['msrp'].mean()
-
             matched_key = None
             tier = None
             if not numpy.isnan(msrp):
@@ -364,28 +349,38 @@ while True:
             if matched_key is not None:
                 model_info = copy.deepcopy(modelled_vehicles[matched_key])
                 model_info['tier'] = tier
-                model_info['match'] = (matched_key[0], int(matched_key[1]))
+                model_info['match'] = (int(matched_key[0]),matched_key[1],matched_key[2],matched_key[3],matched_key[4])
                 matched_vehicles[vehicle_key] = model_info
 
-        modelled_vehicle_tuples = [(session_id, key[0], int(key[1]), psycopg2.extras.Json(value)) for key, value in
+        h = 1
+
+        modelled_vehicle_tuples = [(
+                                        session_id,
+                                        int(key[0]),#year
+                                        key[1],#make
+                                        key[2],#model
+                                        key[3],#trim
+                                        key[4],#style
+                                    psycopg2.extras.Json(value)) for key,value in
                                    modelled_vehicles.items()]
-        matched_vehicle_tuples = [(session_id, key[0], int(key[1]), psycopg2.extras.Json(value)) for key, value in
+        matched_vehicle_tuples = [(     session_id,
+                                        int(key[0]),#year
+                                        key[1],#make
+                                        key[2],#model
+                                        key[3],#trim
+                                        key[4],#style,
+                                        psycopg2.extras.Json(value)) for key,value in
                                   matched_vehicles.items()]
         list_price_model_tuples = modelled_vehicle_tuples + matched_vehicle_tuples
         print('inserting...')
         if len(list_price_model_tuples) > 0:
-            list_price_model_training_data_tuples = list(training_set[['session_id', 'vin_pattern', 'vehicle_id',
-                                                                       'dataone_s3_id', 'cdc_s3_id', 'vin',
-                                                                       'status']].itertuples(index=False,
-                                                                                             name=None))
             with etl_connection.cursor() as cursor:
                 psycopg2.extras.execute_values(cursor, list_price_model_insert_query, list_price_model_tuples)
-                psycopg2.extras.execute_values(cursor, list_price_model_training_data_insert_query,
-                                               list_price_model_training_data_tuples)
                 updated = True
 
     except Exception as e:
         status = str(e)
+        sys.exit()
     finally:
         if updated:
             status = 'success'

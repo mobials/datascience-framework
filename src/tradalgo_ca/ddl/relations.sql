@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS dataone (
     CONSTRAINT  dataone_vin_pat_veh_id_idx PRIMARY KEY (vin_pattern,vehicle_id)
 );
 
+CREATE INDEX IF NOT EXISTS dataone_year_make_idx ON dataone(year,make);
+
 CREATE TABLE IF NOT EXISTS sessions
 (
 	id BIGSERIAL NOT NULL,
@@ -48,21 +50,13 @@ CREATE TABLE IF NOT EXISTS sessions
 CREATE TABLE IF NOT EXISTS list_price_models
 (
     session_id  BIGINT REFERENCES sessions (id) ON DELETE CASCADE,
-    vin_pattern text  NOT NULL,
-    vehicle_id  BIGINT   NOT NULL,
-    model_info        jsonb NOT NULL,
-    CONSTRAINT list_price_models_pk PRIMARY KEY (session_id,vin_pattern,vehicle_id)
-);
-
-CREATE TABLE IF NOT EXISTS list_price_model_training_data
-(
-  session_id BIGINT REFERENCES sessions (id) ON DELETE CASCADE,
-  vin_pattern text NOT NULL,
-  vehicle_id BIGINT NOT NULL,
-  dataone_s3_id BIGINT NOT NULL,
-  cdc_s3_id BIGINT NOT NULL,
-  vin text NOT NULL,
-  status text NOT NULL
+    year int4,
+    make text,
+    model text,
+    trim text,
+    style text,
+    model_info  jsonb NOT NULL,
+    CONSTRAINT list_price_models_pk PRIMARY KEY (session_id,year,make,model,trim,style)
 );
 
 CREATE OR REPLACE VIEW v_active_queries AS
@@ -138,64 +132,43 @@ CREATE OR REPLACE VIEW v_vacuum_stats AS
   ORDER BY
         n_dead_tup DESC;
 
+
 CREATE OR REPLACE VIEW v_dataone_t1 AS
-    SELECT
-        dataone.vin_pattern,
-        dataone.vehicle_id,
-        dataone."year",
-        dataone.make,
-        dataone.model,
-        dataone.trim,
-        dataone."style",
-        dataone.body_type,
-        dataone.msrp,
-        avg(dataone.msrp) OVER (PARTITION BY dataone.vin_pattern, dataone.market) AS vin_pattern_market_avg_msrp,
-        count(*) OVER (PARTITION BY dataone.vin_pattern) AS trims,
-        s3_id
-    FROM
-        dataone;
+    SELECT a.vin_pattern,
+        a.year,
+        a.make,
+        a.model,
+        a."trim",
+        a.style,
+        a.body_type,
+        a.msrp,
+        avg(a.msrp) OVER (PARTITION BY a.vin_pattern, a.market) AS vin_pattern_market_avg,
+        ( SELECT count(DISTINCT dataone."trim") AS count
+               FROM dataone
+              WHERE dataone.vin_pattern = a.vin_pattern) AS vin_pattern_trims
+       FROM dataone a
+      WHERE (( SELECT count(DISTINCT dataone.body_type) AS count
+               FROM dataone
+              WHERE dataone.year = a.year AND dataone.make = a.make AND dataone.model = a.model AND dataone."trim" = a."trim" AND dataone.style = a.style)) = 1 OR a.style ~~ (('%'::text || a.body_type) || '%'::text) OR a.style ~~ '%Mini-Van%'::text AND a.body_type = 'Wagon'::text;
+
 
 CREATE OR REPLACE VIEW v_training_set AS
-    SELECT
-        v_dataone_t1.vin_pattern,
-        v_dataone_t1.vehicle_id,
-        cdc.vin,
-        v_dataone_t1."year",
+    SELECT cdc.vin,
+        v_dataone_t1.year,
         v_dataone_t1.make,
         v_dataone_t1.model,
-        v_dataone_t1.trim,
-        v_dataone_t1."style",
+        v_dataone_t1."trim",
+        v_dataone_t1.style,
         v_dataone_t1.body_type,
-        v_dataone_t1.msrp,
-        cdc.miles as mileage,
+        v_dataone_t1.vin_pattern_market_avg AS msrp,
+        cdc.miles AS mileage,
         cdc.price,
-        count(*) OVER (PARTITION BY vin_pattern,vehicle_id) AS vehicles,
-        rank() OVER (PARTITION BY v_dataone_t1.vin_pattern,v_dataone_t1.vehicle_id ORDER BY cdc.status_date DESC) AS rank,
-        v_dataone_t1.s3_id as dataone_s3_id,
-        cdc.s3_id as cdc_s3_id
-    FROM
-        v_dataone_t1,
+        count(*) OVER (PARTITION BY v_dataone_t1.year, v_dataone_t1.make, v_dataone_t1.model, v_dataone_t1."trim", v_dataone_t1.style) AS vehicles,
+        rank() OVER (PARTITION BY v_dataone_t1.year, v_dataone_t1.make, v_dataone_t1.model, v_dataone_t1."trim", v_dataone_t1.style ORDER BY cdc.status_date DESC) AS rank
+       FROM v_dataone_t1,
         cdc
-    WHERE
-        cdc.taxonomy_vin = v_dataone_t1.vin_pattern
-    AND
-    (
-            v_dataone_t1.trims = 1
-        OR
-        (
-            (
-                (
-                        v_dataone_t1.vin_pattern_market_avg_msrp > 0
-                    AND
-                        abs(v_dataone_t1.msrp - v_dataone_t1.vin_pattern_market_avg_msrp) / v_dataone_t1.vin_pattern_market_avg_msrp < 0.05
-                )
-                OR
-                    lower(v_dataone_t1."trim") ~~ (('%'::text || lower(cdc.trim_orig)) || '%'::text)
-            )
-            AND
-                v_dataone_t1.body_type = cdc.body_type
-        )
-    );
+      WHERE cdc.taxonomy_vin = v_dataone_t1.vin_pattern AND (v_dataone_t1.vin_pattern_trims = 1 OR v_dataone_t1.vin_pattern_market_avg > 0::double precision AND (abs(v_dataone_t1.msrp - v_dataone_t1.vin_pattern_market_avg) / v_dataone_t1.vin_pattern_market_avg) < 0.05::double precision OR lower(v_dataone_t1."trim") ~~ (('%'::text || lower(cdc.trim_orig)) || '%'::text))
+      GROUP BY cdc.vin, v_dataone_t1.year, v_dataone_t1.make, v_dataone_t1.model, v_dataone_t1."trim", v_dataone_t1.style, v_dataone_t1.body_type, v_dataone_t1.vin_pattern_market_avg, cdc.miles, cdc.price;
 
 CREATE OR REPLACE VIEW v_table_size as
 	SELECT a.oid,
@@ -258,7 +231,7 @@ INSERT INTO scheduler (script,start_date,frequency) VALUES ('list_price_estimato
 CREATE OR REPLACE VIEW v_models AS
     SELECT
         session_id,
-        vehicle_id,
+        0 as vehicle_id,
         (model_info->>'intercept')::float8 as list_price_intercept,
         model_info->'coefficients' as list_price_coefficients,
         -2500.0::float8 as trade_value_intercept,
@@ -281,7 +254,7 @@ CREATE OR REPLACE VIEW v_models AS
 CREATE OR REPLACE VIEW v_latest_models AS
     SELECT
         session_id,
-        vehicle_id,
+        0 as vehicle_id,
         (model_info->>'intercept')::float8 as list_price_intercept,
         model_info->'coefficients' as list_price_coefficients,
         -2500.0::float8 as trade_value_intercept,
@@ -302,3 +275,4 @@ CREATE OR REPLACE VIEW v_latest_models AS
         list_price_models
     WHERE
 	    session_id = (SELECT max(id) FROM sessions WHERE validated = true);
+
