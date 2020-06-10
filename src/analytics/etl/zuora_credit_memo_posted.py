@@ -71,7 +71,6 @@ while True:
 
         for object_summary in objects:
             last_modified = object_summary.last_modified
-            print(last_modified)
             if last_modified < datetime.datetime(2020, 4, 1).replace(tzinfo=pytz.utc):
                 continue
             key = object_summary.key
@@ -108,7 +107,7 @@ while True:
                         status = 'success'
                         last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
                         run_time = last_update - start_time
-                        etl_connection.commit()
+                etl_connection.commit()
 
     except Exception as e:
         status = str(e)

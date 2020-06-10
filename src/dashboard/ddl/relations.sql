@@ -137,7 +137,7 @@ CREATE OR REPLACE VIEW v_zoura_invoice_item_created AS
         (payload->>'InvoiceItem.Quantity')::int4 as invoice_item_quantity,
         case when payload->>'InvoiceItem.RevRecStartDate' = '' then null else to_timestamp(payload->>'InvoiceItem.RevRecStartDate','YYYY-MM-DD') end as invoice_item_rev_rec_start_date,
         to_timestamp(payload->>'InvoiceItem.ServiceEndDate','YYYY-MM-DD') as invoice_item_service_end_date,
-        to_timestamp(payload->>'InvoiceItem.ServiceStartDate','YYYY-MM-DD') as service_start_date,
+        to_timestamp(payload->>'InvoiceItem.ServiceStartDate','YYYY-MM-DD') as invoice_item_service_start_date,
         payload->>'InvoiceItem.SKU' as invoice_item_sku,
         payload->>'InvoiceItem.SubscriptionId' as invoice_item_subscription_id,
         (payload->>'InvoiceItem.TaxAmount')::numeric as invoice_item_tax_amount,
@@ -171,7 +171,7 @@ create or replace view v_zuora_credit_memo_posted as
         (payload->>'CreditMemo.DiscountAmount')::numeric as credit_memo_discount_amount,
         to_timestamp(payload->>'CreditMemo.ExchangeRateDate','YYYY-MM-DD') as credit_memo_exchange_rate_date,
         payload->>'CreditMemo.Id' as credit_memo_id,
-        payload->>'CreditMemo.legacyCreditMemoNumber__c' as credit_memo_legacy_credit_memo_number,
+        case when payload->>'CreditMemo.legacyCreditMemoNumber__c' = '' then null else payload->>'CreditMemo.legacyCreditMemoNumber__c' end as credit_memo_legacy_credit_memo_number,
         to_timestamp(payload->>'CreditMemo.MemoDate','YYYY-MM-DD') as credit_memo_memo_date,
         payload->>'CreditMemo.MemoNumber' as credit_memo_memo_number,
         payload->>'CreditMemo.PostedById' as credit_memo_posted_by_id,
@@ -190,7 +190,8 @@ create or replace view v_zuora_credit_memo_posted as
         (payload->>'CreditMemo.TotalTaxExemptAmount')::numeric as credit_memo_total_tax_exempt_amount,
         case when payload->>'CreditMemo.TransferredToAccounting' = '' then null else payload->>'CreditMemo.TransferredToAccounting' end as credit_memo_transferred_to_accounting,
         payload->>'CreditMemo.UpdatedById' as credit_memo_updated_by_id,
-        case when payload->>'CreditMemo.UpdatedDate' = '' then null else to_timestamp(payload->>'CreditMemo.UpdatedDate','YYYY-MM-DD HH24:MI:SS') end as credit_memo_updated_date
+        case when payload->>'CreditMemo.UpdatedDate' = '' then null else to_timestamp(payload->>'CreditMemo.UpdatedDate','YYYY-MM-DD HH24:MI:SS') end as credit_memo_updated_date,
+        case when payload->>'Invoice.Id' = '' then null else payload->>'Invoice.Id' end as invoice_id
     from
         zuora_credit_memo_posted;
 
