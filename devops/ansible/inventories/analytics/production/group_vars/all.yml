@@ -1,5 +1,5 @@
 ---
-env: staging
+env: production
 
 # app name must be lowercase and contain only alphanumeric characters.
 app_name: analytics-etl
