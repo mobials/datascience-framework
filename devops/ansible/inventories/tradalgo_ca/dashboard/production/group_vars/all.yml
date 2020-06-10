@@ -2,7 +2,7 @@
 env: production
 
 # app name must be lowercase and contain only alphanumeric characters.
-app_name: dashboard-etl
+app_name: tradalgo_ca_etl
 app_family: datascience
 
 slack_notification_start: ":{{ app_name }}: {{ app_name }} {{ env }} deployment was started by {{ aws_username | default('someone') }}."
@@ -37,4 +37,4 @@ provisioned_ami_prefix: "{{ env }}-datascience-etl-base"
 ec2_instance_type: t3.small
 ec2_volume_size: 20
 
-etl_home: "{{ app_deploy_directory }}/src/dashboard/"
+etl_home: "{{ app_deploy_directory }}/src/tradalgo_ca_etl/"
