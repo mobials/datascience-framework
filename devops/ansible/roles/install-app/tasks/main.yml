@@ -41,7 +41,7 @@
     requirements: "{{ app_deploy_directory }}/requirements.txt"
 
 - name: Copy supervisor config 
-  shell: cp {{ etl_home }}config/* /etc/supervisor/conf.d/
+  shell: "cp {{ etl_home }}config/* /etc/supervisor/conf.d/"
   become_user: root
   become: yes
 
