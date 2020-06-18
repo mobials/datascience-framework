@@ -9,7 +9,7 @@ import psycopg2.extras
 import postgreshandler
 import utility
 import pytz
-from src.settings import *
+import settings
 import os
 import gzip
 import time
@@ -81,12 +81,12 @@ while True:
 
         s3 = boto3.resource("s3")
 
-        versions = s3.Bucket(s3_cdc_ca_bucket).object_versions.filter(Prefix=s3_cdc_ca_key)
+        versions = s3.Bucket(settings.s3_cdc_ca_bucket).object_versions.filter(Prefix=settings.s3_cdc_ca_key)
 
         for version in versions:
             last_modified = version.last_modified
             print(last_modified)
-            file = s3_cdc_ca_bucket + '/' + s3_cdc_ca_key + '/' + version.version_id
+            file = settings.s3_cdc_ca_bucket + '/' + settings.s3_cdc_ca_key + '/' + version.version_id
             if file in s3_completed_files:
                 continue
             obj = version.get()['Body']
