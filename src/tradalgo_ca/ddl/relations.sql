@@ -59,6 +59,25 @@ CREATE TABLE IF NOT EXISTS list_price_models
     CONSTRAINT list_price_models_pk PRIMARY KEY (session_id,year,make,model,trim,style)
 );
 
+CREATE TABLE IF NOT EXISTS list_price_model_training_data
+(
+    session_id BIGINT REFERENCES sessions (id) ON DELETE CASCADE,
+    vin text,
+    year int4,
+    make text,
+    model text,
+    trim text,
+    style text,
+    body_type text,
+    msrp double precision,
+    mileage double precision,
+    price double precision,
+    vehicles int4,
+    rank int4,
+    status int4
+);
+CREATE INDEX IF NOT EXISTS list_price_model_training_data_session_id_idx ON list_price_model_training_data (session_id);
+
 CREATE OR REPLACE VIEW v_active_queries AS
     SELECT
         datid,

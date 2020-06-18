@@ -81,6 +81,29 @@ list_price_model_insert_query =    '''
                                             %s
                                     '''
 
+list_price_model_training_data_insert_query =    '''
+                                                    INSERT INTO 
+                                                        list_price_model_training_data
+                                                    (
+                                                        vin,
+                                                        year,
+                                                        make,
+                                                        model,
+                                                        trim,
+                                                        style,
+                                                        body_type,
+                                                        msrp,
+                                                        mileage,
+                                                        price,
+                                                        vehicles,
+                                                        rank,
+                                                        session_id,
+                                                        status
+                                                    )
+                                                    VALUES 
+                                                        %s
+                                                '''
+
 session_info = {
                     'date': str(datetime.datetime.now()),
                     'vehicle_grouping_features': ['year','make','model','trim','style'],
@@ -143,8 +166,6 @@ while True:
         continue  # continue here becuase it forces a second check on the scheduler, which may have changed during the time the script was asleep
 
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-    updated = False
-
     etl_connection = postgreshandler.get_tradalgo_canada_connection()
     try:
 
@@ -162,8 +183,7 @@ while True:
         vehicle_count = 0
         for vehicle_key, vehicle_data in training_set_grouping:
             vehicle_count += 1
-            print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),
-                  vehicle_count, total_vehicles)
+            print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),vehicle_count, total_vehicles)
 
             vehicles = len(vehicle_data)
             if vehicles < session_info['minimum_vehicles']:
@@ -248,8 +268,7 @@ while True:
             modelled_vehicles[vehicle_key] = model_info
 
         for vehicle_key, vehicle_data in training_set_grouping:
-            print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),
-                  vehicle_count, total_vehicles)
+            print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),vehicle_count, total_vehicles)
             if vehicle_key in modelled_vehicles.keys():
                 continue
 
@@ -376,17 +395,17 @@ while True:
         if len(list_price_model_tuples) > 0:
             with etl_connection.cursor() as cursor:
                 psycopg2.extras.execute_values(cursor, list_price_model_insert_query, list_price_model_tuples)
-                updated = True
+                list_price_model_training_data_tuples = list(training_set.itertuples(index=False, name=None))
+                psycopg2.extras.execute_values(cursor, list_price_model_training_data_insert_query, list_price_model_training_data_tuples)
+                status = 'success'
+                last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+                run_time = last_update - start_time
+        etl_connection.commit()
 
     except Exception as e:
         status = str(e)
         sys.exit()
     finally:
-        if updated:
-            status = 'success'
-            last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-            run_time = last_update - start_time
-            etl_connection.commit()
         etl_connection.close()
 
     #update the scheduler
