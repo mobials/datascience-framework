@@ -40,16 +40,10 @@
     executable: /usr/bin/pip3
     requirements: "{{ app_deploy_directory }}/requirements.txt"
 
-- name: Copy supervisor config
-  copy:
-    src: "{{ item }}"
-    dest: /etc/supervisor/conf.d/
-    owner: root
-    mode: 0666
-  become: yes
+- name: Copy supervisor config 
+  shell: "cp {{ etl_home }}config/* /etc/supervisor/conf.d/"
   become_user: root
-  with_fileglob:
-    - "{{ etl_home }}config/*"
+  become: yes
 
 - name: reload supervisor
   service:
