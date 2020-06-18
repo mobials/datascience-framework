@@ -1,5 +1,6 @@
 import sys
 sys.path.insert(0,'../..')
+sys.path.append('/var/www/datascience-framework/src/')
 import psycopg2
 import postgreshandler
 import os
