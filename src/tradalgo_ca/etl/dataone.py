@@ -127,7 +127,6 @@ while True:
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
     etl_connection = postgreshandler.get_tradalgo_canada_connection()
-    updated = False
     try:
         last_modified = postgreshandler.get_s3_scanned_max_last_modified_date(etl_connection, script)
         if last_modified is None:
