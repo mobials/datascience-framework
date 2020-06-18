@@ -1,5 +1,6 @@
 import sys
 sys.path.insert(0,'../..')
+sys.path.append('/var/www/datascience-framework/src/')
 import boto3
 import settings
 import io
@@ -78,7 +79,7 @@ while True:
 
         for object_summary in objects:
             last_modified = object_summary.last_modified
-            print(last_modified)
+            #print(last_modified)
             key = object_summary.key
             file = bucket + '/' + key
             if file in s3_completed_files:
