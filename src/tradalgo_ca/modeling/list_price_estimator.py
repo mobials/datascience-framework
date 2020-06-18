@@ -183,7 +183,7 @@ while True:
         vehicle_count = 0
         for vehicle_key, vehicle_data in training_set_grouping:
             vehicle_count += 1
-            print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),vehicle_count, total_vehicles)
+            #print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),vehicle_count, total_vehicles)
 
             vehicles = len(vehicle_data)
             if vehicles < session_info['minimum_vehicles']:
@@ -268,7 +268,7 @@ while True:
             modelled_vehicles[vehicle_key] = model_info
 
         for vehicle_key, vehicle_data in training_set_grouping:
-            print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),vehicle_count, total_vehicles)
+            #print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),vehicle_count, total_vehicles)
             if vehicle_key in modelled_vehicles.keys():
                 continue
 
@@ -371,8 +371,6 @@ while True:
                 model_info['match'] = (int(matched_key[0]),matched_key[1],matched_key[2],matched_key[3],matched_key[4])
                 matched_vehicles[vehicle_key] = model_info
 
-        h = 1
-
         modelled_vehicle_tuples = [(
                                         session_id,
                                         int(key[0]),#year
@@ -391,7 +389,7 @@ while True:
                                         psycopg2.extras.Json(value)) for key,value in
                                   matched_vehicles.items()]
         list_price_model_tuples = modelled_vehicle_tuples + matched_vehicle_tuples
-        print('inserting...')
+        #print('inserting...')
         if len(list_price_model_tuples) > 0:
             with etl_connection.cursor() as cursor:
                 psycopg2.extras.execute_values(cursor, list_price_model_insert_query, list_price_model_tuples)
