@@ -30,19 +30,18 @@ CREATE TABLE IF NOT EXISTS authenticom_sales_data (
 
 ALTER TABLE avr_widget_impressions ADD COLUMN IF NOT EXISTS referrer_url TEXT;
 
-
 CREATE TABLE IF NOT EXISTS tradesii_leads (
     s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
     payload jsonb
 );
-
+CREATE UNIQUE INDEX IF NOT EXISTS tradesii_leads_lead_id_unq_idx ON tradesii_leads(((payload->'lead'->>'id')::uuid));
 CREATE UNIQUE INDEX IF NOT EXISTS tradesii_leads_event_id_unq_idx ON tradesii_leads(((payload->>'event_id')::uuid));
 
 CREATE TABLE IF NOT EXISTS credsii_leads (
     s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
     payload jsonb
 );
-
+CREATE UNIQUE INDEX IF NOT EXISTS credsii_leads_lead_id_unq_idx ON credsii_leads(((payload->'lead'->>'id')::uuid));
 CREATE UNIQUE INDEX IF NOT EXISTS credsii_leads_event_id_unq_idx ON credsii_leads(((payload->>'event_id')::uuid));
 
 CREATE TABLE IF NOT EXISTS insuresii_leads (
@@ -51,6 +50,7 @@ CREATE TABLE IF NOT EXISTS insuresii_leads (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS insuresii_leads_event_id_unq_idx ON insuresii_leads(((payload->>'event_id')::uuid));
+CREATE UNIQUE INDEX IF NOT EXISTS insuresii_leads_lead_id_unq_idx ON insuresii_leads(((payload->'lead'->>'id')::uuid));
 
 CREATE TABLE IF NOT EXISTS reservesii_reservations (
     s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
@@ -202,3 +202,98 @@ CREATE UNIQUE INDEX IF NOT EXISTS zuora_credit_memo_posted_unq_idx ON zuora_cred
 
 INSERT INTO scheduler (script,start_date,frequency) VALUES ('zuora_credit_memo_posted','2020-05-23','1 day') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO scheduler (script,start_date,frequency) VALUES ('zuora_invoice_item_created','2020-05-23','1 day') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+
+CREATE OR REPLACE VIEW v_credsii_leads AS
+    SELECT
+        payload->>'event_id' AS event_id,
+        to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') AS happened_at,
+        payload->>'master_business_id' AS master_business_id,
+        payload->'lead'->>'id' AS id,
+        to_timestamp(payload->'lead'->>'createdAt','YYYY-MM-DD HH24:MI:SS') AS created_at,
+        payload->'lead'->'person'->'email'->>'email' AS email,
+        payload->'lead'->'person'->>'firstName'AS first_name,
+        payload->'lead'->'person'->>'lastName'AS last_name,
+        payload->'lead'->'person'->'phoneNumber'->>'phone_number' AS phone_number,
+        payload->'lead'->'address'->>'city' AS city,
+        replace(payload->'lead'->'address'->>'postal_code',' ','') AS postal_code,
+        payload->'lead'->'address'->>'province_id' AS province_id,
+        payload->'lead'->'address'->>'address_line_1' AS address_line_1,
+        payload->'lead'->'address'->>'address_line_2' AS address_line_2,
+        payload->'lead'->>'leadStatus' AS lead_status,
+        payload->'lead'->'billingKey' AS billing_key,
+        payload->'lead'->'creditRating' AS credit_rating,
+        payload->'lead'->'conversationId' AS conversation_id,
+        payload->'lead'->'routeOneResult' AS route_one_result,
+        payload->'lead'->'routeOneSentAt' AS route_one_sent_at,
+        payload->'lead'->'dealertrackSentAt' AS dealer_track_sent_at,
+        payload->'lead'->'financialFormStoredAt' AS financial_form_stored_at
+    FROM
+        credsii_leads;
+
+CREATE OR REPLACE VIEW v_tradesii_leads AS
+    SELECT
+        payload->>'event_id' AS event_id,
+        to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') AS happened_at,
+        payload->>'mbid' AS master_business_id,
+        payload->'lead'->>'id' AS id,
+        to_timestamp(payload->'lead'->'createdAt'->>'date','YYYY-MM-DD HH24:MI:SS') AS created_at,
+        payload->'lead'->'customer'->>'email_address' AS email_address,
+        payload->'lead'->'customer'->>'name' AS name,
+        payload->'lead'->'customer'->>'phone_number' AS phone_number,
+        replace(payload->'lead'->'customer'->>'postal_code',' ','') AS postal_code,
+        payload->'lead'->'customer'->>'ip' AS ip,
+        payload->'lead'->'customer'->>'referrer_url' AS referrer_url,
+        payload->'lead'->>'businessProfileId' AS business_profile_id,
+        payload->'lead'->>'reportId' AS report_id,
+        payload->'lead'->'vehicle'->>'vin' AS vin,
+        (payload->'lead'->'vehicle'->>'year')::int AS year,
+        payload->'lead'->'vehicle'->>'make' AS make,
+        payload->'lead'->'vehicle'->>'model' AS model,
+        payload->'lead'->'vehicle'->>'trim' AS trim,
+        payload->'lead'->'vehicle'->>'style' as style,
+        (payload->'lead'->'vehicle'->>'mileage')::double precision AS mileage,
+        (payload->'lead'->'vehicle'->>'trade_in_low')::double precision/100.0 AS trade_in_low,
+        (payload->'lead'->'vehicle'->>'trade_in_high')::double precision/100.0 AS trade_in_high
+    FROM
+        tradesii_leads;
+
+CREATE OR REPLACE VIEW v_insuresii_leads AS
+    SELECT
+        payload->>'event_id' AS event_id,
+        to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') AS happened_at,
+        payload->>'master_business_id' AS master_business_id,
+        payload->'lead'->>'id' AS id,
+        payload->'lead'->>'quoteId' AS quote_id,
+        payload->'lead'->'vehicle'->>'vin' AS vin,
+        (payload->'lead'->'vehicle'->>'year')::int AS year,
+        payload->'lead'->'vehicle'->>'make' AS make,
+        payload->'lead'->'vehicle'->>'model' AS model,
+        payload->'lead'->'vehicle'->>'trim' AS trim,
+        payload->'lead'->'vehicle'->>'style' as style,
+        (payload->'lead'->'vehicle'->>'mileage')::double precision AS mileage,
+        to_timestamp(payload->'lead'->>'createdAt','YYYY-MM-DD HH24:MI:SS') AS created_at,
+        payload->'lead'->'customer'->>'email' AS email,
+        payload->'lead'->'customer'->>'firstName' AS first_name,
+        payload->'lead'->'customer'->>'lastName' AS last_name,
+        payload->'lead'->'customer'->>'phone' AS phone,
+        payload->'lead'->'customer'->>'mobilePhone' AS mobile_phone,
+        replace(payload->'lead'->'customer'->'address'->>'postal_code',' ','') AS postal_code,
+        payload->'lead'->'customer'->'address'->>'city' AS city,
+        payload->'lead'->'customer'->'address'->>'province_id' AS province_id,
+        payload->'lead'->'customer'->>'country_code' AS country_code,
+        payload->'lead'->'customer'->>'address_line_1' AS address_line_1,
+        payload->'lead'->'customer'->>'address_line_2' AS address_line_2,
+        payload->'lead'->'customer'->'payload'->>'gender' AS gender,
+        payload->'lead'->'customer'->'payload'->>'kmToWork' AS km_to_work,
+        payload->'lead'->'customer'->'payload'->>'dateOfBirth' AS date_of_birth,
+        payload->'lead'->'customer'->'payload'->>'winterTires' AS winter_tires,
+        payload->'lead'->'customer'->'payload'->>'maritalStatus' AS marital_status,
+        payload->'lead'->'customer'->'payload'->>'currentLicense' AS current_license,
+        payload->'lead'->>'profileId' as profile_id,
+        to_timestamp(payload->'lead'->>'updatedAt','YYYY-MM-DD HH24:MI:SS') as updated_at,
+        payload->'lead'->>'leadStatus' as lead_status,
+        payload->'lead'->>'referenceId' as reference_id,
+        payload->'lead'->>'referrerUrl' as referrer_url,
+        payload->'lead'->'quotePayload' as quote_payload
+    FROM
+        insuresii_leads;
