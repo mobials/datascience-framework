@@ -402,7 +402,6 @@ while True:
 
     except Exception as e:
         status = str(e)
-        sys.exit()
     finally:
         etl_connection.close()
 

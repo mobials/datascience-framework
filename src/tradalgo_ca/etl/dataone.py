@@ -204,8 +204,6 @@ while True:
                 etl_connection.commit()
     except Exception as e:
         status = str(e)
-        print(e)
-        sys.exit(1)
     finally:
         etl_connection.close()
 

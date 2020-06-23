@@ -59,6 +59,16 @@ CREATE TABLE IF NOT EXISTS reservesii_reservations (
 
 CREATE UNIQUE INDEX IF NOT EXISTS reservesii_reservations_event_id_unq_idx ON reservesii_reservations(((payload->>'event_id')::uuid));
 
+CREATE TABLE IF NOT EXISTS marketplace_leads (
+    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
+    payload jsonb
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS marketplace_leads_event_id_unq_idx ON marketplace_leads(((payload->>'event_id')::uuid));
+CREATE UNIQUE INDEX IF NOT EXISTS marketplace_leads_lead_id_unq_idx ON marketplace_leads(((payload->'lead'->>'id')::uuid));
+
+
+
 CREATE TABLE IF NOT EXISTS scheduler
 (
     script text NOT NULL,
@@ -297,3 +307,38 @@ CREATE OR REPLACE VIEW v_insuresii_leads AS
         payload->'lead'->'quotePayload' as quote_payload
     FROM
         insuresii_leads;
+
+
+select
+    payload->>'event_id' AS event_id,
+    to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') AS happened_at,
+    payload->>'mbid' AS master_business_id,
+    payload->'lead'->>'id' AS id,
+    payload->'lead'->>'shopperId' as shopper_id,
+    payload->'lead'->'contact'->>'firstName' as first_name,
+    payload->'lead'->'contact'->>'lastName' as last_name,
+    payload->'lead'->'contact'->>'email' as email,
+    payload->'lead'->'contact'->>'mobilePhone' as mobile_phone,
+    payload->'lead'->'contact'->>'language' as language,
+    payload->'lead'->'contact'->'address'->>'address_line_1' as address_line_1,
+    payload->'lead'->'contact'->'address'->>'address_line_2' as address_line_2,
+    payload->'lead'->'contact'->'address'->>'city' as city,
+    payload->'lead'->'contact'->'address'->>'postal_code' as postal_code,
+    payload->'lead'->'contact'->'address'->>'province_id' as province_id,
+    payload->'lead'->'contact'->'address'->>'country_code' as country_code,
+    payload->'lead'->'contact'->'isEmailVerified' as is_email_verified,
+    payload->'lead'->'contact'->'isMobilePhoneVerified' as is_mobile_phone_verified,
+    payload->'lead'->'tradeLeadInfo'->'vehicle'->>'vin' as vin,
+    (payload->'lead'->'tradeLeadInfo'->'vehicle'->>'year')::int as year,
+    payload->'lead'->'tradeLeadInfo'->'vehicle'->>'make' as make,
+    payload->'lead'->'tradeLeadInfo'->'vehicle'->>'model' as model,
+    payload->'lead'->'tradeLeadInfo'->'vehicle'->>'trim' as trim,
+    payload->'lead'->'tradeLeadInfo'->'vehicle'->>'style' as style,
+    (payload->'lead'->'tradeLeadInfo'->'vehicle'->>'mileage')::double precision as mileage,
+    payload->'lead'->'tradeLeadInfo'->'vehicle'->>'status' as status,
+    (payload->'lead'->'tradeLeadInfo'->>'high_value')::double precision/100.0 as high_value,
+    (payload->'lead'->'tradeLeadInfo'->>'low_value')::double precision/100.0 as high_value,
+    payload->'lead'->'tradeLeadInfo'->>'selling_vehicle_only' as selling_vehicle_only,
+    (payload->'lead'->'tradeLeadInfo'->>'tax_rate')::double precision as tax_rate
+from
+	marketplace_leads;
