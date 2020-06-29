@@ -22,11 +22,18 @@ insert_query =  '''
                         {0}
                     (
                         s3_id,
-                        payload
+                        id,
+                        user_id,
+                        happened_at,
+                        end_point,
+                        request_method,
+                        response_code,
+                        request_payload,
+                        response_payload
                     )
-                    VALUES 
+                    VALUES
                         %s
-                    ON CONFLICT (((payload->>'event_id')::uuid))
+                    ON CONFLICT ON CONSTRAINT sda_audit_log_pkey
                     DO NOTHING
                 '''.format(script)
 
@@ -51,6 +58,9 @@ while True:
     else:
         next_run = utility.get_next_run(start_date, last_run, frequency)
 
+    #testing
+    #now = datetime.datetime(2030,1,1).replace(tzinfo=pytz.utc)
+
     if now < next_run:
         seconds_between_now_and_next_run = (next_run - now).seconds
         time.sleep(seconds_between_now_and_next_run)
@@ -67,7 +77,7 @@ while True:
                 s3_completed_files.append(file)
             s3_completed_files = set(s3_completed_files)
 
-        bucket = settings.s3_firehose_bucket
+        bucket = settings.s3_sda_audit_log_bucket
 
         resource = boto3.resource('s3')
 
@@ -75,9 +85,7 @@ while True:
 
         for object_summary in objects:
             last_modified = object_summary.last_modified
-            #print(last_modified)
-            #if last_modified < datetime.datetime(2020,4,1).replace(tzinfo=pytz.utc):
-            #    continue
+            print(last_modified)
             key = object_summary.key
             file = bucket + '/' + key
             if file in s3_completed_files:
@@ -95,14 +103,26 @@ while True:
                     s3_id = postgreshandler.insert_s3_file(connection, script, file, last_modified)
                     for line in f:
                         info = json.loads(line)
-                        if 'event_name' not in info:
-                            continue
-                        if info['event_name'] != 'reservesii.reservation.was_created':
-                            continue
+
+                        id = info['id']
+                        user_id = info['userId']
+                        happened_at = datetime.datetime.strptime(info['happenedAt'], "%Y-%m-%dT%H:%M:%S+00:00")
+                        end_point = info['endPoint']
+                        request_method = info['requestMethod']
+                        response_code = int(info['responseCode']) if info['responseCode'] is not None and info['responseCode'] != '' else None
+                        request_payload = psycopg2.extras.Json(info['requestPayload'])
+                        response_payload = psycopg2.extras.Json(info['responsePayload'])
 
                         tuple = (
                             s3_id,
-                            psycopg2.extras.Json(info),
+                            id,
+                            user_id,
+                            happened_at,
+                            end_point,
+                            request_method,
+                            response_code,
+                            request_payload,
+                            response_payload,
                         )
 
                         tuples.append(tuple)

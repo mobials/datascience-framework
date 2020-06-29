@@ -62,3 +62,5 @@ s3_dataone_key = os.getenv('S3_DATAONE_KEY')
 
 #authenticom
 s3_authenticom = os.getenv('S3_AUTHENTICOM_PRODUCTION')
+
+s3_sda_audit_log_bucket = os.getenv('S3_SDA_AUDIT_LOG_PRODUCTION')
