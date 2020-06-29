@@ -325,6 +325,8 @@ CREATE OR REPLACE VIEW v_marketplace_leads AS
         payload->'lead'->'contact'->'address'->>'postal_code' as postal_code,
         payload->'lead'->'contact'->'address'->>'province_id' as province_id,
         payload->'lead'->'contact'->'address'->>'country_code' as country_code,
+        payload->'lead'->'contact'->'isEmailVerified' as is_email_verified,
+        payload->'lead'->'contact'->'isMobilePhoneVerified' as is_mobile_phone_verified,
         payload->'lead'->>'shopperId' as shopper_id,
         payload->'lead'->>'creditRating' as credit_rating,
         payload->'lead'->'tradeLeadInfo'->'vehicle'->>'vin' as vin,
