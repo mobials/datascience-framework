@@ -392,7 +392,7 @@ while True:
                                         psycopg2.extras.Json(value)) for key,value in
                                   matched_vehicles.items()]
         list_price_model_tuples = modelled_vehicle_tuples + matched_vehicle_tuples
-        #print('inserting...')
+        print('inserting...')
         if len(list_price_model_tuples) > 0:
             with etl_connection.cursor() as cursor:
                 psycopg2.extras.execute_values(cursor, list_price_model_insert_query, list_price_model_tuples)
@@ -407,6 +407,7 @@ while True:
         status = str(e)
     finally:
         etl_connection.close()
+        print('closing')
 
     #update the scheduler
     scheduler_connection = postgreshandler.get_tradalgo_canada_connection()
