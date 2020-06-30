@@ -405,6 +405,7 @@ while True:
 
     except Exception as e:
         status = str(e)
+        print(e)
     finally:
         etl_connection.close()
         print('closing')
