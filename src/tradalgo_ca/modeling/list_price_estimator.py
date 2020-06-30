@@ -140,6 +140,7 @@ status_map = {
 }
 
 while True:
+    print('checking schedule')
     schedule_info = None
     scheduler_connection = postgreshandler.get_tradalgo_canada_connection()
     schedule_info = postgreshandler.get_script_schedule(scheduler_connection, script)
@@ -161,14 +162,16 @@ while True:
         next_run = utility.get_next_run(start_date, last_run, frequency)
 
     if now < next_run:
+        print('sleeping')
         seconds_between_now_and_next_run = (next_run - now).seconds
         time.sleep(seconds_between_now_and_next_run)
         continue  # continue here becuase it forces a second check on the scheduler, which may have changed during the time the script was asleep
 
+    print('getting etl connectiono')
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
     etl_connection = postgreshandler.get_tradalgo_canada_connection()
     try:
-
+        print('getting training data')
         session_id = postgreshandler.insert_tradalgo_session(etl_connection, session_info)
         training_set = pandas.read_sql(session_info['training_set_query'], etl_connection)
         training_set['session_id'] = session_id
@@ -183,7 +186,7 @@ while True:
         vehicle_count = 0
         for vehicle_key, vehicle_data in training_set_grouping:
             vehicle_count += 1
-            #print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),vehicle_count, total_vehicles)
+            print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),vehicle_count, total_vehicles)
 
             vehicles = len(vehicle_data)
             if vehicles < session_info['minimum_vehicles']:
@@ -268,7 +271,7 @@ while True:
             modelled_vehicles[vehicle_key] = model_info
 
         for vehicle_key, vehicle_data in training_set_grouping:
-            #print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),vehicle_count, total_vehicles)
+            print(len(modelled_vehicles), len(matched_vehicles), len(modelled_vehicles) + len(matched_vehicles),vehicle_count, total_vehicles)
             if vehicle_key in modelled_vehicles.keys():
                 continue
 
