@@ -309,10 +309,11 @@ CREATE OR REPLACE VIEW v_insuresii_leads AS
         insuresii_leads;
 
 CREATE OR REPLACE VIEW v_marketplace_leads AS
-    SELECT
+	SELECT
         payload->>'event_id' AS event_id,
-        to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') AS happened_at,
+        to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SSTZH:TZM') AS happened_at,
         payload->>'mbid' AS master_business_id,
+        to_timestamp(payload->>'createdAt','YYYY-MM-DD HH24:MI:SSTZH:TZM') as created_at,
         payload->'lead'->>'id' AS id,
         payload->'lead'->'contact'->>'firstName' as first_name,
         payload->'lead'->'contact'->>'lastName' as last_name,
