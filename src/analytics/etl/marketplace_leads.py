@@ -26,7 +26,7 @@ insert_query =  '''
                     )
                     VALUES 
                         %s
-                    ON CONFLICT (((payload->>'event_id')::uuid))
+                    ON CONFLICT (((payload->'lead'->>'id')::uuid))
                     DO NOTHING
                 '''.format(script)
 

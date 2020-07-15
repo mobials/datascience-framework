@@ -35,21 +35,21 @@ CREATE TABLE IF NOT EXISTS tradesii_leads (
     payload jsonb
 );
 CREATE UNIQUE INDEX IF NOT EXISTS tradesii_leads_lead_id_unq_idx ON tradesii_leads(((payload->'lead'->>'id')::uuid));
-CREATE UNIQUE INDEX IF NOT EXISTS tradesii_leads_event_id_unq_idx ON tradesii_leads(((payload->>'event_id')::uuid));
+--CREATE UNIQUE INDEX IF NOT EXISTS tradesii_leads_event_id_unq_idx ON tradesii_leads(((payload->>'event_id')::uuid));
 
 CREATE TABLE IF NOT EXISTS credsii_leads (
     s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
     payload jsonb
 );
 CREATE UNIQUE INDEX IF NOT EXISTS credsii_leads_lead_id_unq_idx ON credsii_leads(((payload->'lead'->>'id')::uuid));
-CREATE UNIQUE INDEX IF NOT EXISTS credsii_leads_event_id_unq_idx ON credsii_leads(((payload->>'event_id')::uuid));
+--CREATE UNIQUE INDEX IF NOT EXISTS credsii_leads_event_id_unq_idx ON credsii_leads(((payload->>'event_id')::uuid));
 
 CREATE TABLE IF NOT EXISTS insuresii_leads (
     s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
     payload jsonb
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS insuresii_leads_event_id_unq_idx ON insuresii_leads(((payload->>'event_id')::uuid));
+--CREATE UNIQUE INDEX IF NOT EXISTS insuresii_leads_event_id_unq_idx ON insuresii_leads(((payload->>'event_id')::uuid));
 CREATE UNIQUE INDEX IF NOT EXISTS insuresii_leads_lead_id_unq_idx ON insuresii_leads(((payload->'lead'->>'id')::uuid));
 
 CREATE TABLE IF NOT EXISTS reservesii_reservations (
@@ -64,10 +64,8 @@ CREATE TABLE IF NOT EXISTS marketplace_leads (
     payload jsonb
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS marketplace_leads_event_id_unq_idx ON marketplace_leads(((payload->>'event_id')::uuid));
+--CREATE UNIQUE INDEX IF NOT EXISTS marketplace_leads_event_id_unq_idx ON marketplace_leads(((payload->>'event_id')::uuid));
 CREATE UNIQUE INDEX IF NOT EXISTS marketplace_leads_lead_id_unq_idx ON marketplace_leads(((payload->'lead'->>'id')::uuid));
-
-
 
 CREATE TABLE IF NOT EXISTS scheduler
 (
@@ -449,3 +447,9 @@ CREATE TABLE IF NOT EXISTS sda_audit_log
     request_payload jsonb,
     response_payload jsonb
 );
+
+CREATE TABLE IF NOT EXISTS sage_data
+(
+
+    payload jsonb not null
+)
