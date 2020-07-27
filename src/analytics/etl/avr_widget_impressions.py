@@ -79,7 +79,7 @@ while True:
 
         for object_summary in objects:
             last_modified = object_summary.last_modified
-            #print(last_modified)
+            print(last_modified)
             key = object_summary.key
             file = bucket + '/' + key
             if file in s3_completed_files:
@@ -101,7 +101,7 @@ while True:
                     if info['event_name'] != 'avr.widget.impression':
                         continue
 
-                    date = datetime.datetime.strptime(info['happened_at'], "%Y-%m-%dT%H:%M:%S%z")
+                    date = datetime.datetime.strptime(info['happened_at'], "%Y-%m-%dT%H:%M:%S+00:00")
                     master_business_id = info['master_business_id']
                     integration_settings_id = info['integration_settings_id']
                     ip_address = info['ip_address']
