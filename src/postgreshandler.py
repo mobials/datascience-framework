@@ -4,6 +4,7 @@ import settings
 import datetime
 import psycopg2
 import psycopg2.extras
+import csv
 
 def get_dashboard_connection():
     connection_string = {
@@ -259,6 +260,59 @@ def update_script_schedule(connection,script,last_run,status,run_time,last_updat
             '''
     with connection.cursor() as cursor:
         cursor.execute(query,{'script':script,'last_run':last_run,'status':status,'run_time':run_time,'last_update':last_update})
+
+def update_zuora_table(connection,table,data):
+    print(table)
+    insert_query =  '''
+                        INSERT INTO 
+                            zuora_{0}
+                        (
+                            id, 
+                            updateddate,
+                            payload 
+                        )
+                        VALUES 
+                            %s
+                    '''.format(table)
+
+    delete_query =  '''
+                        DELETE FROM
+                            zuora_{0}
+                        WHERE 
+                            id 
+                        IN 
+                            %s
+                    '''.format(table)
+
+    reader = csv.DictReader(data.splitlines())
+    ids = []
+    tuples = []
+    for row in reader:
+        id = row['{0}.Id'.format(table)]
+        ids.append(id)
+        if row['{0}.is_deleted'.format(table)] == 'true':
+            continue
+
+        updateddate = datetime.datetime.strptime(row['{0}.UpdatedDate'.format(table)],'%Y-%m-%dT%H:%M:%S%z')
+        del row['{0}.UpdatedDate'.format(table)]
+        del row['{0}.Id'.format(table)]
+        payload = psycopg2.extras.Json(row)
+
+        tuple = (
+            id,
+            updateddate,
+            payload
+        )
+
+        tuples.append(tuple)
+
+    if len(ids) > 0:
+        with connection.cursor() as cursor:
+            psycopg2.extras.execute_values(cursor, delete_query, (ids,))
+
+    if len(tuples) > 0:
+        with connection.cursor() as cursor:
+            psycopg2.extras.execute_values(cursor, insert_query, tuples)
 
 
 

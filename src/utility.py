@@ -7,6 +7,11 @@ def add_days(date,days):
     result.replace(tzinfo = date.tzinfo)
     return result
 
+def add_hours(date,hours):
+    result = date + datetime.timedelta(hours=hours)
+    result.replace(tzinfo = date.tzinfo)
+    return result
+
 def get_day(date):
     result = datetime.datetime(date.year,date.month,date.day).replace(tzinfo=date.tzinfo)
     return result

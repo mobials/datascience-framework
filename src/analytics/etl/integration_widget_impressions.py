@@ -24,7 +24,7 @@ insert_query =  '''
                         s3_id,
                         date,
                         master_business_id,
-                        integration_settings_id,
+                        widget_id,
                         ip_address,
                         product,
                         device_type,
@@ -79,7 +79,9 @@ while True:
 
         for object_summary in objects:
             last_modified = object_summary.last_modified
-            #print(last_modified)
+            print(last_modified)
+            if last_modified < datetime.datetime(2020,7,1).replace(tzinfo=pytz.utc):
+                continue
             key = object_summary.key
             file = bucket + '/' + key
             if file in s3_completed_files:
@@ -98,12 +100,12 @@ while True:
                     info = json.loads(line)
                     if 'event_name' not in info:
                         continue
-                    if info['event_name'] != 'avr.widget.impression':
+                    if info['event_name'] != 'integrations.widget.impression':
                         continue
 
                     date = datetime.datetime.strptime(info['happened_at'], "%Y-%m-%dT%H:%M:%S%z")
                     master_business_id = info['master_business_id']
-                    integration_settings_id = info['integration_settings_id']
+                    widget_id = info['widget_id']
                     ip_address = info['ip_address']
                     product = 'reviews' if info['product'] == 'home' else info['product']
                     device_type = info['deviceType'] if 'deviceType' in info else 'unknown'
@@ -113,7 +115,7 @@ while True:
                         s3_id,
                         date,
                         master_business_id,
-                        integration_settings_id,
+                        widget_id,
                         ip_address,
                         product,
                         device_type,

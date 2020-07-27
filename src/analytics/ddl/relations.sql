@@ -20,6 +20,19 @@ CREATE TABLE IF NOT EXISTS avr_widget_impressions(
     CONSTRAINT avr_widget_impressions_pk PRIMARY KEY (ip_address,date,product,integration_settings_id,master_business_id,device_type)
 );
 
+CREATE TABLE IF NOT EXISTS integration_widget_impressions
+(
+    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
+    date timestamptz,
+    master_business_id uuid,
+    widget_id uuid,
+    ip_address text,
+    product text,
+    device_type text,
+    referrer_url text,
+    CONSTRAINT integration_widget_impressions_pk PRIMARY KEY (ip_address,date,product,widget_id,master_business_id,device_type)
+);
+
 CREATE INDEX IF NOT EXISTS avr_widget_impressions_s3_id_idx ON avr_widget_impressions (s3_id);
 CREATE INDEX IF NOT EXISTS avr_widget_impressions_date_idx ON avr_widget_impressions (date);
 
@@ -35,21 +48,19 @@ CREATE TABLE IF NOT EXISTS tradesii_leads (
     payload jsonb
 );
 CREATE UNIQUE INDEX IF NOT EXISTS tradesii_leads_lead_id_unq_idx ON tradesii_leads(((payload->'lead'->>'id')::uuid));
---CREATE UNIQUE INDEX IF NOT EXISTS tradesii_leads_event_id_unq_idx ON tradesii_leads(((payload->>'event_id')::uuid));
+CREATE INDEX IF NOT EXISTS tradesii_leads_s3_id_idx ON public.tradesii_leads (s3_id);
 
 CREATE TABLE IF NOT EXISTS credsii_leads (
     s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
     payload jsonb
 );
 CREATE UNIQUE INDEX IF NOT EXISTS credsii_leads_lead_id_unq_idx ON credsii_leads(((payload->'lead'->>'id')::uuid));
---CREATE UNIQUE INDEX IF NOT EXISTS credsii_leads_event_id_unq_idx ON credsii_leads(((payload->>'event_id')::uuid));
 
 CREATE TABLE IF NOT EXISTS insuresii_leads (
     s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
     payload jsonb
 );
 
---CREATE UNIQUE INDEX IF NOT EXISTS insuresii_leads_event_id_unq_idx ON insuresii_leads(((payload->>'event_id')::uuid));
 CREATE UNIQUE INDEX IF NOT EXISTS insuresii_leads_lead_id_unq_idx ON insuresii_leads(((payload->'lead'->>'id')::uuid));
 
 CREATE TABLE IF NOT EXISTS reservesii_reservations (
@@ -64,7 +75,6 @@ CREATE TABLE IF NOT EXISTS marketplace_leads (
     payload jsonb
 );
 
---CREATE UNIQUE INDEX IF NOT EXISTS marketplace_leads_event_id_unq_idx ON marketplace_leads(((payload->>'event_id')::uuid));
 CREATE UNIQUE INDEX IF NOT EXISTS marketplace_leads_lead_id_unq_idx ON marketplace_leads(((payload->'lead'->>'id')::uuid));
 
 CREATE TABLE IF NOT EXISTS scheduler
@@ -213,10 +223,10 @@ INSERT INTO scheduler (script,start_date,frequency) VALUES ('zuora_invoice_item_
 
 CREATE OR REPLACE VIEW v_credsii_leads AS
     SELECT
-        payload->>'event_id' AS event_id,
+        (payload->>'event_id')::uuid AS event_id,
         to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') AS happened_at,
-        payload->>'master_business_id' AS master_business_id,
-        payload->'lead'->>'id' AS id,
+        (payload->>'master_business_id')::uuid AS master_business_id,
+        (payload->'lead'->>'id')::uuid AS id,
         to_timestamp(payload->'lead'->>'createdAt','YYYY-MM-DD HH24:MI:SS') AS created_at,
         payload->'lead'->'person'->'email'->>'email' AS email,
         payload->'lead'->'person'->>'firstName'AS first_name,
@@ -232,18 +242,18 @@ CREATE OR REPLACE VIEW v_credsii_leads AS
         payload->'lead'->'creditRating' AS credit_rating,
         payload->'lead'->'conversationId' AS conversation_id,
         payload->'lead'->'routeOneResult' AS route_one_result,
-        payload->'lead'->'routeOneSentAt' AS route_one_sent_at,
-        payload->'lead'->'dealertrackSentAt' AS dealer_track_sent_at,
-        payload->'lead'->'financialFormStoredAt' AS financial_form_stored_at
+        payload->'lead'->>'routeOneSentAt' AS route_one_sent_at,
+        case when payload->'lead'->>'dealertrackSentAt' != '' then to_timestamp(payload->'lead'->'dealertrackSentAt'->>'date','YYYY-MM-DD HH24:MI:SS') else null end AS dealer_track_sent_at,
+        case when payload->'lead'->>'financialFormStoredAt' != '' then to_timestamp(payload->'lead'->'financialFormStoredAt'->>'date','YYYY-MM-DD HH24:MI:SS') else null end as financial_form_stored_at
     FROM
         credsii_leads;
 
 CREATE OR REPLACE VIEW v_tradesii_leads AS
     SELECT
-        payload->>'event_id' AS event_id,
+        (payload->>'event_id')::uuid AS event_id,
         to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') AS happened_at,
-        payload->>'mbid' AS master_business_id,
-        payload->'lead'->>'id' AS id,
+        case when payload->>'mbid' != '' then (payload->>'mbid')::uuid else null end AS master_business_id,
+        (payload->'lead'->>'id')::uuid AS id,
         to_timestamp(payload->'lead'->'createdAt'->>'date','YYYY-MM-DD HH24:MI:SS') AS created_at,
         payload->'lead'->'customer'->>'email_address' AS email_address,
         payload->'lead'->'customer'->>'name' AS name,
@@ -267,11 +277,11 @@ CREATE OR REPLACE VIEW v_tradesii_leads AS
 
 CREATE OR REPLACE VIEW v_insuresii_leads AS
     SELECT
-        payload->>'event_id' AS event_id,
+        (payload->>'event_id')::uuid AS event_id,
         to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') AS happened_at,
-        payload->>'master_business_id' AS master_business_id,
-        payload->'lead'->>'id' AS id,
-        payload->'lead'->>'quoteId' AS quote_id,
+        (payload->>'master_business_id')::uuid AS master_business_id,
+        (payload->'lead'->>'id')::uuid AS id,
+        (payload->'lead'->>'quoteId')::uuid AS quote_id,
         payload->'lead'->'vehicle'->>'vin' AS vin,
         (payload->'lead'->'vehicle'->>'year')::int AS year,
         payload->'lead'->'vehicle'->>'make' AS make,
@@ -297,10 +307,10 @@ CREATE OR REPLACE VIEW v_insuresii_leads AS
         payload->'lead'->'customer'->'payload'->>'winterTires' AS winter_tires,
         payload->'lead'->'customer'->'payload'->>'maritalStatus' AS marital_status,
         payload->'lead'->'customer'->'payload'->>'currentLicense' AS current_license,
-        payload->'lead'->>'profileId' as profile_id,
+        (payload->'lead'->>'profileId')::uuid as profile_id,
         to_timestamp(payload->'lead'->>'updatedAt','YYYY-MM-DD HH24:MI:SS') as updated_at,
         payload->'lead'->>'leadStatus' as lead_status,
-        payload->'lead'->>'referenceId' as reference_id,
+        (payload->'lead'->>'referenceId')::uuid as reference_id,
         payload->'lead'->>'referrerUrl' as referrer_url,
         payload->'lead'->'quotePayload' as quote_payload
     FROM
@@ -308,11 +318,11 @@ CREATE OR REPLACE VIEW v_insuresii_leads AS
 
 CREATE OR REPLACE VIEW v_marketplace_leads AS
 	SELECT
-        payload->>'event_id' AS event_id,
+        (payload->>'event_id')::uuid AS event_id,
         to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SSTZH:TZM') AS happened_at,
-        payload->>'mbid' AS master_business_id,
+        (payload->>'mbid')::uuid AS master_business_id,
         to_timestamp(payload->>'createdAt','YYYY-MM-DD HH24:MI:SSTZH:TZM') as created_at,
-        payload->'lead'->>'id' AS id,
+        (payload->'lead'->>'id')::uuid AS id,
         payload->'lead'->'contact'->>'firstName' as first_name,
         payload->'lead'->'contact'->>'lastName' as last_name,
         payload->'lead'->'contact'->>'email' as email,
@@ -324,9 +334,9 @@ CREATE OR REPLACE VIEW v_marketplace_leads AS
         payload->'lead'->'contact'->'address'->>'postal_code' as postal_code,
         payload->'lead'->'contact'->'address'->>'province_id' as province_id,
         payload->'lead'->'contact'->'address'->>'country_code' as country_code,
-        payload->'lead'->'contact'->'isEmailVerified' as is_email_verified,
-        payload->'lead'->'contact'->'isMobilePhoneVerified' as is_mobile_phone_verified,
-        payload->'lead'->>'shopperId' as shopper_id,
+        (payload->'lead'->'contact'->'isEmailVerified')::boolean as is_email_verified,
+        (payload->'lead'->'contact'->'isMobilePhoneVerified')::boolean as is_mobile_phone_verified,
+        (payload->'lead'->>'shopperId')::uuid as shopper_id,
         payload->'lead'->>'creditRating' as credit_rating,
         payload->'lead'->'tradeLeadInfo'->'vehicle'->>'vin' as vin,
         (payload->'lead'->'tradeLeadInfo'->'vehicle'->>'year')::int as year,
@@ -338,18 +348,18 @@ CREATE OR REPLACE VIEW v_marketplace_leads AS
         payload->'lead'->'tradeLeadInfo'->'vehicle'->>'status' as status,
         (payload->'lead'->'tradeLeadInfo'->>'high_value')::double precision/100.0 as high_value,
         (payload->'lead'->'tradeLeadInfo'->>'low_value')::double precision/100.0 as low_value,
-        payload->'lead'->'tradeLeadInfo'->>'selling_vehicle_only' as selling_vehicle_only,
+        (payload->'lead'->'tradeLeadInfo'->>'selling_vehicle_only')::boolean as selling_vehicle_only,
         (payload->'lead'->'tradeLeadInfo'->>'tax_rate')::double precision as tax_rate,
         (payload->'lead'->'purchaseInformation'->>'monthlyBudget')::double precision/100.0 as monthly_budget,
         (payload->'lead'->'purchaseInformation'->>'purchasePeriod')::int purchase_period,
         payload->'lead'->'purchaseInformation'->>'desiredVehicleType' as desired_vehicle_type,
         payload->'lead'->'purchaseInformation'->>'desiredVehicleCondition' as desired_vehicle_condition,
-        payload->'lead'->'purchaseInformation'->>'considerDeferredPayments' as consider_deferred_payments,
-        payload->'lead'->>'creditRatingProvided' as credit_rating_provided,
+        (payload->'lead'->'purchaseInformation'->>'considerDeferredPayments')::boolean as consider_deferred_payments,
+        (payload->'lead'->>'creditRatingProvided')::boolean as credit_rating_provided,
         payload->'lead'->>'regionalCreditRating' as regional_credit_rating,
-        payload->'lead'->>'shopperReceivedTradeReport' as shopper_received_trade_report,
-        payload->'lead'->>'shopperReceivedCreditReport' as shopper_received_credit_report,
-        payload->'lead'->>'financeApplicationWasSubmitted' as finance_application_was_submitted
+        (payload->'lead'->>'shopperReceivedTradeReport')::boolean as shopper_received_trade_report,
+        (payload->'lead'->>'shopperReceivedCreditReport')::boolean as shopper_received_credit_report,
+        (payload->'lead'->>'financeApplicationWasSubmitted')::boolean as finance_application_was_submitted
     FROM
         marketplace_leads;
 
@@ -434,7 +444,6 @@ create or replace view v_zuora_credit_memo_posted as
     from
         zuora_credit_memo_posted;
 
-
 CREATE TABLE IF NOT EXISTS sda_audit_log
 (
     s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
@@ -448,8 +457,105 @@ CREATE TABLE IF NOT EXISTS sda_audit_log
     response_payload jsonb
 );
 
-CREATE TABLE IF NOT EXISTS sage_data
+CREATE TABLE IF NOT EXISTS zuora_account
 (
+    id text primary key,
+    updateddate timestamptz not null,
+    payload jsonb
+);
 
-    payload jsonb not null
-)
+CREATE TABLE IF NOT EXISTS zuora_invoice
+(
+    id text primary key,
+    updateddate timestamptz not null,
+    payload jsonb
+);
+
+CREATE TABLE IF NOT EXISTS zuora_invoiceitem
+(
+    id text primary key,
+    updateddate timestamptz not null,
+    payload jsonb
+);
+
+CREATE TABLE IF NOT EXISTS zuora_creditmemo
+(
+    id text primary key,
+    updateddate timestamptz not null,
+    payload jsonb
+);
+
+CREATE TABLE IF NOT EXISTS zuora_orders
+(
+    id text primary key,
+    updateddate timestamptz not null,
+    payload jsonb
+);
+
+CREATE TABLE IF NOT EXISTS zuora_order
+(
+    id text primary key,
+    updateddate timestamptz not null,
+    payload jsonb
+);
+
+
+CREATE TABLE IF NOT EXISTS zuora_subscription
+(
+    id text primary key,
+    updateddate timestamptz not null,
+    payload jsonb
+);
+
+create or replace view v_zuora_account as
+	select
+		id,
+		updateddate,
+		case when payload->>'Account.Mrr' = '' then null else (payload->>'Account.Mrr')::numeric end as mrr,
+		case when payload->>'Account.Name' = '' then null else payload->>'Account.Name' end as name,
+		case when payload->>'Account.Batch' = '' then null else payload->>'Account.Batch' end as batch,
+		case when payload->>'Account.CrmId' = '' then null else payload->>'Account.CrmId' end as crmid,
+		case when payload->>'Account.Notes' = '' then null else payload->>'Account.Notes' end as notes,
+		case when payload->>'Account.VAT' = '' then null else payload->>'Account.VAT' end as vat,
+		case when payload->>'Account.Status' = '' then null else payload->>'Account.Status' end as status,
+		case when payload->>'Account.AutoPay' = '' then null else (payload->>'Account.AutoPay')::boolean end as autopay,
+		case when payload->>'Account.Balance' = '' then null else (payload->>'Account.Balance')::numeric end as balance,
+		case when payload->>'Account.Currency' = '' then null else payload->>'Account.Currency' end as currency,
+		case when payload->>'Account.ParentId' = '' then null else payload->>'Account.ParentId' end as parentid,
+		case when payload->>'Account.is_deleted' = '' then null else (payload->>'Account.is_deleted')::boolean end as is_deleted,
+		case when payload->>'Account.CreatedById' = '' then null else payload->>'Account.CreatedById' end as createdbyid,
+		case when payload->>'Account.CreatedDate' = '' then null else to_timestamp((payload->>'Account.CreatedDate')::text,'YYYY-MM-DD HH24:MI:SSTZHTZM') end as createddate,
+		case when payload->>'Account.PaymentTerm' = '' then null else payload->>'Account.PaymentTerm' end as paymentterm,
+		case when payload->>'Account.UpdatedById' = '' then null else payload->>'Account.UpdatedById' end as updatedbyid,
+		case when payload->>'Account.BillCycleDay' = '' then null else (payload->>'Account.BillCycleDay')::integer end as billcycleday,
+		case when payload->>'Account.SalesRepName' = '' then null else payload->>'Account.SalesRepName' end as salesrepname,
+		case when payload->>'Account.AccountNumber' = '' then null else payload->>'Account.AccountNumber' end as accountnumber,
+		case when payload->>'Account.CreditBalance' = '' then null else (payload->>'Account.CreditBalance')::numeric end as creditbalance,
+		case when payload->>'Account.SequenceSetId' = '' then null else payload->>'Account.SequenceSetId' end as sequencesettid,
+		case when payload->>'Account.PaymentGateway' = '' then null else payload->>'Account.PaymentGateway' end as paymentgateway,
+		case when payload->>'Account.TaxCompanyCode' = '' then null else payload->>'Account.TaxCompanyCode' end as taxcompanycode,
+		case when payload->>'Account.LastInvoiceDate' = '' then null else to_timestamp(payload->>'Account.LastInvoiceDate','YYYY-MM-DD') end as lastinvoicedate,
+		case when payload->>'Account.TaxExemptStatus' = '' then null else payload->>'Account.TaxExemptStatus' end as taxexemptstatus,
+		case when payload->>'Account.AllowInvoiceEdit' = '' then null else (payload->>'Account.AllowInvoiceEdit')::boolean end as allowinvoiceedit,
+		case when payload->>'Account.BcdSettingOption' = '' then null else (payload->>'Account.BcdSettingOption') end as bcdsettingoption,
+		case when payload->>'Account.UnappliedBalance' = '' then null else (payload->>'Account.UnappliedBalance')::numeric end as unappliedbalance,
+		case when payload->>'Account.InvoiceTemplateId' = '' then null else payload->>'Account.InvoiceTemplateId' end as invoicetemplateid,
+		case when payload->>'Account.PurchaseOrderNumber' = '' then null else payload->>'Account.PurchaseOrderNumber' end as purchaseordernumber,
+		case when payload->>'Account.TotalInvoiceBalance' = '' then null else (payload->>'Account.TotalInvoiceBalance')::numeric end as totalinvoicebalance,
+		case when payload->>'Account.TaxExemptDescription' = '' then null else payload->>'Account.TaxExemptDescription' end as taxexemptdescription,
+		case when payload->>'Account.TotalDebitMemoBalance' = '' then null else (payload->>'Account.TotalDebitMemoBalance')::numeric end as totaldebitmemobalance,
+		case when payload->>'Account.CommunicationProfileId' = '' then null else payload->>'Account.CommunicationProfileId' end as communicationprofileid,
+		case when payload->>'Account.CustomerServiceRepName' = '' then null else payload->>'Account.CustomerServiceRepName' end as customerservicerepname,
+		case when payload->>'Account.TaxExemptCertificateID' = '' then null else payload->>'Account.TaxExemptCertificateID' end as taxexemptcertificateid,
+		case when payload->>'Account.TaxExemptEffectiveDate' = '' then null else to_timestamp(payload->>'Account.TaxExemptEffectiveDate','YYYY-MM-DD HH24:MI:SSTZHTZM') end as taxexempteffectivedate,
+		case when payload->>'Account.TaxExemptEntityUseCode' = '' then null else payload->>'Account.TaxExemptEntityUseCode' end as taxexemptentityusecode,
+		case when payload->>'Account.AdditionalEmailAddresses' = '' then null else payload->>'Account.AdditionalEmailAddresses' end as additionalemailaddresses,
+		case when payload->>'Account.TaxExemptCertificateType' = '' then null else payload->>'Account.TaxExemptCertificateType' end as taxexemptcertificatetype,
+		case when payload->>'Account.internalAccountNumber__c' = '' then null else (payload->>'Account.internalAccountNumber__c')::integer end as internalaccountnumber__c,
+		case when payload->>'Account.InvoiceDeliveryPrefsEmail' = '' then null else (payload->>'Account.InvoiceDeliveryPrefsEmail')::boolean end as invoicedeliveryprefsemail,
+		case when payload->>'Account.InvoiceDeliveryPrefsPrint' = '' then null else (payload->>'Account.InvoiceDeliveryPrefsPrint')::boolean end as invoicedeliveryprefsprint,
+		case when payload->>'Account.UnappliedCreditMemoAmount' = '' then null else (payload->>'Account.UnappliedCreditMemoAmount')::numeric end as unappliedcreditmemoamount,
+		case when payload->>'Account.TaxExemptIssuingJurisdiction' = '' then null else payload->>'Account.TaxExemptIssuingJurisdiction' end as taxexemptissuingjurisdiction,
+		case when payload->>'Account.contactLanguagePreference__c' = '' then null else payload->>'Account.contactLanguagePreference__c' end as contactlaanguagepreference__c
+	from
+		zuora_account;

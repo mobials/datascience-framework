@@ -64,3 +64,8 @@ s3_dataone_key = os.getenv('S3_DATAONE_KEY')
 s3_authenticom = os.getenv('S3_AUTHENTICOM_PRODUCTION')
 
 s3_sda_audit_log_bucket = os.getenv('S3_SDA_AUDIT_LOG_PRODUCTION')
+
+zuora_base_api_url =  os.getenv('ZUORA_BASE_API_URL')
+zuora_base_url =  os.getenv('ZUORA_BASE_URL')
+zuora_client_id = os.getenv('ZUORA_CLIENT_ID')
+zuora_client_secret = os.getenv('ZUORA_CLIENT_SECRET')
