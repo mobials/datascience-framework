@@ -262,7 +262,7 @@ def update_script_schedule(connection,script,last_run,status,run_time,last_updat
         cursor.execute(query,{'script':script,'last_run':last_run,'status':status,'run_time':run_time,'last_update':last_update})
 
 def update_zuora_table(connection,table,data):
-    print(table)
+    #print(table)
     insert_query =  '''
                         INSERT INTO 
                             zuora_{0}
