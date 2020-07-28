@@ -92,7 +92,7 @@ def create_query(connection,table):
                 "name": table,
                 "query": query,
                 "type": "zoqlexport",
-                "apiVersion": "96.0",
+                #"apiVersion": "96.0",
                 "deleted": {
                     "column": "is_deleted",
                     "format": "Boolean",

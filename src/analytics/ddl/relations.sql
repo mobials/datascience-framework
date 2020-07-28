@@ -204,23 +204,6 @@ CREATE OR REPLACE VIEW v_vacuum_stats AS
   ORDER BY
         n_dead_tup DESC;
 
-CREATE TABLE IF NOT EXISTS zuora_invoice_item_created (
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
-    payload jsonb
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS zuora_invoice_item_created_unq_idx ON zuora_invoice_item_created(((payload->>'event_id')::uuid));
-
-CREATE TABLE IF NOT EXISTS zuora_credit_memo_posted (
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
-    payload jsonb
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS zuora_credit_memo_posted_unq_idx ON zuora_credit_memo_posted(((payload->>'event_id')::uuid));
-
-INSERT INTO scheduler (script,start_date,frequency) VALUES ('zuora_credit_memo_posted','2020-05-23','1 day') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
-INSERT INTO scheduler (script,start_date,frequency) VALUES ('zuora_invoice_item_created','2020-05-23','1 day') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
-
 CREATE OR REPLACE VIEW v_credsii_leads AS
     SELECT
         (payload->>'event_id')::uuid AS event_id,
@@ -363,87 +346,6 @@ CREATE OR REPLACE VIEW v_marketplace_leads AS
     FROM
         marketplace_leads;
 
-CREATE OR REPLACE VIEW v_zoura_invoice_item_created AS
-    SELECT
-        s3_id,
-        (payload->>'event_id')::uuid as event_id,
-        payload->>'event_name' as event_name,
-        to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') as happened_at,
-        to_timestamp(payload->>'Invoice.CreatedDate','YYYY-MM-DD HH24:MI:SS') as invoice_created_date,
-        payload->>'Invoice.Id' as invoice_id,
-        (payload->>'Account.AccountNumber') as account_account_number,
-        to_timestamp(payload->>'Invoice.InvoiceDate','YYYY-MM-DD') as invoice_invoice_date,
-        payload->>'InvoiceItem.AccountingCode' as invoice_item_accounting_code,
-        case when payload->>'InvoiceItem.AppliedToInvoiceItemId' = '' then null else payload->>'InvoiceItem.AppliedToInvoiceItemId' end as invoice_item_applied_to_invoice_item_id,
-        (payload->>'InvoiceItem.Balance')::numeric as invoice_item_balance,
-        (payload->>'InvoiceItem.ChargeAmount')::numeric as invoice_item_charge_amount,
-        to_timestamp(payload->>'InvoiceItem.ChargeDate','YYYY-MM-DD HH24:MI:SS') as invoice_item_charge_date,
-        payload->>'InvoiceItem.ChargeName' as invoice_item_charge_name,
-        payload->>'InvoiceItem.CreatedById' as invoice_item_created_by_id,
-        to_timestamp(payload->>'InvoiceItem.CreatedDate','YYYY-MM-DD HH24:MI:SS') as invoice_item_created_date,
-        payload->>'InvoiceItem.Id' as invoice_item_id,
-        (payload->>'InvoiceItem.ProcessingType')::int4 as invoice_item_processing_type,
-        (payload->>'InvoiceItem.Quantity')::int4 as invoice_item_quantity,
-        case when payload->>'InvoiceItem.RevRecStartDate' = '' then null else to_timestamp(payload->>'InvoiceItem.RevRecStartDate','YYYY-MM-DD') end as invoice_item_rev_rec_start_date,
-        to_timestamp(payload->>'InvoiceItem.ServiceEndDate','YYYY-MM-DD') as invoice_item_service_end_date,
-        to_timestamp(payload->>'InvoiceItem.ServiceStartDate','YYYY-MM-DD') as invoice_item_service_start_date,
-        payload->>'InvoiceItem.SKU' as invoice_item_sku,
-        payload->>'InvoiceItem.SubscriptionId' as invoice_item_subscription_id,
-        (payload->>'InvoiceItem.TaxAmount')::numeric as invoice_item_tax_amount,
-        payload->>'InvoiceItem.TaxCode' as invoice_item_tax_code,
-        (payload->>'InvoiceItem.TaxExemptAmount')::numeric as invoice_item_tax_exempt_amount,
-        payload->>'InvoiceItem.TaxMode' as invoice_item_tax_mode,
-        (payload->>'InvoiceItem.UnitPrice')::numeric as invoice_item_unit_price,
-        case when payload->>'InvoiceItem.UOM' = '' then null else payload->>'InvoiceItem.UOM' end as invoice_item_uom,
-        payload->>'InvoiceItem.UpdatedById' as invoice_item_updated_by_id,
-        to_timestamp(payload->>'InvoiceItem.UpdatedDate','YYYY-MM-DD HH24:MI:SS') as invoice_item_updated_date,
-        case when payload->>'Invoice.PostedDate' = '' then null else to_timestamp(payload->>'Invoice.PostedDate','YYYY-MM-DD HH24:MI:SS') end as invoice_posted_date,
-        payload->>'ProductRatePlanCharge.ChargeType' as product_rate_plan_charge_charge_type,
-        case when payload->>'ProductRatePlanCharge.UOM' = '' then null else payload->>'ProductRatePlanCharge.UOM' end as product_rate_plan_charge_uom,
-        (payload->>'Subscription.CreatorAccountId') as subscription_creator_account_id
-    FROM
-        zuora_invoice_item_created;
-
-create or replace view v_zuora_credit_memo_posted as
-    select
-        s3_id,
-        (payload->>'event_id')::uuid as event_id,
-        payload->>'event_name' as event_name,
-        to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') as happened_at,
-        (payload->>'CreditMemo.AppliedAmount')::numeric as credit_memo_applied_amount,
-        (payload->>'CreditMemo.Balance')::numeric as credit_memo_balance,
-        case when payload->>'CreditMemo.CancelledById' = '' then null else payload->>'CreditMemo.CancelledById' end as credit_memo_cancelled_by_id,
-        case when payload->>'CreditMemo.CancelledOn' = '' then null else payload->>'CreditMemo.CancelledOn' end  as credit_memo_cancelled_on,
-        case when payload->>'CreditMemo.Comments' = '' then null else payload->>'CreditMemo.Comments' end as credit_memo_comments,
-        payload->>'CreditMemo.CreatedById' as credit_memo_created_by_id,
-        to_timestamp(payload->>'CreditMemo.CreatedDate','YYYY-MM-DD HH24:MI:SS') as credit_memo_created_date,
-        (payload->>'CreditMemo.DiscountAmount')::numeric as credit_memo_discount_amount,
-        to_timestamp(payload->>'CreditMemo.ExchangeRateDate','YYYY-MM-DD') as credit_memo_exchange_rate_date,
-        payload->>'CreditMemo.Id' as credit_memo_id,
-        case when payload->>'CreditMemo.legacyCreditMemoNumber__c' = '' then null else payload->>'CreditMemo.legacyCreditMemoNumber__c' end as credit_memo_legacy_credit_memo_number,
-        to_timestamp(payload->>'CreditMemo.MemoDate','YYYY-MM-DD') as credit_memo_memo_date,
-        payload->>'CreditMemo.MemoNumber' as credit_memo_memo_number,
-        payload->>'CreditMemo.PostedById' as credit_memo_posted_by_id,
-        to_timestamp(payload->>'CreditMemo.PostedOn','YYYY-MM-DD HH24:MI:SS') as credit_memo_posted_on,
-        payload->>'CreditMemo.ReasonCode' as credit_memo_reason_code,
-        (payload->>'CreditMemo.RefundAmount')::numeric as credit_memo_refund_amount,
-        payload->>'CreditMemo.Source' as credit_memo_source,
-        case when payload->>'CreditMemo.SourceId' = '' then null else payload->>'CreditMemo.SourceId' end as credit_memo_source_id,
-        payload->>'CreditMemo.Status' as credit_memo_status,
-        case when payload->>'CreditMemo.TargetDate' = '' then null else to_timestamp(payload->>'CreditMemo.TargetDate','YYYY-MM-DD') end as credit_memo_target_date,
-        (payload->>'CreditMemo.TaxAmount')::numeric as credit_memo_tax_amount,
-        payload->>'CreditMemo.TaxMessage' as credit_memo_tax_message,
-        case when payload->>'CreditMemo.TaxStatus' = '' then null else payload->>'CreditMemo.TaxStatus' end as credit_memo_tax_status,
-        (payload->>'CreditMemo.TotalAmount')::numeric as credit_memo_total_amount,
-        (payload->>'CreditMemo.TotalAmountWithoutTax')::numeric as credit_memo_total_amount_without_tax,
-        (payload->>'CreditMemo.TotalTaxExemptAmount')::numeric as credit_memo_total_tax_exempt_amount,
-        case when payload->>'CreditMemo.TransferredToAccounting' = '' then null else payload->>'CreditMemo.TransferredToAccounting' end as credit_memo_transferred_to_accounting,
-        payload->>'CreditMemo.UpdatedById' as credit_memo_updated_by_id,
-        case when payload->>'CreditMemo.UpdatedDate' = '' then null else to_timestamp(payload->>'CreditMemo.UpdatedDate','YYYY-MM-DD HH24:MI:SS') end as credit_memo_updated_date,
-        case when payload->>'Invoice.Id' = '' then null else payload->>'Invoice.Id' end as invoice_id
-    from
-        zuora_credit_memo_posted;
-
 CREATE TABLE IF NOT EXISTS sda_audit_log
 (
     s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
@@ -479,13 +381,6 @@ CREATE TABLE IF NOT EXISTS zuora_invoiceitem
 );
 
 CREATE TABLE IF NOT EXISTS zuora_creditmemo
-(
-    id text primary key,
-    updateddate timestamptz not null,
-    payload jsonb
-);
-
-CREATE TABLE IF NOT EXISTS zuora_orders
 (
     id text primary key,
     updateddate timestamptz not null,
@@ -612,7 +507,7 @@ create or replace view v_zuora_invoice as
 		case when payload->>'Invoice.CreatedDate' = '' then null else to_timestamp(payload->>'Invoice.CreatedDate','YYYY-MM-DD HH24:MI:SSTZHTZM') end as createddate,
 		case when payload->>'Invoice.InvoiceDate' = '' then null else (payload->>'Invoice.InvoiceDate')::timestamp at time zone 'America/Toronto' end as invoicedate,
 		case when payload->>'Invoice.UpdatedById' = '' then null else payload->>'Invoice.UpdatedById' end as updatedbyid,
-		case when payload->>'Invoice.RefundAmount' = '' then null else (payload->>'Invoice.RefundAmount')::numeric end as refendamount,
+		case when payload->>'Invoice.RefundAmount' = '' then null else (payload->>'Invoice.RefundAmount')::numeric end as refundamount,
 		case when payload->>'Invoice.IncludesUsage' = '' then null else (payload->>'Invoice.IncludesUsage')::boolean end as includesusage,
 		case when payload->>'Invoice.InvoiceNumber' = '' then null else (payload->>'Invoice.InvoiceNumber') end as invoicenumber,
 		case when payload->>'Invoice.PaymentAmount' = '' then null else (payload->>'Invoice.PaymentAmount')::numeric end as paymentamount,
@@ -672,3 +567,37 @@ create or replace view v_zuora_subscription as
 		case when payload->>'Subscription.OpportunityCloseDate__QT' = '' then null else payload->>'Subscription.OpportunityCloseDate__QT' end as opportunitycloseddate__qt
 	from
 		zuora_subscription;
+
+create or replace view v_zuora_creditmemo as
+    select
+        id,
+        updateddate,
+        case when payload->>'CreditMemo.Source' = '' then null else payload->>'CreditMemo.Source' end as source,
+        case when payload->>'CreditMemo.Status' = '' then null else payload->>'CreditMemo.Status' end as status,
+        case when payload->>'CreditMemo.Balance' = '' then null else (payload->>'CreditMemo.Balance')::numeric end as balance,
+        case when payload->>'CreditMemo.Comments' = '' then null else payload->>'CreditMemo.Comments' end as comments,
+        case when payload->>'CreditMemo.MemoDate' = '' then null else (payload->>'CreditMemo.MemoDate')::timestamp at time zone 'America/Toronto' end as memodate,
+        case when payload->>'CreditMemo.PostedOn' = '' then null else to_timestamp(payload->>'CreditMemo.PostedOn','YYYY-MM-DD HH24:MI:SSTZHTZM') end as postedon,
+        case when payload->>'CreditMemo.SourceId' = '' then null else payload->>'CreditMemo.SourceId' end as sourceid,
+        case when payload->>'CreditMemo.TaxAmount' = '' then null else (payload->>'CreditMemo.TaxAmount')::numeric end as taxamount,
+        case when payload->>'CreditMemo.MemoNumber' = '' then null else payload->>'CreditMemo.MemoNumber' end as memonumber,
+        case when payload->>'CreditMemo.PostedById' = '' then null else payload->>'CreditMemo.PostedById' end as postedbyid,
+        case when payload->>'CreditMemo.ReasonCode' = '' then null else payload->>'CreditMemo.ReasonCode' end as reasoncode,
+        case when payload->>'CreditMemo.TargetDate' = '' then null else (payload->>'CreditMemo.TargetDate')::timestamp at time zone 'America/Toronto' end as targetdate,
+        case when payload->>'CreditMemo.is_deleted' = '' then null else (payload->>'CreditMemo.is_deleted')::boolean end as is_deleted,
+        case when payload->>'CreditMemo.CancelledOn' = '' then null else to_timestamp(payload->>'CreditMemo.CancelledOn','YYYY-MM-DD HH24:MI:SSTZHTZM') end as cancelledon,
+        case when payload->>'CreditMemo.CreatedById' = '' then null else payload->>'CreditMemo.CreatedById' end as createdbyid,
+        case when payload->>'CreditMemo.CreatedDate' = '' then null else to_timestamp(payload->>'CreditMemo.CreatedDate','YYYY-MM-DD HH24:MI:SSTZHTZM') end createddate,
+        case when payload->>'CreditMemo.TotalAmount' = '' then null else (payload->>'CreditMemo.TotalAmount')::numeric end as totalamount,
+        case when payload->>'CreditMemo.UpdatedById' = '' then null else payload->>'CreditMemo.UpdatedById' end as updatedbyid,
+        case when payload->>'CreditMemo.RefundAmount' = '' then null else (payload->>'CreditMemo.RefundAmount')::numeric end as refundamount,
+        case when payload->>'CreditMemo.AppliedAmount' = '' then null else (payload->>'CreditMemo.AppliedAmount')::numeric end as appliedamount,
+        case when payload->>'CreditMemo.CancelledById' = '' then null else (payload->>'CreditMemo.CancelledById') end as cancelledbyid,
+        case when payload->>'CreditMemo.DiscountAmount' = '' then null else (payload->>'CreditMemo.DiscountAmount')::numeric end as discountamount,
+        case when payload->>'CreditMemo.ExchangeRateDate' = '' then null else (payload->>'CreditMemo.ExchangeRateDate')::timestamp at time zone 'America/Toronto' end as exchangeratedate,
+        case when payload->>'CreditMemo.TotalTaxExemptAmount' = '' then null else (payload->>'CreditMemo.TotalTaxExemptAmount')::numeric end as totaltaxexemptamount,
+        case when payload->>'CreditMemo.TotalAmountWithoutTax' = '' then null else (payload->>'CreditMemo.TotalAmountWithoutTax')::numeric end as totalamountwithouttax,
+        case when payload->>'CreditMemo.TransferredToAccounting' = '' then null else (payload->>'CreditMemo.TransferredToAccounting')::boolean end as transeferredtoaccounting,
+        case when payload->>'CreditMemo.legacyCreditMemoNumber__c' = '' then null else (payload->>'CreditMemo.legacyCreditMemoNumber__c') end as legacycreditmemonumber__c
+    from
+        zuora_creditmemo;
