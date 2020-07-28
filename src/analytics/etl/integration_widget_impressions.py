@@ -103,7 +103,7 @@ while True:
                     if info['event_name'] != 'integrations.widget.impression':
                         continue
 
-                    date = datetime.datetime.strptime(info['happened_at'], "%Y-%m-%dT%H:%M:%S%z")
+                    date = datetime.datetime.strptime(info['happened_at'], "%Y-%m-%dT%H:%M:%S+00:00")
                     master_business_id = info['master_business_id']
                     widget_id = info['widget_id']
                     ip_address = info['ip_address']
