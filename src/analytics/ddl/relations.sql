@@ -2,6 +2,7 @@ CREATE SCHEMA IF NOT EXISTS s3;
 CREATE SCHEMA IF NOT EXISTS autoverify;
 CREATE SCHEMA IF NOT EXISTS zuora;
 CREATE SCHEMA IF NOT EXISTS operations;
+CREATE SCHEMA IF NOT EXISTS utility;
 
 CREATE TABLE IF NOT EXISTS operations.scheduler
 (
@@ -15,8 +16,17 @@ CREATE TABLE IF NOT EXISTS operations.scheduler
     run_time interval,
     CONSTRAINT scheduler_pk PRIMARY KEY (script)
 );
-
-INSERT INTO scheduler (script,start_date,frequency) VALUES ('avr_widget_impressions','2020-05-23','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','mpm_leads','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','mpm_integration_settings','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','tradesii_businesses','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','tradesii_leads','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','tradesii_business_profiles','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','sda_master_businesses','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','credsii_leads','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','credsii_reports','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','credsii_businesses','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','credsii_business_profiles','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('s3','avr_widget_impressions','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
 (
@@ -25,20 +35,84 @@ CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
     updated_at timestamptz not null,
     payload jsonb not null
 );
+ALTER TABLE autoverify.mpm_leads SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
 
-
-CREATE TABLE IF NOT EXISTS s3 (
-    id bigserial,
-	file text NOT NULL,
-	last_modified timestamptz NOT NULL,
-	script text not null,
-    scanned timestamptz not null,
-	CONSTRAINT s3_unq_idx UNIQUE (file,script),
-	CONSTRAINT s3_pk PRIMARY KEY (id)
+CREATE TABLE IF NOT EXISTS autoverify.mpm_integration_settings
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz not null,
+    payload jsonb not null
 );
 
-CREATE TABLE IF NOT EXISTS avr_widget_impressions(
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS autoverify.tradesii_leads
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    payload jsonb not null
+);
+ALTER TABLE autoverify.tradesii_leads SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
+
+CREATE TABLE IF NOT EXISTS autoverify.tradesii_businesses
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz,
+    payload jsonb not null
+);
+
+CREATE TABLE IF NOT EXISTS autoverify.tradesii_business_profiles
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz,
+    payload jsonb not null
+);
+
+CREATE TABLE IF NOT EXISTS autoverify.sda_master_businesses
+(
+    id uuid primary key,
+    created_at timestamptz,
+    updated_at timestamptz not null,
+    payload jsonb not null
+);
+
+CREATE TABLE IF NOT EXISTS autoverify.credsii_leads
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz not null,
+    payload jsonb not null
+);
+ALTER TABLE autoverify.credsii_leads SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
+
+CREATE TABLE IF NOT EXISTS autoverify.credsii_reports
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz not null,
+    payload jsonb not null
+);
+ALTER TABLE autoverify.credsii_reports SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
+
+CREATE TABLE IF NOT EXISTS autoverify.credsii_businesses
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz,
+    payload jsonb not null
+);
+
+CREATE TABLE IF NOT EXISTS autoverify.credsii_business_profiles
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz,
+    payload jsonb not null
+);
+
+CREATE TABLE IF NOT EXISTS s3.avr_widget_impressions(
+    s3_id bigint REFERENCES s3.scanned_files(id) ON DELETE CASCADE,
     date timestamptz,
     master_business_id uuid,
     integration_settings_id uuid,
@@ -48,45 +122,20 @@ CREATE TABLE IF NOT EXISTS avr_widget_impressions(
     referrer_url text,
     CONSTRAINT avr_widget_impressions_pk PRIMARY KEY (ip_address,date,product,integration_settings_id,master_business_id,device_type)
 );
+CREATE INDEX IF NOT EXISTS avr_widget_impressions_s3_id_idx ON s3.avr_widget_impressions (s3_id);
+CREATE INDEX IF NOT EXISTS avr_widget_impressions_date_idx ON s3.avr_widget_impressions (date);
 
-CREATE TABLE IF NOT EXISTS integration_widget_impressions
-(
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
-    date timestamptz,
-    master_business_id uuid,
-    widget_id uuid,
-    ip_address text,
-    product text,
-    device_type text,
-    referrer_url text,
-    CONSTRAINT integration_widget_impressions_pk PRIMARY KEY (ip_address,date,product,widget_id,master_business_id,device_type)
+CREATE TABLE IF NOT EXISTS s3.scanned_files (
+    id bigserial,
+	file text NOT NULL,
+	last_modified timestamptz NOT NULL,
+	script text not null,
+    scanned timestamptz not null,
+	CONSTRAINT s3_unq_idx UNIQUE (file,script),
+	CONSTRAINT s3_pk PRIMARY KEY (id)
 );
 
-CREATE INDEX IF NOT EXISTS avr_widget_impressions_s3_id_idx ON avr_widget_impressions (s3_id);
-CREATE INDEX IF NOT EXISTS avr_widget_impressions_date_idx ON avr_widget_impressions (date);
-
-CREATE TABLE IF NOT EXISTS authenticom_sales_data (
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
-    payload jsonb
-);
-
-ALTER TABLE avr_widget_impressions ADD COLUMN IF NOT EXISTS referrer_url TEXT;
-
-CREATE TABLE IF NOT EXISTS scheduler
-(
-    script text NOT NULL,
-    start_date timestamptz NOT NULL,
-    frequency interval NOT NULL,
-    last_run timestamptz,
-    last_update timestamptz,
-    status text,
-    run_time interval,
-    CONSTRAINT scheduler_pk PRIMARY KEY (script)
-);
-
-INSERT INTO scheduler (script,start_date,frequency) VALUES ('avr_widget_impressions','2020-05-23','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
-
-CREATE OR REPLACE VIEW v_table_size as
+CREATE OR REPLACE VIEW utility.v_table_size as
 	SELECT a.oid,
         a.table_schema,
         a.table_name,
@@ -119,7 +168,7 @@ CREATE OR REPLACE VIEW v_table_size as
                   WHERE c.relkind = 'r'::"char") a_1) a
   ORDER BY a.total_bytes DESC;
 
-CREATE OR REPLACE VIEW v_relation_size AS
+CREATE OR REPLACE VIEW utility.v_relation_size AS
     SELECT n.nspname,
         c.relname,
         pg_size_pretty(pg_relation_size(c.oid::regclass)) AS size
@@ -128,7 +177,7 @@ CREATE OR REPLACE VIEW v_relation_size AS
   WHERE n.nspname <> ALL (ARRAY['pg_catalog'::name, 'information_schema'::name])
   ORDER BY (pg_relation_size(c.oid::regclass)) desc;
 
-CREATE OR REPLACE VIEW v_active_queries AS
+CREATE OR REPLACE VIEW utility.v_active_queries AS
     SELECT
         datid,
         datname,
@@ -157,7 +206,7 @@ CREATE OR REPLACE VIEW v_active_queries AS
         state = 'active';
 
 
-CREATE OR REPLACE VIEW v_blocking_statements AS
+CREATE OR REPLACE VIEW utility.v_blocking_statements AS
     SELECT blocked_locks.pid AS blocked_pid,
     blocked_activity.usename AS blocked_user,
     blocking_locks.pid AS blocking_pid,
@@ -170,7 +219,7 @@ CREATE OR REPLACE VIEW v_blocking_statements AS
      JOIN pg_stat_activity blocking_activity ON blocking_activity.pid = blocking_locks.pid
   WHERE NOT blocked_locks.granted;
 
-CREATE OR REPLACE VIEW v_vacuum_stats AS
+CREATE OR REPLACE VIEW utility.v_vacuum_stats AS
     SELECT
         relid,
         schemaname,
@@ -198,19 +247,6 @@ CREATE OR REPLACE VIEW v_vacuum_stats AS
         pg_stat_user_tables
   ORDER BY
         n_dead_tup DESC;
-
-CREATE TABLE IF NOT EXISTS sda_audit_log
-(
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
-    id uuid PRIMARY KEY,
-    user_id uuid,
-    happened_at timestamptz,
-    end_point text,
-    request_method text,
-    response_code int4,
-    request_payload jsonb,
-    response_payload jsonb
-);
 
 CREATE TABLE IF NOT EXISTS zuora_account
 (
@@ -453,56 +489,3 @@ create or replace view v_zuora_creditmemo as
         case when payload->>'CreditMemo.legacyCreditMemoNumber__c' = '' then null else (payload->>'CreditMemo.legacyCreditMemoNumber__c') end as legacycreditmemonumber__c
     from
         zuora_creditmemo;
-
-CREATE TABLE IF NOT EXISTS mpm_leads
-(
-    id uuid primary key,
-    created_at timestamptz not null,
-    updated_at timestamptz not null,
-    payload jsonb not null
-);
-
-CREATE TABLE IF NOT EXISTS mpm_integration_settings
-(
-    id uuid primary key,
-    created_at timestamptz not null,
-    updated_at timestamptz not null,
-    payload jsonb not null
-);
-
-CREATE TABLE IF NOT EXISTS sda_master_businesses
-(
-    id uuid primary key,
-    created_at timestamptz,
-    updated_at timestamptz not null,
-    payload jsonb not null
-);
-
-ALTER TABLE mpm_leads SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
-
-CREATE TABLE IF NOT EXISTS tradesii_leads
-(
-    id uuid primary key,
-    created_at timestamptz not null,
-    payload jsonb not null
-);
-
-ALTER TABLE tradesii_leads SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
-
-CREATE TABLE IF NOT EXISTS tradesii_business_profiles
-(
-    id uuid primary key,
-    created_at timestamptz not null,
-    updated_at timestamptz,
-    payload jsonb not null
-);
-
-CREATE TABLE IF NOT EXISTS tradesii_businesses
-(
-    id uuid primary key,
-    created_at timestamptz not null,
-    updated_at timestamptz,
-    payload jsonb not null
-);
-
-

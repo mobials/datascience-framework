@@ -16,6 +16,7 @@ import pytz
 import time
 import utility
 
+schema = 'autoverify'
 script = os.path.basename(__file__)[:-3]
 
 #minutes to rescan
@@ -39,7 +40,7 @@ read_query = '''
 
 insert_query = '''
                     INSERT INTO
-                        {0}
+                        {0}.{1}
                     (
                         id,
                         created_at,
@@ -54,11 +55,11 @@ insert_query = '''
                         created_at = EXCLUDED.created_at,
                         updated_at = EXCLUDED.updated_at,
                         payload = EXCLUDED.payload
-                '''.format(script)
+                '''.format(schema,script)
 while True:
     schedule_info = None
     scheduler_connection = postgreshandler.get_analytics_connection()
-    schedule_info = postgreshandler.get_script_schedule(scheduler_connection, script)
+    schedule_info = postgreshandler.get_script_schedule(scheduler_connection,schema,script)
     if schedule_info is None:
         raise Exception('Schedule not found.')
     scheduler_connection.close()
@@ -74,7 +75,7 @@ while True:
     if last_run is None:
         next_run = start_date
     else:
-        next_run = utility.get_next_run(start_date, last_run, frequency)
+        next_run = utility.get_next_run(start_date,last_run,frequency)
 
     if now < next_run:
         seconds_between_now_and_next_run = (next_run - now).seconds
@@ -83,11 +84,9 @@ while True:
 
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
-
     postgres_etl_connection = postgreshandler.get_analytics_connection()
-
     try:
-        last_updated_at = postgreshandler.get_max_value(postgres_etl_connection,script,'updated_at')
+        last_updated_at = postgreshandler.get_max_value(postgres_etl_connection,schema,script,'updated_at')
         min_updated_at = last_updated_at if last_updated_at is not None else datetime.datetime(2000,1,1).replace(tzinfo=pytz.utc)
         #add reupload time
         min_updated_at = utility.add_minutes(min_updated_at,reupload_window)
@@ -130,7 +129,7 @@ while True:
 
         if len(tuples) > 0:
             with postgres_etl_connection.cursor() as cursor:
-                psycopg2.extras.execute_values(cursor, insert_query, tuples)
+                psycopg2.extras.execute_values(cursor,insert_query,tuples)
                 postgres_etl_connection.commit()
                 status = 'success'
                 last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
@@ -142,6 +141,6 @@ while True:
 
 
     scheduler_connection = postgreshandler.get_analytics_connection()
-    postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
+    postgreshandler.update_script_schedule(scheduler_connection,schema,script,now,status,run_time,last_update)
     scheduler_connection.commit()
     scheduler_connection.close()

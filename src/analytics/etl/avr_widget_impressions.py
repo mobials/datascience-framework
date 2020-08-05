@@ -15,11 +15,12 @@ import utility
 import pytz
 import time
 
+schema = 's3'
 script = os.path.basename(__file__)[:-3]
 
 insert_query =  '''
                     INSERT INTO
-                        {0}
+                        {0}.{1}
                     (
                         s3_id,
                         date,
@@ -32,14 +33,14 @@ insert_query =  '''
                     )
                     VALUES
                         %s
-                    ON CONFLICT ON CONSTRAINT {0}_pk
+                    ON CONFLICT ON CONSTRAINT {1}_pk
                     DO NOTHING
-                '''.format(script)
+                '''.format(schema,script)
 
 while True:
     schedule_info = None
     scheduler_connection = postgreshandler.get_analytics_connection()
-    schedule_info = postgreshandler.get_script_schedule(scheduler_connection, script)
+    schedule_info = postgreshandler.get_script_schedule(scheduler_connection,schema,script)
     if schedule_info is None:
         raise Exception('Schedule not found.')
     scheduler_connection.close()
@@ -67,7 +68,7 @@ while True:
     etl_connection = postgreshandler.get_analytics_connection()
     try:
         s3_completed_files = []
-        for file in postgreshandler.get_s3_scanned_files(etl_connection, script):
+        for file in postgreshandler.get_s3_scanned_files(etl_connection,script):
             s3_completed_files.append(file)
         s3_completed_files = set(s3_completed_files)
 
@@ -93,7 +94,7 @@ while True:
             buffer = io.BytesIO(object.get()["Body"].read())
             z = zipfile.ZipFile(buffer)
             with  z.open(z.infolist()[0]) as f:
-                s3_id = postgreshandler.insert_s3_file(etl_connection, script, file, last_modified)
+                s3_id = postgreshandler.insert_s3_file(etl_connection,script,file,last_modified)
                 for line in f:
                     info = json.loads(line)
                     if 'event_name' not in info:
@@ -138,6 +139,6 @@ while True:
         etl_connection.close()
 
     scheduler_connection = postgreshandler.get_analytics_connection()
-    postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
+    postgreshandler.update_script_schedule(scheduler_connection,schema,script,now,status,run_time,last_update)
     scheduler_connection.commit()
     scheduler_connection.close()

@@ -75,7 +75,7 @@ while True:
     if last_run is None:
         next_run = start_date
     else:
-        next_run = utility.get_next_run(start_date,last_run,frequency)
+        next_run = utility.get_next_run(start_date, last_run, frequency)
 
     if now < next_run:
         seconds_between_now_and_next_run = (next_run - now).seconds
@@ -85,48 +85,50 @@ while True:
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
     postgres_etl_connection = postgreshandler.get_analytics_connection()
-    mysql_etl_connection = mysqlhandler.get_autoverify_connection()
     try:
         last_updated_at = postgreshandler.get_max_value(postgres_etl_connection,schema,script,'updated_at')
         min_updated_at = last_updated_at if last_updated_at is not None else datetime.datetime(2000,1,1).replace(tzinfo=pytz.utc)
         #add reupload time
         min_updated_at = utility.add_minutes(min_updated_at,reupload_window)
         max_updated_at = utility.add_minutes(datetime.datetime.utcnow(),lag_window)
-
         tuples = []
-        with mysql_etl_connection.cursor() as cursor:
-            cursor.execute(read_query,{'min_updated_at':min_updated_at,'max_updated_at':max_updated_at})
-            columns = [col[0] for col in cursor.description]
-            count = 0
-            for row in cursor:
-                count += 1
-                print(count)
-                info = dict(zip(columns, row))
-                id = info['id']
-                created_at = info['created_at']
-                updated_at = info['updated_at']
+        mysql_etl_connection = mysqlhandler.get_autoverify_connection()
+        try:
+            with mysql_etl_connection.cursor() as cursor:
+                cursor.execute(read_query, {'min_updated_at': min_updated_at, 'max_updated_at': max_updated_at})
+                columns = [col[0] for col in cursor.description]
+                count = 0
+                for row in cursor:
+                    count += 1
+                    print(count)
+                    info = dict(zip(columns, row))
+                    id = info['id']
+                    created_at = info['created_at']
+                    updated_at = info['updated_at']
 
-                #clean up some fields we don't need in the payload
-                del info['id']
-                del info['created_at']
-                del info['updated_at']
+                    # clean up some fields we don't need in the payload
+                    del info['id']
+                    del info['created_at']
+                    del info['updated_at']
 
-                #convert the remaining entries into json
-                payload = json.dumps(info,default=str)
+                    # convert the remaining entries into json
+                    payload = json.dumps(info, default=str)
 
-                tuple = (
-                    id,
-                    created_at,
-                    updated_at,
-                    payload,
-                )
-                tuples.append(
-                    tuple
-                )
+                    tuple = (
+                        id,
+                        created_at,
+                        updated_at,
+                        payload,
+                    )
+                    tuples.append(
+                        tuple
+                    )
+        finally:
+            mysql_etl_connection.close()
 
         if len(tuples) > 0:
             with postgres_etl_connection.cursor() as cursor:
-                psycopg2.extras.execute_values(cursor,insert_query,tuples)
+                psycopg2.extras.execute_values(cursor, insert_query, tuples)
                 postgres_etl_connection.commit()
                 status = 'success'
                 last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
@@ -135,7 +137,6 @@ while True:
         status = str(e)
     finally:
         postgres_etl_connection.close()
-        mysql_etl_connection.close()
 
     scheduler_connection = postgreshandler.get_analytics_connection()
     postgreshandler.update_script_schedule(scheduler_connection,schema,script,now,status,run_time,last_update)

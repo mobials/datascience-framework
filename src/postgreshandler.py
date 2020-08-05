@@ -62,28 +62,28 @@ def get_tradalgo_canada_connection():
     return connection
 
 
-def get_s3_versions(connection,script):
-    query = '''
-                SELECT 
-                    version_id
-                FROM
-                    scratch.s3
-                WHERE 
-                    script = %(script)s
-            '''
-    with connection.cursor() as cursor:
-        cursor.execute(query,{'script':script})
-        result = cursor.fetchone()
-        if result is not None:
-            result = result[0]
-        return result
+# def get_s3_versions(connection,script):
+#     query = '''
+#                 SELECT
+#                     version_id
+#                 FROM
+#                     scratch.s3
+#                 WHERE
+#                     script = %(script)s
+#             '''
+#     with connection.cursor() as cursor:
+#         cursor.execute(query,{'script':script})
+#         result = cursor.fetchone()
+#         if result is not None:
+#             result = result[0]
+#         return result
 
 def get_s3_scanned_max_last_modified_date(connection,script):
      query =    '''
                     SELECT
                         last_modified
                     FROM
-                        s3
+                        s3.scanned_files
                     WHERE
                         script = %(script)s
                     ORDER BY 
@@ -99,12 +99,12 @@ def get_s3_scanned_max_last_modified_date(connection,script):
              result = row[0]
      return result
 
-def get_s3_scanned_files(connection, script):
+def get_s3_scanned_files(connection,script):
     query = '''
                 SELECT 
                     file
                 FROM
-                    s3
+                    s3.scanned_files
                 WHERE 
                     script = %(script)s;
             '''
@@ -114,10 +114,10 @@ def get_s3_scanned_files(connection, script):
         for row in cursor.fetchall():
             yield row[0]
 
-def insert_s3_file(connection, script, file, last_modified):
+def insert_s3_file(connection,script,file,last_modified):
     query = '''
                 INSERT INTO
-                    s3
+                    s3.scanned_files
                 (
                     file,
                     last_modified,
@@ -230,36 +230,40 @@ def insert_tradalgo_session(connection,session_info):
             result = result[0]
             return result
 
-def get_script_schedule(connection,script):
+def get_script_schedule(connection,schema,script):
     query = '''
                 SELECT 
                     *
                 FROM
-                    scheduler
+                    operations.scheduler
                 WHERE
+                    schema = %(schema)s
+                AND
                     script = %(script)s
             '''
 
     with connection.cursor(cursor_factory = psycopg2.extras.DictCursor) as cursor:
-        cursor.execute(query,{'script':script})
+        cursor.execute(query,{'schema':schema,'script':script})
         result = cursor.fetchone()
         if result is not None:
             return result
 
-def update_script_schedule(connection,script,last_run,status,run_time,last_update):
+def update_script_schedule(connection,schema,script,last_run,status,run_time,last_update):
     query = '''
                 UPDATE
-                    scheduler
+                    operations.scheduler
                 SET 
                     last_run = %(last_run)s,
                     status = %(status)s,
                     run_time = %(run_time)s,
                     last_update = %(last_update)s
                 WHERE 
+                    schema = %(schema)s
+                AND
                     script = %(script)s
             '''
     with connection.cursor() as cursor:
-        cursor.execute(query,{'script':script,'last_run':last_run,'status':status,'run_time':run_time,'last_update':last_update})
+        cursor.execute(query,{'schema':schema,'script':script,'last_run':last_run,'status':status,'run_time':run_time,'last_update':last_update})
 
 def update_zuora_table(connection,table,data):
     #print(table)
@@ -315,13 +319,13 @@ def update_zuora_table(connection,table,data):
             psycopg2.extras.execute_values(cursor, insert_query, tuples)
 
 
-def get_max_value(connection,table,column):
+def get_max_value(connection,schema,table,column):
     query = '''
                 SELECT 
                     max({0})
                 FROM
-                    {1}
-            '''.format(column,table)
+                    {1}.{2}
+            '''.format(column,schema,table)
     with connection.cursor() as cursor:
         cursor.execute(query)
         result = cursor.fetchone()
