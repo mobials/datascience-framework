@@ -315,4 +315,18 @@ def update_zuora_table(connection,table,data):
             psycopg2.extras.execute_values(cursor, insert_query, tuples)
 
 
+def get_max_value(connection,table,column):
+    query = '''
+                SELECT 
+                    max({0})
+                FROM
+                    {1}
+            '''.format(column,table)
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        result = cursor.fetchone()
+        if result is not None and result[0] is not None:
+            return result[0]
+
+
 

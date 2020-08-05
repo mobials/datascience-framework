@@ -26,16 +26,23 @@ lag_window = 0
 
 read_query = '''
                 SELECT 
-	                *
+	                a.*,
+	                b.*
                 FROM 
-	                {0}
+	                autoverify.mpm_leads a
+                LEFT JOIN 
+                    autoverify.mpm_lead_details b 
+                ON 
+                    b.lead_id = a.id
                 WHERE 
-	                created_at >= %(min_created_at)s 
+	                a.status != 'created'
+	            AND 
+	                a.updated_at >= %(min_updated_at)s 
 	            AND
-	                created_at < %(max_created_at)s
+	                a.updated_at < %(max_updated_at)s
 	            ORDER BY 
-	                created_at ASC
-            '''.format(script)
+	                updated_at ASC
+            '''
 
 insert_query = '''
                     INSERT INTO
@@ -43,6 +50,7 @@ insert_query = '''
                     (
                         id,
                         created_at,
+                        updated_at,
                         payload
                     )
                     VALUES 
@@ -51,6 +59,7 @@ insert_query = '''
                     DO UPDATE 
                     SET 
                         created_at = EXCLUDED.created_at,
+                        updated_at = EXCLUDED.updated_at,
                         payload = EXCLUDED.payload
                 '''.format(script)
 while True:
@@ -81,21 +90,18 @@ while True:
 
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
-
     postgres_etl_connection = postgreshandler.get_analytics_connection()
-
     try:
-        last_created_at = postgreshandler.get_max_value(postgres_etl_connection,script,'created_at')
-        min_created_at = last_created_at if last_created_at is not None else datetime.datetime(2000,1,1).replace(tzinfo=pytz.utc)
+        last_updated_at = postgreshandler.get_max_value(postgres_etl_connection,script,'updated_at')
+        min_updated_at = last_updated_at if last_updated_at is not None else datetime.datetime(2000,1,1).replace(tzinfo=pytz.utc)
         #add reupload time
-        min_created_at = utility.add_minutes(min_created_at,reupload_window)
-        max_created_at = utility.add_minutes(datetime.datetime.utcnow(),lag_window)
-
+        min_updated_at = utility.add_minutes(min_updated_at,reupload_window)
+        max_updated_at = utility.add_minutes(datetime.datetime.utcnow(),lag_window)
         tuples = []
         mysql_etl_connection = mysqlhandler.get_autoverify_connection()
         try:
             with mysql_etl_connection.cursor() as cursor:
-                cursor.execute(read_query,{'min_created_at':min_created_at,'max_created_at':max_created_at})
+                cursor.execute(read_query, {'min_updated_at': min_updated_at, 'max_updated_at': max_updated_at})
                 columns = [col[0] for col in cursor.description]
                 count = 0
                 for row in cursor:
@@ -104,17 +110,21 @@ while True:
                     info = dict(zip(columns, row))
                     id = info['id']
                     created_at = info['created_at']
+                    updated_at = info['updated_at']
 
-                    #clean up some fields we don't need in the payload
+                    # clean up some fields we don't need in the payload
                     del info['id']
                     del info['created_at']
+                    del info['updated_at']
+                    del info['lead_id']
 
-                    #convert the remaining entries into json
-                    payload = json.dumps(info,default=str)
+                    # convert the remaining entries into json
+                    payload = json.dumps(info, default=str)
 
                     tuple = (
                         id,
                         created_at,
+                        updated_at,
                         payload,
                     )
                     tuples.append(
@@ -134,6 +144,7 @@ while True:
         status = str(e)
     finally:
         postgres_etl_connection.close()
+
 
     scheduler_connection = postgreshandler.get_analytics_connection()
     postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)

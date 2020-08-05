@@ -12,6 +12,11 @@ def add_hours(date,hours):
     result.replace(tzinfo = date.tzinfo)
     return result
 
+def add_minutes(date,minutes):
+    result = date + datetime.timedelta(minutes=minutes)
+    result.replace(tzinfo=date.tzinfo)
+    return result
+
 def get_day(date):
     result = datetime.datetime(date.year,date.month,date.day).replace(tzinfo=date.tzinfo)
     return result

@@ -1,3 +1,32 @@
+CREATE SCHEMA IF NOT EXISTS s3;
+CREATE SCHEMA IF NOT EXISTS autoverify;
+CREATE SCHEMA IF NOT EXISTS zuora;
+CREATE SCHEMA IF NOT EXISTS operations;
+
+CREATE TABLE IF NOT EXISTS operations.scheduler
+(
+    schema text not null,
+    script text NOT NULL,
+    start_date timestamptz NOT NULL,
+    frequency interval NOT NULL,
+    last_run timestamptz,
+    last_update timestamptz,
+    status text,
+    run_time interval,
+    CONSTRAINT scheduler_pk PRIMARY KEY (script)
+);
+
+INSERT INTO scheduler (script,start_date,frequency) VALUES ('avr_widget_impressions','2020-05-23','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz not null,
+    payload jsonb not null
+);
+
+
 CREATE TABLE IF NOT EXISTS s3 (
     id bigserial,
 	file text NOT NULL,
@@ -42,40 +71,6 @@ CREATE TABLE IF NOT EXISTS authenticom_sales_data (
 );
 
 ALTER TABLE avr_widget_impressions ADD COLUMN IF NOT EXISTS referrer_url TEXT;
-
-CREATE TABLE IF NOT EXISTS tradesii_leads (
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
-    payload jsonb
-);
-CREATE UNIQUE INDEX IF NOT EXISTS tradesii_leads_lead_id_unq_idx ON tradesii_leads(((payload->'lead'->>'id')::uuid));
-CREATE INDEX IF NOT EXISTS tradesii_leads_s3_id_idx ON public.tradesii_leads (s3_id);
-
-CREATE TABLE IF NOT EXISTS credsii_leads (
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
-    payload jsonb
-);
-CREATE UNIQUE INDEX IF NOT EXISTS credsii_leads_lead_id_unq_idx ON credsii_leads(((payload->'lead'->>'id')::uuid));
-
-CREATE TABLE IF NOT EXISTS insuresii_leads (
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
-    payload jsonb
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS insuresii_leads_lead_id_unq_idx ON insuresii_leads(((payload->'lead'->>'id')::uuid));
-
-CREATE TABLE IF NOT EXISTS reservesii_reservations (
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
-    payload jsonb
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS reservesii_reservations_event_id_unq_idx ON reservesii_reservations(((payload->>'event_id')::uuid));
-
-CREATE TABLE IF NOT EXISTS marketplace_leads (
-    s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
-    payload jsonb
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS marketplace_leads_lead_id_unq_idx ON marketplace_leads(((payload->'lead'->>'id')::uuid));
 
 CREATE TABLE IF NOT EXISTS scheduler
 (
@@ -204,148 +199,6 @@ CREATE OR REPLACE VIEW v_vacuum_stats AS
   ORDER BY
         n_dead_tup DESC;
 
-CREATE OR REPLACE VIEW v_credsii_leads AS
-    SELECT
-        (payload->>'event_id')::uuid AS event_id,
-        to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') AS happened_at,
-        (payload->>'master_business_id')::uuid AS master_business_id,
-        (payload->'lead'->>'id')::uuid AS id,
-        to_timestamp(payload->'lead'->>'createdAt','YYYY-MM-DD HH24:MI:SS') AS created_at,
-        payload->'lead'->'person'->'email'->>'email' AS email,
-        payload->'lead'->'person'->>'firstName'AS first_name,
-        payload->'lead'->'person'->>'lastName'AS last_name,
-        payload->'lead'->'person'->'phoneNumber'->>'phone_number' AS phone_number,
-        payload->'lead'->'address'->>'city' AS city,
-        replace(payload->'lead'->'address'->>'postal_code',' ','') AS postal_code,
-        payload->'lead'->'address'->>'province_id' AS province_id,
-        payload->'lead'->'address'->>'address_line_1' AS address_line_1,
-        payload->'lead'->'address'->>'address_line_2' AS address_line_2,
-        payload->'lead'->>'leadStatus' AS lead_status,
-        payload->'lead'->'billingKey' AS billing_key,
-        payload->'lead'->'creditRating' AS credit_rating,
-        payload->'lead'->'conversationId' AS conversation_id,
-        payload->'lead'->'routeOneResult' AS route_one_result,
-        payload->'lead'->>'routeOneSentAt' AS route_one_sent_at,
-        case when payload->'lead'->>'dealertrackSentAt' != '' then to_timestamp(payload->'lead'->'dealertrackSentAt'->>'date','YYYY-MM-DD HH24:MI:SS') else null end AS dealer_track_sent_at,
-        case when payload->'lead'->>'financialFormStoredAt' != '' then to_timestamp(payload->'lead'->'financialFormStoredAt'->>'date','YYYY-MM-DD HH24:MI:SS') else null end as financial_form_stored_at
-    FROM
-        credsii_leads;
-
-CREATE OR REPLACE VIEW v_tradesii_leads AS
-    SELECT
-        (payload->>'event_id')::uuid AS event_id,
-        to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') AS happened_at,
-        case when payload->>'mbid' != '' then (payload->>'mbid')::uuid else null end AS master_business_id,
-        (payload->'lead'->>'id')::uuid AS id,
-        to_timestamp(payload->'lead'->'createdAt'->>'date','YYYY-MM-DD HH24:MI:SS') AS created_at,
-        payload->'lead'->'customer'->>'email_address' AS email_address,
-        payload->'lead'->'customer'->>'name' AS name,
-        payload->'lead'->'customer'->>'phone_number' AS phone_number,
-        replace(payload->'lead'->'customer'->>'postal_code',' ','') AS postal_code,
-        payload->'lead'->'customer'->>'ip' AS ip,
-        payload->'lead'->'customer'->>'referrer_url' AS referrer_url,
-        payload->'lead'->>'businessProfileId' AS business_profile_id,
-        payload->'lead'->>'reportId' AS report_id,
-        payload->'lead'->'vehicle'->>'vin' AS vin,
-        (payload->'lead'->'vehicle'->>'year')::int AS year,
-        payload->'lead'->'vehicle'->>'make' AS make,
-        payload->'lead'->'vehicle'->>'model' AS model,
-        payload->'lead'->'vehicle'->>'trim' AS trim,
-        payload->'lead'->'vehicle'->>'style' as style,
-        (payload->'lead'->'vehicle'->>'mileage')::double precision AS mileage,
-        (payload->'lead'->'vehicle'->>'trade_in_low')::double precision/100.0 AS trade_in_low,
-        (payload->'lead'->'vehicle'->>'trade_in_high')::double precision/100.0 AS trade_in_high
-    FROM
-        tradesii_leads;
-
-CREATE OR REPLACE VIEW v_insuresii_leads AS
-    SELECT
-        (payload->>'event_id')::uuid AS event_id,
-        to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SS') AS happened_at,
-        (payload->>'master_business_id')::uuid AS master_business_id,
-        (payload->'lead'->>'id')::uuid AS id,
-        (payload->'lead'->>'quoteId')::uuid AS quote_id,
-        payload->'lead'->'vehicle'->>'vin' AS vin,
-        (payload->'lead'->'vehicle'->>'year')::int AS year,
-        payload->'lead'->'vehicle'->>'make' AS make,
-        payload->'lead'->'vehicle'->>'model' AS model,
-        payload->'lead'->'vehicle'->>'trim' AS trim,
-        payload->'lead'->'vehicle'->>'style' as style,
-        (payload->'lead'->'vehicle'->>'mileage')::double precision AS mileage,
-        to_timestamp(payload->'lead'->>'createdAt','YYYY-MM-DD HH24:MI:SS') AS created_at,
-        payload->'lead'->'customer'->>'email' AS email,
-        payload->'lead'->'customer'->>'firstName' AS first_name,
-        payload->'lead'->'customer'->>'lastName' AS last_name,
-        payload->'lead'->'customer'->>'phone' AS phone,
-        payload->'lead'->'customer'->>'mobilePhone' AS mobile_phone,
-        replace(payload->'lead'->'customer'->'address'->>'postal_code',' ','') AS postal_code,
-        payload->'lead'->'customer'->'address'->>'city' AS city,
-        payload->'lead'->'customer'->'address'->>'province_id' AS province_id,
-        payload->'lead'->'customer'->>'country_code' AS country_code,
-        payload->'lead'->'customer'->>'address_line_1' AS address_line_1,
-        payload->'lead'->'customer'->>'address_line_2' AS address_line_2,
-        payload->'lead'->'customer'->'payload'->>'gender' AS gender,
-        payload->'lead'->'customer'->'payload'->>'kmToWork' AS km_to_work,
-        payload->'lead'->'customer'->'payload'->>'dateOfBirth' AS date_of_birth,
-        payload->'lead'->'customer'->'payload'->>'winterTires' AS winter_tires,
-        payload->'lead'->'customer'->'payload'->>'maritalStatus' AS marital_status,
-        payload->'lead'->'customer'->'payload'->>'currentLicense' AS current_license,
-        (payload->'lead'->>'profileId')::uuid as profile_id,
-        to_timestamp(payload->'lead'->>'updatedAt','YYYY-MM-DD HH24:MI:SS') as updated_at,
-        payload->'lead'->>'leadStatus' as lead_status,
-        (payload->'lead'->>'referenceId')::uuid as reference_id,
-        payload->'lead'->>'referrerUrl' as referrer_url,
-        payload->'lead'->'quotePayload' as quote_payload
-    FROM
-        insuresii_leads;
-
-CREATE OR REPLACE VIEW v_marketplace_leads AS
-	SELECT
-        (payload->>'event_id')::uuid AS event_id,
-        to_timestamp(payload->>'happened_at','YYYY-MM-DD HH24:MI:SSTZH:TZM') AS happened_at,
-        (payload->>'mbid')::uuid AS master_business_id,
-        to_timestamp(payload->>'createdAt','YYYY-MM-DD HH24:MI:SSTZH:TZM') as created_at,
-        (payload->'lead'->>'id')::uuid AS id,
-        payload->'lead'->'contact'->>'firstName' as first_name,
-        payload->'lead'->'contact'->>'lastName' as last_name,
-        payload->'lead'->'contact'->>'email' as email,
-        payload->'lead'->'contact'->>'mobilePhone' as mobile_phone,
-        payload->'lead'->'contact'->>'language' as language,
-        payload->'lead'->'contact'->'address'->>'address_line_1' as address_line_1,
-        payload->'lead'->'contact'->'address'->>'address_line_2' as address_line_2,
-        payload->'lead'->'contact'->'address'->>'city' as city,
-        payload->'lead'->'contact'->'address'->>'postal_code' as postal_code,
-        payload->'lead'->'contact'->'address'->>'province_id' as province_id,
-        payload->'lead'->'contact'->'address'->>'country_code' as country_code,
-        (payload->'lead'->'contact'->'isEmailVerified')::boolean as is_email_verified,
-        (payload->'lead'->'contact'->'isMobilePhoneVerified')::boolean as is_mobile_phone_verified,
-        (payload->'lead'->>'shopperId')::uuid as shopper_id,
-        payload->'lead'->>'creditRating' as credit_rating,
-        payload->'lead'->'tradeLeadInfo'->'vehicle'->>'vin' as vin,
-        (payload->'lead'->'tradeLeadInfo'->'vehicle'->>'year')::int as year,
-        payload->'lead'->'tradeLeadInfo'->'vehicle'->>'make' as make,
-        payload->'lead'->'tradeLeadInfo'->'vehicle'->>'model' as model,
-        payload->'lead'->'tradeLeadInfo'->'vehicle'->>'trim' as trim,
-        payload->'lead'->'tradeLeadInfo'->'vehicle'->>'style' as style,
-        (payload->'lead'->'tradeLeadInfo'->'vehicle'->>'mileage')::double precision as mileage,
-        payload->'lead'->'tradeLeadInfo'->'vehicle'->>'status' as status,
-        (payload->'lead'->'tradeLeadInfo'->>'high_value')::double precision/100.0 as high_value,
-        (payload->'lead'->'tradeLeadInfo'->>'low_value')::double precision/100.0 as low_value,
-        (payload->'lead'->'tradeLeadInfo'->>'selling_vehicle_only')::boolean as selling_vehicle_only,
-        (payload->'lead'->'tradeLeadInfo'->>'tax_rate')::double precision as tax_rate,
-        (payload->'lead'->'purchaseInformation'->>'monthlyBudget')::double precision/100.0 as monthly_budget,
-        (payload->'lead'->'purchaseInformation'->>'purchasePeriod')::int purchase_period,
-        payload->'lead'->'purchaseInformation'->>'desiredVehicleType' as desired_vehicle_type,
-        payload->'lead'->'purchaseInformation'->>'desiredVehicleCondition' as desired_vehicle_condition,
-        (payload->'lead'->'purchaseInformation'->>'considerDeferredPayments')::boolean as consider_deferred_payments,
-        (payload->'lead'->>'creditRatingProvided')::boolean as credit_rating_provided,
-        payload->'lead'->>'regionalCreditRating' as regional_credit_rating,
-        (payload->'lead'->>'shopperReceivedTradeReport')::boolean as shopper_received_trade_report,
-        (payload->'lead'->>'shopperReceivedCreditReport')::boolean as shopper_received_credit_report,
-        (payload->'lead'->>'financeApplicationWasSubmitted')::boolean as finance_application_was_submitted
-    FROM
-        marketplace_leads;
-
 CREATE TABLE IF NOT EXISTS sda_audit_log
 (
     s3_id bigint REFERENCES s3(id) ON DELETE CASCADE,
@@ -393,7 +246,6 @@ CREATE TABLE IF NOT EXISTS zuora_order
     updateddate timestamptz not null,
     payload jsonb
 );
-
 
 CREATE TABLE IF NOT EXISTS zuora_subscription
 (
@@ -601,3 +453,56 @@ create or replace view v_zuora_creditmemo as
         case when payload->>'CreditMemo.legacyCreditMemoNumber__c' = '' then null else (payload->>'CreditMemo.legacyCreditMemoNumber__c') end as legacycreditmemonumber__c
     from
         zuora_creditmemo;
+
+CREATE TABLE IF NOT EXISTS mpm_leads
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz not null,
+    payload jsonb not null
+);
+
+CREATE TABLE IF NOT EXISTS mpm_integration_settings
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz not null,
+    payload jsonb not null
+);
+
+CREATE TABLE IF NOT EXISTS sda_master_businesses
+(
+    id uuid primary key,
+    created_at timestamptz,
+    updated_at timestamptz not null,
+    payload jsonb not null
+);
+
+ALTER TABLE mpm_leads SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
+
+CREATE TABLE IF NOT EXISTS tradesii_leads
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    payload jsonb not null
+);
+
+ALTER TABLE tradesii_leads SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
+
+CREATE TABLE IF NOT EXISTS tradesii_business_profiles
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz,
+    payload jsonb not null
+);
+
+CREATE TABLE IF NOT EXISTS tradesii_businesses
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz,
+    payload jsonb not null
+);
+
+

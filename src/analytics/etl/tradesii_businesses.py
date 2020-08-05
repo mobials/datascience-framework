@@ -19,7 +19,7 @@ import utility
 script = os.path.basename(__file__)[:-3]
 
 #minutes to rescan
-reupload_window = int(-1440*3)
+reupload_window = -26280000#50 years until we can figure out how reliable updated_at is as an indicator of row change
 
 #minutes lag
 lag_window = 0
@@ -43,6 +43,7 @@ insert_query = '''
                     (
                         id,
                         created_at,
+                        updated_at,
                         payload
                     )
                     VALUES 
@@ -51,6 +52,7 @@ insert_query = '''
                     DO UPDATE 
                     SET 
                         created_at = EXCLUDED.created_at,
+                        updated_at = EXCLUDED.updated_at,
                         payload = EXCLUDED.payload
                 '''.format(script)
 while True:
@@ -83,7 +85,6 @@ while True:
 
 
     postgres_etl_connection = postgreshandler.get_analytics_connection()
-
     try:
         last_created_at = postgreshandler.get_max_value(postgres_etl_connection,script,'created_at')
         min_created_at = last_created_at if last_created_at is not None else datetime.datetime(2000,1,1).replace(tzinfo=pytz.utc)
@@ -104,10 +105,11 @@ while True:
                     info = dict(zip(columns, row))
                     id = info['id']
                     created_at = info['created_at']
-
+                    updated_at = info['updated_at']
                     #clean up some fields we don't need in the payload
                     del info['id']
                     del info['created_at']
+                    del info['updated_at']
 
                     #convert the remaining entries into json
                     payload = json.dumps(info,default=str)
@@ -115,6 +117,7 @@ while True:
                     tuple = (
                         id,
                         created_at,
+                        updated_at,
                         payload,
                     )
                     tuples.append(

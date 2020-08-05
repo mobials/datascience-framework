@@ -19,7 +19,7 @@ import utility
 script = os.path.basename(__file__)[:-3]
 
 #minutes to rescan
-reupload_window = int(-1440*3)
+reupload_window = -26280000#50 years until we can figure out how reliable updated_at is as an indicator of row change
 
 #minutes lag
 lag_window = 0
@@ -30,11 +30,11 @@ read_query = '''
                 FROM 
 	                {0}
                 WHERE 
-	                created_at >= %(min_created_at)s 
+	                updated_at >= %(min_updated_at)s 
 	            AND
-	                created_at < %(max_created_at)s
+	                updated_at < %(max_updated_at)s
 	            ORDER BY 
-	                created_at ASC
+	                updated_at ASC
             '''.format(script)
 
 insert_query = '''
@@ -43,6 +43,7 @@ insert_query = '''
                     (
                         id,
                         created_at,
+                        updated_at,
                         payload
                     )
                     VALUES 
@@ -51,6 +52,7 @@ insert_query = '''
                     DO UPDATE 
                     SET 
                         created_at = EXCLUDED.created_at,
+                        updated_at = EXCLUDED.updated_at,
                         payload = EXCLUDED.payload
                 '''.format(script)
 while True:
@@ -83,45 +85,44 @@ while True:
 
 
     postgres_etl_connection = postgreshandler.get_analytics_connection()
-
+    mysql_etl_connection = mysqlhandler.get_autoverify_connection()
     try:
-        last_created_at = postgreshandler.get_max_value(postgres_etl_connection,script,'created_at')
-        min_created_at = last_created_at if last_created_at is not None else datetime.datetime(2000,1,1).replace(tzinfo=pytz.utc)
+        last_updated_at = postgreshandler.get_max_value(postgres_etl_connection,script,'updated_at')
+        min_updated_at = last_updated_at if last_updated_at is not None else datetime.datetime(2000,1,1).replace(tzinfo=pytz.utc)
         #add reupload time
-        min_created_at = utility.add_minutes(min_created_at,reupload_window)
-        max_created_at = utility.add_minutes(datetime.datetime.utcnow(),lag_window)
+        min_updated_at = utility.add_minutes(min_updated_at,reupload_window)
+        max_updated_at = utility.add_minutes(datetime.datetime.utcnow(),lag_window)
 
         tuples = []
-        mysql_etl_connection = mysqlhandler.get_autoverify_connection()
-        try:
-            with mysql_etl_connection.cursor() as cursor:
-                cursor.execute(read_query,{'min_created_at':min_created_at,'max_created_at':max_created_at})
-                columns = [col[0] for col in cursor.description]
-                count = 0
-                for row in cursor:
-                    count += 1
-                    print(count)
-                    info = dict(zip(columns, row))
-                    id = info['id']
-                    created_at = info['created_at']
+        with mysql_etl_connection.cursor() as cursor:
+            cursor.execute(read_query,{'min_updated_at':min_updated_at,'max_updated_at':max_updated_at})
+            columns = [col[0] for col in cursor.description]
+            count = 0
+            for row in cursor:
+                count += 1
+                print(count)
+                info = dict(zip(columns, row))
+                id = info['id']
+                created_at = info['created_at']
+                updated_at = info['updated_at']
 
-                    #clean up some fields we don't need in the payload
-                    del info['id']
-                    del info['created_at']
+                #clean up some fields we don't need in the payload
+                del info['id']
+                del info['created_at']
+                del info['updated_at']
 
-                    #convert the remaining entries into json
-                    payload = json.dumps(info,default=str)
+                #convert the remaining entries into json
+                payload = json.dumps(info,default=str)
 
-                    tuple = (
-                        id,
-                        created_at,
-                        payload,
-                    )
-                    tuples.append(
-                        tuple
-                    )
-        finally:
-            mysql_etl_connection.close()
+                tuple = (
+                    id,
+                    created_at,
+                    updated_at,
+                    payload,
+                )
+                tuples.append(
+                    tuple
+                )
 
         if len(tuples) > 0:
             with postgres_etl_connection.cursor() as cursor:
@@ -134,6 +135,7 @@ while True:
         status = str(e)
     finally:
         postgres_etl_connection.close()
+        mysql_etl_connection.close()
 
     scheduler_connection = postgreshandler.get_analytics_connection()
     postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
