@@ -14,11 +14,12 @@ import os
 import gzip
 import time
 
+schema = 'public'
 script = os.path.basename(__file__)[:-3]
 
 cdc_insert_query =  '''
                         INSERT INTO
-                            cdc
+                            {0}.cdc
                         (
                             vin,
                             miles,
@@ -41,12 +42,12 @@ cdc_insert_query =  '''
                             body_type = case when cdc.status_date < EXCLUDED.status_date then EXCLUDED.body_type else cdc.body_type end,
                             trim_orig = case when cdc.status_date < EXCLUDED.status_date then EXCLUDED.trim_orig else cdc.trim_orig end,
                             taxonomy_vin = case when cdc.status_date < EXCLUDED.status_date then EXCLUDED.taxonomy_vin else cdc.taxonomy_vin end
-                    '''
+                    '''.format(schema)
 
 while True:
     schedule_info = None
     scheduler_connection = postgreshandler.get_tradalgo_canada_connection()
-    schedule_info = postgreshandler.get_script_schedule(scheduler_connection, script)
+    schedule_info = postgreshandler.get_script_schedule(scheduler_connection,schema,script)
     if schedule_info is None:
         raise Exception('Schedule not found.')
     scheduler_connection.close()
