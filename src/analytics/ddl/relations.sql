@@ -27,6 +27,7 @@ INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('a
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','credsii_businesses','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','credsii_business_profiles','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('s3','avr_widget_impressions','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('s3','integrations_widget_was_rendered','2020-08-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
 (
@@ -113,17 +114,13 @@ CREATE TABLE IF NOT EXISTS autoverify.credsii_business_profiles
 
 CREATE TABLE IF NOT EXISTS s3.avr_widget_impressions(
     s3_id bigint REFERENCES s3.scanned_files(id) ON DELETE CASCADE,
-    date timestamptz,
-    master_business_id uuid,
-    integration_settings_id uuid,
-    ip_address text,
-    product text,
-    device_type text,
-    referrer_url text,
-    CONSTRAINT avr_widget_impressions_pk PRIMARY KEY (ip_address,date,product,integration_settings_id,master_business_id,device_type)
+    event_id uuid,
+    happened_at timestamptz,
+    payload jsonb,
+    CONSTRAINT avr_widget_impressions_pk PRIMARY KEY (event_id)
 );
 CREATE INDEX IF NOT EXISTS avr_widget_impressions_s3_id_idx ON s3.avr_widget_impressions (s3_id);
-CREATE INDEX IF NOT EXISTS avr_widget_impressions_date_idx ON s3.avr_widget_impressions (date);
+CREATE INDEX IF NOT EXISTS avr_widget_impressions_date_idx ON s3.avr_widget_impressions (happened_at);
 
 CREATE TABLE IF NOT EXISTS s3.scanned_files (
     id bigserial,
@@ -134,6 +131,18 @@ CREATE TABLE IF NOT EXISTS s3.scanned_files (
 	CONSTRAINT s3_unq_idx UNIQUE (file,script),
 	CONSTRAINT s3_pk PRIMARY KEY (id)
 );
+
+CREATE TABLE IF NOT EXISTS s3.integrations_widget_was_rendered
+(
+    s3_id bigint REFERENCES s3.scanned_files(id) ON DELETE CASCADE,
+    event_id uuid,
+    happened_at timestamptz not null,
+    payload jsonb not null,
+    CONSTRAINT integrations_widget_was_rendered_pk PRIMARY KEY (event_id)
+);
+CREATE INDEX IF NOT EXISTS integrations_widget_was_rendered_s3_id_idx ON s3.avr_widget_impressions (s3_id);
+CREATE INDEX IF NOT EXISTS integrations_widget_was_rendered_date_idx ON s3.integrations_widget_was_rendered (happened_at);
+
 
 CREATE OR REPLACE VIEW utility.v_table_size as
 	SELECT a.oid,

@@ -77,6 +77,8 @@ while True:
         for object_summary in objects:
             last_modified = object_summary.last_modified
             #print(last_modified)
+            if last_modified < datetime.datetime(2020,8,1).replace(tzinfo=pytz.utc):
+                continue
             key = object_summary.key
             file = bucket + '/' + key
             if file in s3_completed_files:
@@ -95,7 +97,7 @@ while True:
                     info = json.loads(line)
                     if 'event_name' not in info:
                         continue
-                    if info['event_name'] != 'avr.widget.impression':
+                    if info['event_name'] != 'integrations.widget.was_rendered':
                         continue
 
                     event_id = info['event_id']
