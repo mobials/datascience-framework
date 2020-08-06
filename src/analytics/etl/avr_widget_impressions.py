@@ -29,8 +29,6 @@ insert_query =  '''
                     )
                     VALUES
                         %s
-                    --ON CONFLICT ON CONSTRAINT {1}_pk
-                    --DO NOTHING
                 '''.format(schema,script)
 
 while True:
