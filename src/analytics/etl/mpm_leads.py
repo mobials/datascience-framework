@@ -104,10 +104,10 @@ while True:
             with mysql_etl_connection.cursor() as cursor:
                 cursor.execute(read_query, {'min_updated_at': min_updated_at, 'max_updated_at': max_updated_at})
                 columns = [col[0] for col in cursor.description]
-                count = 0
+                #count = 0
                 for row in cursor:
-                    count += 1
-                    print(count)
+                    #count += 1
+                    #print(count)
                     info = dict(zip(columns, row))
                     id = info['id']
                     created_at = info['created_at']
@@ -136,7 +136,7 @@ while True:
 
         if len(tuples) > 0:
             with postgres_etl_connection.cursor() as cursor:
-                psycopg2.extras.execute_values(cursor, insert_query, tuples)
+                psycopg2.extras.execute_values(cursor,insert_query,tuples)
                 postgres_etl_connection.commit()
                 status = 'success'
                 last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
@@ -147,6 +147,6 @@ while True:
         postgres_etl_connection.close()
 
     scheduler_connection = postgreshandler.get_analytics_connection()
-    postgreshandler.update_script_schedule(scheduler_connection, schema,script, now, status, run_time, last_update)
+    postgreshandler.update_script_schedule(scheduler_connection,schema,script,now,status,run_time,last_update)
     scheduler_connection.commit()
     scheduler_connection.close()

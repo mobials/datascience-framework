@@ -116,11 +116,10 @@ CREATE TABLE IF NOT EXISTS s3.avr_widget_impressions(
     s3_id bigint REFERENCES s3.scanned_files(id) ON DELETE CASCADE,
     event_id uuid,
     happened_at timestamptz,
-    payload jsonb,
-    CONSTRAINT avr_widget_impressions_pk PRIMARY KEY (event_id)
+    payload jsonb
 );
 CREATE INDEX IF NOT EXISTS avr_widget_impressions_s3_id_idx ON s3.avr_widget_impressions (s3_id);
-CREATE INDEX IF NOT EXISTS avr_widget_impressions_date_idx ON s3.avr_widget_impressions (happened_at);
+CREATE INDEX IF NOT EXISTS avr_widget_impressions_idx ON s3.avr_widget_impressions (happened_at);
 
 CREATE TABLE IF NOT EXISTS s3.scanned_files (
     id bigserial,
@@ -137,12 +136,19 @@ CREATE TABLE IF NOT EXISTS s3.integrations_widget_was_rendered
     s3_id bigint REFERENCES s3.scanned_files(id) ON DELETE CASCADE,
     event_id uuid,
     happened_at timestamptz not null,
-    payload jsonb not null,
-    CONSTRAINT integrations_widget_was_rendered_pk PRIMARY KEY (event_id)
+    payload jsonb not null
 );
-CREATE INDEX IF NOT EXISTS integrations_widget_was_rendered_s3_id_idx ON s3.avr_widget_impressions (s3_id);
+CREATE INDEX IF NOT EXISTS integrations_widget_was_rendered_s3_id_idx ON s3.integrations_widget_was_rendered (s3_id);
 CREATE INDEX IF NOT EXISTS integrations_widget_was_rendered_date_idx ON s3.integrations_widget_was_rendered (happened_at);
 
+CREATE TABLE IF NOT EXISTS avr_widget_impressions_ip_daily
+(
+	master_business_id uuid,
+	date timestamptz,
+	ip_address text,
+	constraint avr_widget_impressions_ip_daily_pk primary key (ip_address,date,master_business_id)
+);
+CREATE INDEX IF NOT EXISTS avr_widget_impressions_ip_daily_date_idx ON avr_widget_impressions_ip_daily(date);
 
 CREATE OR REPLACE VIEW utility.v_table_size as
 	SELECT a.oid,
