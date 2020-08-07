@@ -28,6 +28,9 @@ INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('a
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','credsii_business_profiles','2020-07-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('s3','avr_widget_impressions','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('s3','integrations_widget_was_rendered','2020-08-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('public','avr_unique_impressions_ip_daily','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('public','avr_unique_impressions_ip_weekly','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('s3','integrations_button_widget_was_rendered','2020-08-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
 (
@@ -141,14 +144,34 @@ CREATE TABLE IF NOT EXISTS s3.integrations_widget_was_rendered
 CREATE INDEX IF NOT EXISTS integrations_widget_was_rendered_s3_id_idx ON s3.integrations_widget_was_rendered (s3_id);
 CREATE INDEX IF NOT EXISTS integrations_widget_was_rendered_date_idx ON s3.integrations_widget_was_rendered (happened_at);
 
-CREATE TABLE IF NOT EXISTS avr_widget_impressions_ip_daily
+CREATE TABLE IF NOT EXISTS s3.integrations_button_widget_was_rendered
+(
+    s3_id bigint REFERENCES s3.scanned_files(id) ON DELETE CASCADE,
+    event_id uuid,
+    happened_at timestamptz not null,
+    payload jsonb not null
+);
+CREATE INDEX IF NOT EXISTS integrations_button_widget_was_rendered_s3_id_idx ON s3.integrations_button_widget_was_rendered (s3_id);
+CREATE INDEX IF NOT EXISTS integrations_button_widget_was_rendered_date_idx ON s3.integrations_button_widget_was_rendered (happened_at);
+
+
+CREATE TABLE IF NOT EXISTS avr_unique_impressions_ip_daily
 (
 	master_business_id uuid,
 	date timestamptz,
-	ip_address text,
-	constraint avr_widget_impressions_ip_daily_pk primary key (ip_address,date,master_business_id)
+	impressions int8,
+	constraint avr_widget_impressions_ip_daily_pk primary key (master_business_id,date,impressions)
 );
-CREATE INDEX IF NOT EXISTS avr_widget_impressions_ip_daily_date_idx ON avr_widget_impressions_ip_daily(date);
+CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_daily_date_idx ON avr_unique_impressions_ip_daily(date);
+
+CREATE TABLE IF NOT EXISTS avr_unique_impressions_ip_weekly
+(
+	master_business_id uuid,
+	date timestamptz,
+	impressions int8,
+	constraint avr_widget_impressions_ip_weekly_pk primary key (master_business_id,date,impressions)
+);
+CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_weekly_date_idx ON avr_unique_impressions_ip_daily(date);
 
 CREATE OR REPLACE VIEW utility.v_table_size as
 	SELECT a.oid,

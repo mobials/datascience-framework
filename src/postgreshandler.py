@@ -61,23 +61,6 @@ def get_tradalgo_canada_connection():
     connection = psycopg2.connect(**connection_string)
     return connection
 
-
-# def get_s3_versions(connection,script):
-#     query = '''
-#                 SELECT
-#                     version_id
-#                 FROM
-#                     scratch.s3
-#                 WHERE
-#                     script = %(script)s
-#             '''
-#     with connection.cursor() as cursor:
-#         cursor.execute(query,{'script':script})
-#         result = cursor.fetchone()
-#         if result is not None:
-#             result = result[0]
-#         return result
-
 def get_s3_scanned_max_last_modified_date(connection,script):
      query =    '''
                     SELECT
@@ -323,6 +306,19 @@ def get_max_value(connection,schema,table,column):
     query = '''
                 SELECT 
                     max({0})
+                FROM
+                    {1}.{2}
+            '''.format(column,schema,table)
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        result = cursor.fetchone()
+        if result is not None and result[0] is not None:
+            return result[0]
+
+def get_min_value(connection,schema,table,column):
+    query = '''
+                SELECT 
+                    min({0})
                 FROM
                     {1}.{2}
             '''.format(column,schema,table)

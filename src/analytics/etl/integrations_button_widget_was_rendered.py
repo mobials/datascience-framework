@@ -15,31 +15,26 @@ import utility
 import pytz
 import time
 
+schema = 's3'
 script = os.path.basename(__file__)[:-3]
 
 insert_query =  '''
                     INSERT INTO
-                        {0}
+                        {0}.{1}
                     (
                         s3_id,
-                        date,
-                        master_business_id,
-                        widget_id,
-                        ip_address,
-                        product,
-                        device_type,
-                        referrer_url
+                        event_id,
+                        happened_at,
+                        payload
                     )
                     VALUES
                         %s
-                    ON CONFLICT ON CONSTRAINT {0}_pk
-                    DO NOTHING
-                '''.format(script)
+                '''.format(schema,script)
 
 while True:
     schedule_info = None
     scheduler_connection = postgreshandler.get_analytics_connection()
-    schedule_info = postgreshandler.get_script_schedule(scheduler_connection, script)
+    schedule_info = postgreshandler.get_script_schedule(scheduler_connection,schema,script)
     if schedule_info is None:
         raise Exception('Schedule not found.')
     scheduler_connection.close()
@@ -67,7 +62,7 @@ while True:
     etl_connection = postgreshandler.get_analytics_connection()
     try:
         s3_completed_files = []
-        for file in postgreshandler.get_s3_scanned_files(etl_connection, script):
+        for file in postgreshandler.get_s3_scanned_files(etl_connection,script):
             s3_completed_files.append(file)
         s3_completed_files = set(s3_completed_files)
 
@@ -80,7 +75,7 @@ while True:
         for object_summary in objects:
             last_modified = object_summary.last_modified
             #print(last_modified)
-            if last_modified < datetime.datetime(2020,7,1).replace(tzinfo=pytz.utc):
+            if last_modified < datetime.datetime(2020,8,1).replace(tzinfo=pytz.utc):
                 continue
             key = object_summary.key
             file = bucket + '/' + key
@@ -95,31 +90,26 @@ while True:
             buffer = io.BytesIO(object.get()["Body"].read())
             z = zipfile.ZipFile(buffer)
             with  z.open(z.infolist()[0]) as f:
-                s3_id = postgreshandler.insert_s3_file(etl_connection, script, file, last_modified)
+                s3_id = postgreshandler.insert_s3_file(etl_connection,script,file,last_modified)
                 for line in f:
                     info = json.loads(line)
                     if 'event_name' not in info:
                         continue
-                    if info['event_name'] != 'integrations.widget.impression':
+                    if info['event_name'] != 'integrations.button.widget.was_rendered':
                         continue
 
-                    date = datetime.datetime.strptime(info['happened_at'], "%Y-%m-%dT%H:%M:%S+00:00")
-                    master_business_id = info['master_business_id']
-                    widget_id = info['widget_id']
-                    ip_address = info['ip_address']
-                    product = 'reviews' if info['product'] == 'home' else info['product']
-                    device_type = info['deviceType'] if 'deviceType' in info else 'unknown'
-                    referrer_url = info['referrerUrl'] if 'referrerUrl' in info and info['referrerUrl'] != None and \
-                                                          info['referrerUrl'] != '' else None
+                    event_id = info['event_id']
+                    happened_at = datetime.datetime.strptime(info['happened_at'], "%Y-%m-%dT%H:%M:%S+00:00")
+                    del info['event_id']
+                    del info['happened_at']
+                    del info['event_name']
+                    payload = json.dumps(info, default=str)
+
                     tuple = (
                         s3_id,
-                        date,
-                        master_business_id,
-                        widget_id,
-                        ip_address,
-                        product,
-                        device_type,
-                        referrer_url,
+                        event_id,
+                        happened_at,
+                        payload,
                     )
 
                     tuples.append(tuple)
@@ -140,6 +130,6 @@ while True:
         etl_connection.close()
 
     scheduler_connection = postgreshandler.get_analytics_connection()
-    postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
+    postgreshandler.update_script_schedule(scheduler_connection,schema,script,now,status,run_time,last_update)
     scheduler_connection.commit()
     scheduler_connection.close()

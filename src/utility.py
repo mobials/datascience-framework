@@ -75,3 +75,27 @@ def get_next_run(start_date,last_run,frequency):
     next_run = start_date + (frequency * (units + 1))
     return next_run
 
+def get_day(date):
+    result = date.replace(hour=0, minute=0, second=0, microsecond=0)
+    return result
+
+def get_month(date):
+    result = date.replace(day=1,hour=0, minute=0, second=0, microsecond=0)
+    return result
+
+def get_week(date):
+    result = get_day(date - datetime.timedelta(days=date.weekday()))
+    return result
+
+def get_days_from(start_date,end_date):
+    result = start_date
+    while start_date < end_date:
+        yield  result
+        result = add_days(result,1)
+
+def get_weeks_from(start_date,end_date):
+    result = start_date
+    while start_date < end_date:
+        yield  result
+        result = add_days(result,7)
+
