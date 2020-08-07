@@ -23,7 +23,7 @@ insert_query = '''
                 INSERT INTO {0}.{1}
                 SELECT 
                     master_business_id,
-                    DATE_TRUNC('week',happened_at) AS date,
+                    DATE_TRUNC('month',happened_at) AS date,
                     COUNT(distinct ip_address) AS impressions
                 FROM 
                 (
@@ -103,7 +103,7 @@ while True:
         max_date_integrations_button_widget_was_rendered = postgreshandler.get_max_value(postgres_etl_connection, 's3','integrations_button_widget_was_rendered','happened_at')
         max_date_avr_widget_impressions = postgreshandler.get_max_value(postgres_etl_connection, 's3','avr_widget_impressions','happened_at')
 
-        max_date_avr_widget_impressions_ip_weekly = postgreshandler.get_max_value(postgres_etl_connection, schema,script,'date')
+        max_date_avr_widget_impressions_ip_monthly = postgreshandler.get_max_value(postgres_etl_connection, schema,script,'date')
 
         if min_date_integrations_widget_was_rendered is None:
             raise Exception('min_date_integrations_widget_was_rendered is None')
@@ -112,14 +112,14 @@ while True:
         if min_date_integrations_button_widget_was_rendered is None:
             raise Exception('min_date_integrations_button_widget_was_rendered is None')
 
-        first_date = utility.add_days(max_date_avr_widget_impressions_ip_weekly,7) if max_date_avr_widget_impressions_ip_weekly is not None else utility.get_week(min(min_date_integrations_widget_was_rendered,min_date_avr_widget_impressions,min_date_integrations_button_widget_was_rendered))
-        last_date = utility.get_week(min(max_date_integrations_widget_was_rendered,max_date_avr_widget_impressions,max_date_integrations_button_widget_was_rendered))
+        first_date = utility.add_months(max_date_avr_widget_impressions_ip_monthly,1) if max_date_avr_widget_impressions_ip_monthly is not None else utility.get_month(min(min_date_integrations_widget_was_rendered,min_date_avr_widget_impressions,min_date_integrations_button_widget_was_rendered))
+        last_date = utility.get_month(min(max_date_integrations_widget_was_rendered,max_date_avr_widget_impressions,max_date_integrations_button_widget_was_rendered))
 
         if first_date < last_date:
-            for date in utility.get_weeks_from(first_date,last_date):
+            for date in utility.get_months_from(first_date,last_date):
                 print(date)
                 start_date = date
-                end_date = utility.add_days(start_date,7)
+                end_date = utility.add_months(start_date,1)
 
                 with postgres_etl_connection.cursor() as cursor:
                     cursor.execute(insert_query,{'start_date':start_date,'end_date':end_date})

@@ -19,23 +19,11 @@ import utility
 schema = 'autoverify'
 script = os.path.basename(__file__)[:-3]
 
-#minutes to rescan
-reupload_window = -26280000#50 years until we can figure out how reliable updated_at is as an indicator of row change
-
-#minutes lag
-lag_window = 0
-
 read_query = '''
                 SELECT 
-	                *
+                    *
                 FROM 
-	                {0}
-                WHERE 
-	                created_at >= %(min_created_at)s 
-	            AND
-	                created_at < %(max_created_at)s
-	            ORDER BY 
-	                created_at ASC
+                    {0}
             '''.format(script)
 
 insert_query = '''
@@ -43,8 +31,6 @@ insert_query = '''
                         {0}.{1}
                     (
                         id,
-                        created_at,
-                        updated_at,
                         payload
                     )
                     VALUES 
@@ -52,8 +38,6 @@ insert_query = '''
                     ON CONFLICT (id)
                     DO UPDATE 
                     SET 
-                        created_at = EXCLUDED.created_at,
-                        updated_at = EXCLUDED.updated_at,
                         payload = EXCLUDED.payload
                 '''.format(schema,script)
 while True:
@@ -75,7 +59,7 @@ while True:
     if last_run is None:
         next_run = start_date
     else:
-        next_run = utility.get_next_run(start_date,last_run,frequency)
+        next_run = utility.get_next_run(start_date, last_run, frequency)
 
     if now < next_run:
         seconds_between_now_and_next_run = (next_run - now).seconds
@@ -86,17 +70,11 @@ while True:
 
     postgres_etl_connection = postgreshandler.get_analytics_connection()
     try:
-        last_created_at = postgreshandler.get_max_value(postgres_etl_connection,schema,script,'created_at')
-        min_created_at = last_created_at if last_created_at is not None else datetime.datetime(2000,1,1).replace(tzinfo=pytz.utc)
-        #add reupload time
-        min_created_at = utility.add_minutes(min_created_at,reupload_window)
-        max_created_at = utility.add_minutes(datetime.datetime.utcnow(),lag_window)
-
         tuples = []
         mysql_etl_connection = mysqlhandler.get_autoverify_connection()
         try:
             with mysql_etl_connection.cursor() as cursor:
-                cursor.execute(read_query,{'min_created_at':min_created_at,'max_created_at':max_created_at})
+                cursor.execute(read_query)
                 columns = [col[0] for col in cursor.description]
                 #count = 0
                 for row in cursor:
@@ -104,21 +82,15 @@ while True:
                     #print(count)
                     info = dict(zip(columns, row))
                     id = info['id']
-                    created_at = info['created_at']
-                    updated_at = info['updated_at']
 
-                    #clean up some fields we don't need in the payload
+                    # clean up some fields we don't need in the payload
                     del info['id']
-                    del info['created_at']
-                    del info['updated_at']
 
-                    #convert the remaining entries into json
-                    payload = json.dumps(info,default=str)
+                    # convert the remaining entries into json
+                    payload = json.dumps(info, default=str)
 
                     tuple = (
                         id,
-                        created_at,
-                        updated_at,
                         payload,
                     )
                     tuples.append(
@@ -129,7 +101,7 @@ while True:
 
         if len(tuples) > 0:
             with postgres_etl_connection.cursor() as cursor:
-                psycopg2.extras.execute_values(cursor,insert_query,tuples)
+                psycopg2.extras.execute_values(cursor, insert_query, tuples)
                 postgres_etl_connection.commit()
                 status = 'success'
                 last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)

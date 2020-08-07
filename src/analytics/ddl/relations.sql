@@ -31,6 +31,11 @@ INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('s
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('public','avr_unique_impressions_ip_daily','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('public','avr_unique_impressions_ip_weekly','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('s3','integrations_button_widget_was_rendered','2020-08-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','insuresii_leads','2020-08-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','insuresii_quotes','2020-08-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','insuresii_business_profiles','2020-08-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','insuresii_businesses','2020-08-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('public','avr_unique_impressions_ip_monthly','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
 (
@@ -171,7 +176,46 @@ CREATE TABLE IF NOT EXISTS avr_unique_impressions_ip_weekly
 	impressions int8,
 	constraint avr_widget_impressions_ip_weekly_pk primary key (master_business_id,date,impressions)
 );
-CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_weekly_date_idx ON avr_unique_impressions_ip_daily(date);
+CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_weekly_date_idx ON avr_unique_impressions_ip_weekly(date);
+
+CREATE TABLE IF NOT EXISTS avr_unique_impressions_ip_monthly
+(
+	master_business_id uuid,
+	date timestamptz,
+	impressions int8,
+	constraint avr_widget_impressions_ip_monthly_pk primary key (master_business_id,date,impressions)
+);
+CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_monthly_date_idx ON avr_unique_impressions_ip_monthly(date);
+
+CREATE TABLE IF NOT EXISTS autoverify.insuresii_leads
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz not null,
+    payload jsonb not null
+);
+ALTER TABLE autoverify.insuresii_leads SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
+
+CREATE TABLE IF NOT EXISTS autoverify.insuresii_quotes
+(
+    id uuid primary key,
+    created_at timestamptz not null,
+    updated_at timestamptz not null,
+    payload jsonb not null
+);
+ALTER TABLE autoverify.insuresii_quotes SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
+
+CREATE TABLE IF NOT EXISTS autoverify.insuresii_business_profiles
+(
+    id uuid primary key,
+    payload jsonb not null
+);
+
+CREATE TABLE IF NOT EXISTS autoverify.insuresii_businesses
+(
+    id uuid primary key,
+    payload jsonb not null
+);
 
 CREATE OR REPLACE VIEW utility.v_table_size as
 	SELECT a.oid,
@@ -527,3 +571,21 @@ create or replace view v_zuora_creditmemo as
         case when payload->>'CreditMemo.legacyCreditMemoNumber__c' = '' then null else (payload->>'CreditMemo.legacyCreditMemoNumber__c') end as legacycreditmemonumber__c
     from
         zuora_creditmemo;
+
+create or replace view autoverify.v_avr_lead_details as
+    select
+        b.payload->>'master_business_id' as master_business_id,
+        a.created_at,
+        (a.payload->>'is_insurance')::integer as is_insurance,
+        (a.payload->>'is_trade')::integer as is_trade,
+        (a.payload->>'is_credit_partial')::integer as is_credit_partial,
+        (a.payload->>'is_credit_verified')::integer as is_credit_verified,
+        (a.payload->>'is_ecom')::integer as is_ecom,
+        (a.payload->>'is_spotlight')::integer as is_spotlight,
+        (a.payload->>'is_credit_regional')::integer as is_credit_regional,
+        (a.payload->>'is_test_drive')::integer as is_test_drive
+    from
+        autoverify.mpm_leads a,
+        autoverify.mpm_integration_settings b
+    where
+        b.id = (a.payload->>'integration_settings_id')::uuid;

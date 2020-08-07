@@ -1,6 +1,8 @@
 import datetime
 import pytz
 import os
+import dateutil
+from dateutil.relativedelta import relativedelta
 
 def add_days(date,days):
     result = date + datetime.timedelta(days=days)
@@ -15,6 +17,10 @@ def add_hours(date,hours):
 def add_minutes(date,minutes):
     result = date + datetime.timedelta(minutes=minutes)
     result.replace(tzinfo=date.tzinfo)
+    return result
+
+def add_months(date,months):
+    result = date + relativedelta(months=months)
     return result
 
 def get_day(date):
@@ -88,14 +94,24 @@ def get_week(date):
     return result
 
 def get_days_from(start_date,end_date):
-    result = start_date
+    start_date = get_day(start_date)
+    end_date = get_day(end_date)
     while start_date < end_date:
-        yield  result
-        result = add_days(result,1)
+        yield  start_date
+        start_date = add_days(start_date,1)
 
 def get_weeks_from(start_date,end_date):
-    result = start_date
+    start_date = get_week(start_date)
+    end_date = get_week(end_date)
     while start_date < end_date:
-        yield  result
-        result = add_days(result,7)
+        yield  start_date
+        start_date = add_days(start_date,7)
+
+def get_months_from(start_date,end_date):
+    start_date = get_month(start_date)
+    end_date = get_month(end_date)
+    while start_date < end_date:
+        yield start_date
+        start_date = (start_date + datetime.timedelta(days=32)).replace(day=1)
+
 

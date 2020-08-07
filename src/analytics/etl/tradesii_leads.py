@@ -98,10 +98,10 @@ while True:
             with mysql_etl_connection.cursor() as cursor:
                 cursor.execute(read_query,{'min_created_at':min_created_at,'max_created_at':max_created_at})
                 columns = [col[0] for col in cursor.description]
-                count = 0
+                #count = 0
                 for row in cursor:
-                    count += 1
-                    print(count)
+                    #count += 1
+                    #print(count)
                     info = dict(zip(columns, row))
                     id = info['id']
                     created_at = info['created_at']

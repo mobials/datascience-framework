@@ -7,6 +7,7 @@ import io
 import zipfile
 import json
 import postgreshandler
+import mysqlhandler
 import os
 import datetime
 import psycopg2
@@ -15,25 +16,50 @@ import pytz
 import time
 import utility
 
+schema = 'autoverify'
 script = os.path.basename(__file__)[:-3]
 
-insert_query =  '''
-                    INSERT INTO 
-                        {0}
+#minutes to rescan
+reupload_window = int(-1440*3)
+
+#minutes lag
+lag_window = 0
+
+read_query = '''
+                SELECT 
+                    *
+                FROM 
+                    {0}
+                WHERE 
+                    updated_at >= %(min_updated_at)s 
+                AND
+                    updated_at < %(max_updated_at)s
+                ORDER BY 
+                    updated_at ASC
+            '''.format(script)
+
+insert_query = '''
+                    INSERT INTO
+                        {0}.{1}
                     (
-                        s3_id,
+                        id,
+                        created_at,
+                        updated_at,
                         payload
                     )
-                    VALUES
+                    VALUES 
                         %s
-                    ON CONFLICT (((payload->'lead'->>'id')::uuid))
-                    DO NOTHING
-                '''.format(script)
-
+                    ON CONFLICT (id)
+                    DO UPDATE 
+                    SET 
+                        created_at = EXCLUDED.created_at,
+                        updated_at = EXCLUDED.updated_at,
+                        payload = EXCLUDED.payload
+                '''.format(schema,script)
 while True:
     schedule_info = None
     scheduler_connection = postgreshandler.get_analytics_connection()
-    schedule_info = postgreshandler.get_script_schedule(scheduler_connection, script)
+    schedule_info = postgreshandler.get_script_schedule(scheduler_connection,schema,script)
     if schedule_info is None:
         raise Exception('Schedule not found.')
     scheduler_connection.close()
@@ -58,68 +84,61 @@ while True:
 
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
-    etl_connection = postgreshandler.get_analytics_connection()
+    postgres_etl_connection = postgreshandler.get_analytics_connection()
     try:
+        last_updated_at = postgreshandler.get_max_value(postgres_etl_connection,schema,script,'updated_at')
+        min_updated_at = last_updated_at if last_updated_at is not None else datetime.datetime(2000,1,1).replace(tzinfo=pytz.utc)
+        #add reupload time
+        min_updated_at = utility.add_minutes(min_updated_at,reupload_window)
+        max_updated_at = utility.add_minutes(datetime.datetime.utcnow(),lag_window)
+        tuples = []
+        mysql_etl_connection = mysqlhandler.get_autoverify_connection()
+        try:
+            with mysql_etl_connection.cursor() as cursor:
+                cursor.execute(read_query, {'min_updated_at': min_updated_at, 'max_updated_at': max_updated_at})
+                columns = [col[0] for col in cursor.description]
+                #count = 0
+                for row in cursor:
+                    #count += 1
+                    #print(count)
+                    info = dict(zip(columns, row))
+                    id = info['id']
+                    created_at = info['created_at']
+                    updated_at = info['updated_at']
 
-        s3_completed_files = []
-        with postgreshandler.get_analytics_connection() as connection:
-            for file in postgreshandler.get_s3_scanned_files(connection,script):
-                s3_completed_files.append(file)
-            s3_completed_files = set(s3_completed_files)
+                    # clean up some fields we don't need in the payload
+                    del info['id']
+                    del info['created_at']
+                    del info['updated_at']
 
-        bucket = settings.s3_firehose_bucket
+                    # convert the remaining entries into json
+                    payload = json.dumps(info, default=str)
 
-        resource = boto3.resource('s3')
+                    tuple = (
+                        id,
+                        created_at,
+                        updated_at,
+                        payload,
+                    )
+                    tuples.append(
+                        tuple
+                    )
+        finally:
+            mysql_etl_connection.close()
 
-        objects = resource.Bucket(bucket).objects.all()
-
-        for object_summary in objects:
-            last_modified = object_summary.last_modified
-            #print(last_modified)
-            #if last_modified < datetime.datetime(2020,4,1).replace(tzinfo=pytz.utc):
-            #    continue
-            key = object_summary.key
-            file = bucket + '/' + key
-            if file in s3_completed_files:
-                continue
-            tuples = []
-
-            object = resource.Object(
-                bucket_name=bucket,
-                key=key
-            )
-            buffer = io.BytesIO(object.get()["Body"].read())
-            z = zipfile.ZipFile(buffer)
-            with  z.open(z.infolist()[0]) as f:
-                with postgreshandler.get_analytics_connection() as connection:
-                    s3_id = postgreshandler.insert_s3_file(connection, script, file, last_modified)
-                    for line in f:
-                        info = json.loads(line)
-                        if 'event_name' not in info:
-                            continue
-                        if info['event_name'] != 'insuresii.lead.was_created':
-                            continue
-
-                        tuple = (
-                            s3_id,
-                            psycopg2.extras.Json(info),
-                        )
-
-                        tuples.append(tuple)
-
-                    if len(tuples) > 0:
-                        with connection.cursor() as cursor:
-                            psycopg2.extras.execute_values(cursor, insert_query, tuples)
-                            status = 'success'
-                            last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-                            run_time = last_update - start_time
-                    etl_connection.commit()
+        if len(tuples) > 0:
+            with postgres_etl_connection.cursor() as cursor:
+                psycopg2.extras.execute_values(cursor, insert_query, tuples)
+                postgres_etl_connection.commit()
+                status = 'success'
+                last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+                run_time = last_update - start_time
     except Exception as e:
         status = str(e)
     finally:
-        etl_connection.close()
+        postgres_etl_connection.close()
 
     scheduler_connection = postgreshandler.get_analytics_connection()
-    postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
+    postgreshandler.update_script_schedule(scheduler_connection,schema,script,now,status,run_time,last_update)
     scheduler_connection.commit()
     scheduler_connection.close()
