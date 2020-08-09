@@ -3,6 +3,7 @@ import pytz
 import os
 import dateutil
 from dateutil.relativedelta import relativedelta
+import math
 
 def add_days(date,days):
     result = date + datetime.timedelta(days=days)
@@ -21,10 +22,6 @@ def add_minutes(date,minutes):
 
 def add_months(date,months):
     result = date + relativedelta(months=months)
-    return result
-
-def get_day(date):
-    result = datetime.datetime(date.year,date.month,date.day).replace(tzinfo=date.tzinfo)
     return result
 
 def cdc_body_type_to_dataone(body_type,vehicle_type):
@@ -93,6 +90,12 @@ def get_week(date):
     result = get_day(date - datetime.timedelta(days=date.weekday()))
     return result
 
+def get_quarter(date):
+    q = math.ceil(date.month/3.)
+    month = 1 if q == 1 else 4 if q == 2 else 7 if q == 3 else 10
+    result = get_day(date.replace(month=month,day = 1))
+    return result
+
 def get_days_from(start_date,end_date):
     start_date = get_day(start_date)
     end_date = get_day(end_date)
@@ -113,5 +116,12 @@ def get_months_from(start_date,end_date):
     while start_date < end_date:
         yield start_date
         start_date = (start_date + datetime.timedelta(days=32)).replace(day=1)
+
+def get_quarters_from(start_date,end_date):
+    start_date = get_quarter(start_date)
+    end_date = get_quarter(end_date)
+    while start_date < end_date:
+        yield start_date
+        start_date = add_months(start_date,3)
 
 

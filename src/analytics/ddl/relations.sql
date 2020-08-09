@@ -36,6 +36,7 @@ INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('a
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','insuresii_business_profiles','2020-08-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','insuresii_businesses','2020-08-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('public','avr_unique_impressions_ip_monthly','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('public','avr_unique_impressions_ip_quarterly','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
 (
@@ -187,6 +188,15 @@ CREATE TABLE IF NOT EXISTS avr_unique_impressions_ip_monthly
 	constraint avr_widget_impressions_ip_monthly_pk primary key (master_business_id,date,impressions)
 );
 CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_monthly_date_idx ON avr_unique_impressions_ip_monthly(date);
+
+CREATE TABLE IF NOT EXISTS avr_unique_impressions_ip_quarterly
+(
+	master_business_id uuid,
+	date timestamptz,
+	impressions int8,
+	constraint avr_unique_impressions_ip_quarterly_pk primary key (master_business_id,date,impressions)
+);
+CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_quarterly_date_idx ON avr_unique_impressions_ip_quarterly(date);
 
 CREATE TABLE IF NOT EXISTS autoverify.insuresii_leads
 (
