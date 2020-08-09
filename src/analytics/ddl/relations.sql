@@ -120,15 +120,6 @@ CREATE TABLE IF NOT EXISTS autoverify.credsii_business_profiles
     payload jsonb not null
 );
 
-CREATE TABLE IF NOT EXISTS s3.avr_widget_impressions(
-    s3_id bigint REFERENCES s3.scanned_files(id) ON DELETE CASCADE,
-    event_id uuid,
-    happened_at timestamptz,
-    payload jsonb
-);
-CREATE INDEX IF NOT EXISTS avr_widget_impressions_s3_id_idx ON s3.avr_widget_impressions (s3_id);
-CREATE INDEX IF NOT EXISTS avr_widget_impressions_idx ON s3.avr_widget_impressions (happened_at);
-
 CREATE TABLE IF NOT EXISTS s3.scanned_files (
     id bigserial,
 	file text NOT NULL,
@@ -138,6 +129,16 @@ CREATE TABLE IF NOT EXISTS s3.scanned_files (
 	CONSTRAINT s3_unq_idx UNIQUE (file,script),
 	CONSTRAINT s3_pk PRIMARY KEY (id)
 );
+
+CREATE TABLE IF NOT EXISTS s3.avr_widget_impressions(
+    s3_id bigint REFERENCES s3.scanned_files(id) ON DELETE CASCADE,
+    event_id uuid,
+    happened_at timestamptz,
+    payload jsonb
+);
+CREATE INDEX IF NOT EXISTS avr_widget_impressions_s3_id_idx ON s3.avr_widget_impressions (s3_id);
+CREATE INDEX IF NOT EXISTS avr_widget_impressions_idx ON s3.avr_widget_impressions (happened_at);
+
 
 CREATE TABLE IF NOT EXISTS s3.integrations_widget_was_rendered
 (

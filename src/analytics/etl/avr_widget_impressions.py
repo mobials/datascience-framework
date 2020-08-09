@@ -74,7 +74,7 @@ while True:
 
         for object_summary in objects:
             last_modified = object_summary.last_modified
-            print(last_modified)
+            #print(last_modified)
             key = object_summary.key
             file = bucket + '/' + key
             if file in s3_completed_files:
