@@ -14,21 +14,21 @@ import psycopg2.extras
 import zuorahandler
 import os
 
+schema = 'zuora'
 script = os.path.basename(__file__)[:-3]
 
 tables = [
-    'Account',
-    'Invoice',
     'InvoiceItem',
+    'Invoice',
     'CreditMemo',
-    'Order',
+    'Account',
     'Subscription'
 ]
 
 while True:
     schedule_info = None
     scheduler_connection = postgreshandler.get_analytics_connection()
-    schedule_info = postgreshandler.get_script_schedule(scheduler_connection, script)
+    schedule_info = postgreshandler.get_script_schedule(scheduler_connection,schema,script)
     if schedule_info is None:
         raise Exception('Schedule not found.')
     scheduler_connection.close()
@@ -44,7 +44,7 @@ while True:
     if last_run is None:
         next_run = start_date
     else:
-        next_run = utility.get_next_run(start_date, last_run, frequency)
+        next_run = utility.get_next_run(start_date,last_run,frequency)
 
     if now < next_run:
         seconds_between_now_and_next_run = (next_run - now).seconds
@@ -54,7 +54,7 @@ while True:
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
     etl_connection = postgreshandler.get_analytics_connection()
     try:
-        queries = zuorahandler.create_queries(etl_connection, tables)
+        queries = zuorahandler.create_queries(etl_connection,tables)
         bearer_token = zuorahandler.create_bearer_token(settings.zuora_client_id, settings.zuora_client_secret)
         headers = zuorahandler.create_headers(bearer_token)
         batches = zuorahandler.execute_queries(queries, headers)
@@ -77,6 +77,6 @@ while True:
         etl_connection.close()
 
     scheduler_connection = postgreshandler.get_analytics_connection()
-    postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
+    postgreshandler.update_script_schedule(scheduler_connection,schema,script,now,status,run_time,last_update)
     scheduler_connection.commit()
     scheduler_connection.close()

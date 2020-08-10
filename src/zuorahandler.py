@@ -77,16 +77,18 @@ def create_query(connection,table):
     min_updated_date_string = min_updated_date.strftime("%Y-%m-%dT%H:%M:%S")
     max_updated_date_string = max_updated_date.strftime("%Y-%m-%dT%H:%M:%S")
 
+    columns = get_query_columns(table)
+
     query = '''
                 SELECT 
-                    * 
+                    {3}
                 FROM 
                     {0} 
                 WHERE 
                     updateddate >= '{1}' 
                 AND
                     updateddate < '{2}'
-            '''.format(table,min_updated_date_string,max_updated_date_string)
+            '''.format(table,min_updated_date_string,max_updated_date_string,columns)
 
     result = {
                 "name": table,
@@ -101,13 +103,22 @@ def create_query(connection,table):
             }
     return result
 
+def get_query_columns(table):
+    result = '*'
+    if table == 'InvoiceItem':
+        result = '''
+                    INVOICE.ID,
+                    *
+                '''
+    return result
+
 def get_max_updated_date(connection,table):
     result = datetime.datetime(2000,1,1)
     query = '''
                 SELECT 
                     max(updateddate)
                 FROM
-                    zuora_{0}
+                    zuora.{0}
             '''.format(table)
 
     with connection.cursor() as cursor:

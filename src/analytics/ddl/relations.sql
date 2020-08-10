@@ -37,6 +37,7 @@ INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('a
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('autoverify','insuresii_businesses','2020-08-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('public','avr_unique_impressions_ip_monthly','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('public','avr_unique_impressions_ip_quarterly','2020-01-01','15 minute') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
+INSERT INTO operations.scheduler (schema,script,start_date,frequency) VALUES ('zuora','zuora','2020-01-01','3 hour') ON CONFLICT ON CONSTRAINT scheduler_pk DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
 (
@@ -341,49 +342,67 @@ CREATE OR REPLACE VIEW utility.v_vacuum_stats AS
   ORDER BY
         n_dead_tup DESC;
 
-CREATE TABLE IF NOT EXISTS zuora_account
+CREATE TABLE IF NOT EXISTS zuora.account
 (
     id text primary key,
     updateddate timestamptz not null,
     payload jsonb
 );
 
-CREATE TABLE IF NOT EXISTS zuora_invoice
+CREATE TABLE IF NOT EXISTS zuora.invoice
 (
     id text primary key,
     updateddate timestamptz not null,
     payload jsonb
 );
 
-CREATE TABLE IF NOT EXISTS zuora_invoiceitem
+CREATE TABLE IF NOT EXISTS zuora.invoiceitem
 (
     id text primary key,
     updateddate timestamptz not null,
     payload jsonb
 );
 
-CREATE TABLE IF NOT EXISTS zuora_creditmemo
+CREATE TABLE IF NOT EXISTS zuora.creditmemo
 (
     id text primary key,
     updateddate timestamptz not null,
     payload jsonb
 );
 
-CREATE TABLE IF NOT EXISTS zuora_order
+CREATE TABLE IF NOT EXISTS zuora.order
 (
     id text primary key,
     updateddate timestamptz not null,
     payload jsonb
 );
 
-CREATE TABLE IF NOT EXISTS zuora_subscription
+CREATE TABLE IF NOT EXISTS zuora.subscription
 (
     id text primary key,
     updateddate timestamptz not null,
     payload jsonb
 );
 
-create or replace view v_zuora_account as
+create or replace view autoverify.v_avr_lead_details as
+    select
+        b.payload->>'master_business_id' as master_business_id,
+        a.created_at,
+        (a.payload->>'is_insurance')::integer as is_insurance,
+        (a.payload->>'is_trade')::integer as is_trade,
+        (a.payload->>'is_credit_partial')::integer as is_credit_partial,
+        (a.payload->>'is_credit_verified')::integer as is_credit_verified,
+        (a.payload->>'is_ecom')::integer as is_ecom,
+        (a.payload->>'is_spotlight')::integer as is_spotlight,
+        (a.payload->>'is_credit_regional')::integer as is_credit_regional,
+        (a.payload->>'is_test_drive')::integer as is_test_drive
+    from
+        autoverify.mpm_leads a,
+        autoverify.mpm_integration_settings b
+    where
+        b.id = (a.payload->>'integration_settings_id')::uuid;
+
+create or replace view zuora.v_account as
 	select
 		id,
 		updateddate,
@@ -434,9 +453,9 @@ create or replace view v_zuora_account as
 		case when payload->>'Account.TaxExemptIssuingJurisdiction' = '' then null else payload->>'Account.TaxExemptIssuingJurisdiction' end as taxexemptissuingjurisdiction,
 		case when payload->>'Account.contactLanguagePreference__c' = '' then null else payload->>'Account.contactLanguagePreference__c' end as contactlaanguagepreference__c
 	from
-		zuora_account;
+		zuora.account;
 
-create or replace view v_zuora_invoiceitem as
+create or replace view zuora.v_invoiceitem as
 	select
 		id,
 		updateddate,
@@ -462,11 +481,12 @@ create or replace view v_zuora_invoiceitem as
 		case when payload->>'InvoiceItem.RevRecStartDate' = '' then null else (payload->>'InvoiceItem.RevRecStartDate')::timestamp at time zone 'America/Toronto' end as revrecstartdate,
 		case when payload->>'InvoiceItem.TaxExemptAmount' = '' then null else (payload->>'InvoiceItem.TaxExemptAmount')::numeric end as taxexemptamount,
 		case when payload->>'InvoiceItem.ServiceStartDate' = '' then null else (payload->>'InvoiceItem.ServiceStartDate')::timestamp at time zone 'America/Toronto' end as servicestartdate,
-		case when payload->>'InvoiceItem.AppliedToInvoiceItemId' = '' then null else payload->>'InvoiceItem.AppliedToInvoiceItemId' end as appliedttoinvoiceitemid
+		case when payload->>'InvoiceItem.AppliedToInvoiceItemId' = '' then null else payload->>'InvoiceItem.AppliedToInvoiceItemId' end as appliedtoinvoiceitemid,
+	    case when payload->>'Invoice.Id' = '' then null else payload->>'Invoice.Id' end as invoiceid
 	from
-		zuora_invoiceitem;
+		zuora.invoiceitem;
 
-create or replace view v_zuora_invoice as
+create or replace view zuora.v_invoice as
 	select
 		id,
 		updateddate,
@@ -502,9 +522,9 @@ create or replace view v_zuora_invoice as
 		case when payload->>'Invoice.TransferredToAccounting' = '' then null else (payload->>'Invoice.TransferredToAccounting')::boolean end as transferredtoaccounting,
 		case when payload->>'Invoice.CreditBalanceAdjustmentAmount' = '' then null else (payload->>'Invoice.CreditBalanceAdjustmentAmount')::numeric end as creditbalanceadjustmentamount
 	from
-		zuora_invoice;
+		zuora.invoice;
 
-create or replace view v_zuora_subscription as
+create or replace view zuora.v_subscription as
 	select
 		id,
 		updateddate,
@@ -547,9 +567,9 @@ create or replace view v_zuora_subscription as
 		case when payload->>'Subscription.PreviousSubscriptionId' = '' then null else payload->>'Subscription.PreviousSubscriptionId' end as previoussubscriptionid,
 		case when payload->>'Subscription.OpportunityCloseDate__QT' = '' then null else payload->>'Subscription.OpportunityCloseDate__QT' end as opportunitycloseddate__qt
 	from
-		zuora_subscription;
+		zuora.subscription;
 
-create or replace view v_zuora_creditmemo as
+create or replace view zuora.v_creditmemo as
     select
         id,
         updateddate,
@@ -581,22 +601,79 @@ create or replace view v_zuora_creditmemo as
         case when payload->>'CreditMemo.TransferredToAccounting' = '' then null else (payload->>'CreditMemo.TransferredToAccounting')::boolean end as transeferredtoaccounting,
         case when payload->>'CreditMemo.legacyCreditMemoNumber__c' = '' then null else (payload->>'CreditMemo.legacyCreditMemoNumber__c') end as legacycreditmemonumber__c
     from
-        zuora_creditmemo;
+        zuora.creditmemo;
 
-create or replace view autoverify.v_avr_lead_details as
+create or replace view zuora.v_billings_monthly as
     select
-        b.payload->>'master_business_id' as master_business_id,
-        a.created_at,
-        (a.payload->>'is_insurance')::integer as is_insurance,
-        (a.payload->>'is_trade')::integer as is_trade,
-        (a.payload->>'is_credit_partial')::integer as is_credit_partial,
-        (a.payload->>'is_credit_verified')::integer as is_credit_verified,
-        (a.payload->>'is_ecom')::integer as is_ecom,
-        (a.payload->>'is_spotlight')::integer as is_spotlight,
-        (a.payload->>'is_credit_regional')::integer as is_credit_regional,
-        (a.payload->>'is_test_drive')::integer as is_test_drive
+        d.accountnumber as master_business_id,
+        c.id as subscriptionid,
+        date_trunc('month', a.servicestartdate) as date,
+        a.accountingcode,
+        a.chargename,
+        a.chargeamount
     from
-        autoverify.mpm_leads a,
-        autoverify.mpm_integration_settings b
+        zuora.v_invoiceitem a
+    join
+        zuora.v_invoice b on b.id = a.invoiceid
+    left join
+        zuora.v_subscription c
+    on
+        c.id = a.subscriptionid
+    left join
+        zuora.v_account d
+    on
+        d.id = c.creatoraccountid
     where
-        b.id = (a.payload->>'integration_settings_id')::uuid;
+        a.chargeamount <> 0
+    and
+        b.status = 'Posted'
+    and
+        b.reversed = false;
+
+create or replace view zuora.v_saas_revenue_monthly as
+    with subscriptions as (
+    select
+        g.creatoraccountid as accountid,
+        a.subscriptionid,
+        a.chargename,
+        date_trunc('month',a.servicestartdate) as servicestartdate,
+        a.chargeamount,
+        coalesce(c.chargeamount,0) as discount,
+        coalesce(d.chargeamount,0) as dsp_discount,
+        coalesce(e.chargeamount,0) as held_billing_discount,
+        coalesce(f.chargeamount,0) as saas_discount
+    from
+        v_invoiceitem a
+    inner join v_invoice b on b.id = a.invoiceid
+    left join v_subscription g on g.id = a.subscriptionid
+    left join v_invoiceitem c on c.appliedtoinvoiceitemid = a.id and c.chargename = 'Discount'
+    left join v_invoiceitem d on d.appliedtoinvoiceitemid = a.id and d.chargename = 'DSP Discount'
+    left join v_invoiceitem e on e.appliedtoinvoiceitemid = a.id and e.chargename = 'Held Billing Discount'
+    left join v_invoiceitem f on f.appliedtoinvoiceitemid = a.id and f.chargename = 'SaaS Discount'
+    where
+        b.status = 'Posted'
+    and
+        b.reversed = false
+    and
+        a.chargename in ('AutoVerify Reviews','AVR Suite -- Proration','AVR Suite'))
+    select
+        accountid,
+        subscriptionid,
+        servicestartdate,
+        sum(case when chargename = 'AVR Suite' then chargeamount else 0 end) as avr_suite_price,
+        sum(case when chargename = 'AutoVerify Reviews' then chargeamount else 0 end) as av_reviews_price,
+        sum(case when chargename = 'AVR Suite -- Proration' then chargeamount else 0 end) as avr_suite_proration_price,
+        sum(case when chargename = 'AVR Suite' then discount else 0 end) as avr_suite_discount,
+        sum(case when chargename = 'AVR Suite -- Proration' then discount else 0 end) as avr_suite_proration_discount,
+        sum(case when chargename = 'AutoVerify Reviews' then discount else 0 end) as av_reviews_discount,
+        sum(case when chargename = 'AVR Suite' then dsp_discount else 0 end) as avr_suite_dsp_discount,
+        sum(case when chargename = 'AVR Suite -- Proration' then dsp_discount else 0 end) as avr_suite_proration_dsp_discount,
+        sum(case when chargename = 'AutoVerify Reviews' then dsp_discount else 0 end) as av_reviews_dsp_discount,
+        sum(case when chargename = 'AVR Suite' then saas_discount else 0 end) as avr_suite_saas_discount,
+        sum(case when chargename = 'AVR Suite -- Proration' then saas_discount else 0 end) as avr_suite_proration_saas_discount,
+        sum(case when chargename = 'AutoVerify Reviews' then saas_discount else 0 end) as av_reviews_saas_discount,
+        sum(case when chargename = 'AVR Suite' then held_billing_discount else 0 end) as avr_suite_held_billing_discount,
+        sum(case when chargename = 'AVR Suite -- Proration' then held_billing_discount else 0 end) as avr_suite_proration_held_billing_discount,
+        sum(case when chargename = 'AutoVerify Reviews' then held_billing_discount else 0 end) as av_reviews_held_billing_discount
+    from subscriptions
+    group by 1,2,3;

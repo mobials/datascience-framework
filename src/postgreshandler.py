@@ -252,7 +252,7 @@ def update_zuora_table(connection,table,data):
     #print(table)
     insert_query =  '''
                         INSERT INTO 
-                            zuora_{0}
+                            zuora.{0}
                         (
                             id, 
                             updateddate,
@@ -264,7 +264,7 @@ def update_zuora_table(connection,table,data):
 
     delete_query =  '''
                         DELETE FROM
-                            zuora_{0}
+                            zuora.{0}
                         WHERE 
                             id 
                         IN 
