@@ -888,69 +888,82 @@ queries = [
             autoverify.sda_master_businesses;
     ''',
     '''
-        CREATE OR REPLACE FUNCTION autoverify.lead_content(
-            is_insurance integer, 
-            is_trade integer, 
-            is_credit_partial integer, 
-            is_credit_verified integer, 
-            is_credit_finance integer, 
-            is_ecom integer, 
-            is_testdrive integer)
-        RETURNS text[]
-        LANGUAGE plpgsql
-        AS
-        $function$
+        CREATE OR REPLACE FUNCTION autoverify.lead_content(is_insurance integer, is_trade integer, is_credit_partial integer, is_credit_verified integer, is_credit_finance integer, is_ecom integer, is_testdrive integer)
+             RETURNS text[]
+             LANGUAGE plpgsql
+            AS $function$
             declare
                     result text[];
-                begin
-                    if
+                begin 
+                    if 
                         is_credit_finance = 1
-                    then
+                    then 
                         result := array_append(result,'finance');
                     end if;
-        
+                
                     if
                         is_credit_finance = 0 and (is_credit_verified = 1 or is_credit_partial = 1)
-                    then
+                    then 
                         result := array_append(result,'credit');
                     end if;
-        
-                    if
+                
+                    if 
                         is_testdrive = 1
-                    then
+                    then 
                         result := array_append(result,'testdrive');
                     end if;
-        
-                    if
+                
+                    if 
                         is_trade = 1
-                    then
+                    then 
                         result := array_append(result,'trade');
                     end if;
-        
-                    if
+                
+                    if 
                         is_insurance = 1
-                    then
+                    then 
                         result := array_append(result,'insurance');
-                    end if;
-        
-                    if
+                    end if; 
+                
+                    if 
                         is_ecom = 1
-                    then
+                    then 
                         result := array_append(result,'payments');
                     end if;
-        
-                    if
+                
+                    if 
+                        is_testdrive = 1
+                    then 
+                        result := array_append(result,'testdrive');
+                    end if;
+            
+                    if 
                         result is null
-                    then
+                    then 
                         raise exception 'Unhandled lead content. is_insurance = %; is_trade = %, is_credit_partial = %; is_credit_verified = %; is_credit_finance = %; is_ecom = %; is_testdrive = %',$1,$2,$3,$4,$5,$6,$7;
                     end if;
-        
+                
                 return result;
             end;
-        $function$;
+            $function$;
+    ''',
+    '''
+        create or replace view autoverify.v_mpm_lead_details as  
+        select 
+            id,
+            (payload->>'is_insurance')::integer as is_insurance,
+            (payload->>'is_trade')::integer as is_trade,
+            (payload->>'is_credit_partial')::integer as is_credit_partial,
+            (payload->>'is_credit_verified')::integer as is_credit_verified,
+            (payload->>'is_credit_finance')::integer as is_credit_finance,
+            (payload->>'is_ecom')::integer as is_ecom,
+            (payload->>'is_spotlight')::integer as is_spotlight,
+            (payload->>'is_credit_regional')::integer as is_credit_regional,
+            (payload->>'is_test_drive')::integer as is_test_drive
+         from 
+            autoverify.mpm_leads;
     '''
 ]
-
 
 with postgreshandler.get_analytics_connection() as connection:
     for query in queries:
