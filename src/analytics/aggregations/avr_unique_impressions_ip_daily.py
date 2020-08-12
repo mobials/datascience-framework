@@ -39,9 +39,9 @@ insert_query = '''
                         happened_at < %(end_date)s
                     UNION
                     SELECT 
-                        (payload->>'masterBusinessId')::uuid AS master_business_id,
+                        (payload->>'master_business_id')::uuid AS master_business_id,
                         happened_at,
-                        (payload->>'ipAddress') AS ip_address
+                        (payload->>'ip_address') AS ip_address
                     FROM 
                         s3.integrations_widget_was_rendered
                     WHERE 
@@ -50,9 +50,9 @@ insert_query = '''
                         happened_at < %(end_date)s
                     UNION
                     SELECT 
-                        (payload->>'masterBusinessId')::uuid AS master_business_id,
+                        (payload->>'master_business_id')::uuid AS master_business_id,
                         happened_at,
-                        (payload->>'ipAddress') AS ip_address
+                        (payload->>'ip_address') AS ip_address
                     FROM 
                         s3.integrations_button_widget_was_rendered
                     WHERE 

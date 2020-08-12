@@ -788,7 +788,8 @@ queries = [
             date_trunc('month', a.servicestartdate) as date,
             a.accountingcode,
             a.chargename,
-            a.chargeamount
+            a.chargeamount,
+            a.quantity
         from
             zuora.v_invoiceitem a
         join

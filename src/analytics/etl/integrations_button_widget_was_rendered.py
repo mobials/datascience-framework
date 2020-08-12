@@ -75,7 +75,7 @@ while True:
         for object_summary in objects:
             last_modified = object_summary.last_modified
             #print(last_modified)
-            if last_modified < datetime.datetime(2020,8,1).replace(tzinfo=pytz.utc):
+            if last_modified < datetime.datetime(2020,8,13).replace(tzinfo=pytz.utc):
                 continue
             key = object_summary.key
             file = bucket + '/' + key
