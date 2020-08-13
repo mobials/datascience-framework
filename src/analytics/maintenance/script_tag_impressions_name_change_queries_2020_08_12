@@ -2,10 +2,12 @@
 
 --wipe out the existing script tag impressions data
 delete from s3.scanned_files where script = 'integrations_widget_was_rendered';
-delete from s3.scanned_files where script = 'integrations_buutton_widget_was_rendered';
+delete from s3.scanned_files where script = 'integrations_button_widget_was_rendered';
 
 --script tag impressions don't start coming through until aug.12 mid day but be over cautions and just get rid of anything from the start of that quarter on
 delete from avr_unique_impressions_ip_daily where date >= '2020-07-01';
 delete from avr_unique_impressions_ip_weekly where date >= '2020-07-01';
 delete from avr_unique_impressions_ip_monthly where date >= '2020-07-01';
 delete from avr_unique_impressions_ip_quarterly where date >= '2020-07-01';
+
+

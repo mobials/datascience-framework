@@ -22,7 +22,8 @@ tables = [
     'Invoice',
     'CreditMemo',
     'Account',
-    'Subscription'
+    'Subscription',
+    'Order'
 ]
 
 while True:
