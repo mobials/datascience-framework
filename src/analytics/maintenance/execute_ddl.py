@@ -963,6 +963,21 @@ queries = [
             (payload->>'is_test_drive')::integer as is_test_drive
          from 
             autoverify.mpm_leads;
+    ''',
+    '''
+        create or replace view zuora.v_order as 
+        select 
+            id,
+            updateddate,
+            case when payload->>'Order.OrderDate' = '' then null else (payload->>'Order.OrderDate')::timestamp at time zone 'America/Toronto' end as orderdate,
+            case when payload->>'Order.is_deleted' = '' then null else (payload->>'Order.is_deleted')::boolean end as is_deleted,
+            case when payload->>'Order.CreatedById' = '' then null else payload->>'Order.CreatedById' end as createdbyid,
+            case when payload->>'Order.CreatedDate' = '' then null else to_timestamp(payload->>'Order.CreatedDate','YYYY-MM-DD HH24:MI:SSTZHTZM') end as createddate,
+            case when payload->>'Order.Description' = '' then null else payload->>'Order.Description' end as description,
+            case when payload->>'Order.OrderNumber' = '' then null else payload->>'Order.OrderNumber' end as ordernumber,
+            case when payload->>'Order.UpdatedById' = '' then null else payload->>'Order.UpdatedById' end as updatedbyid
+        from 
+            zuora.order;
     '''
 ]
 

@@ -47,6 +47,9 @@ while True:
     else:
         next_run = utility.get_next_run(start_date,last_run,frequency)
 
+    #testing
+    now = datetime.datetime(2050,1,1).replace(tzinfo=pytz.utc)
+
     if now < next_run:
         seconds_between_now_and_next_run = (next_run - now).seconds
         time.sleep(seconds_between_now_and_next_run)

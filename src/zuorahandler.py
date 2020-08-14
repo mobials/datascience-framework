@@ -66,6 +66,7 @@ def create_queries(connection,tables):
         "name": "replication-client",
         "useQueryLabels": "true",
         "encrypted": "none",
+        "dateTimeUtc": "true",
         "queries": queries
     }
     return result
