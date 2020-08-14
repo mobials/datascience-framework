@@ -26,6 +26,9 @@ queries = [
         CREATE SCHEMA IF NOT EXISTS utility;
     ''',
     '''
+       CREATE SCHEMA IF NOT EXISTS sage;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS operations.scheduler
         (
             schema text not null,
@@ -978,6 +981,13 @@ queries = [
             case when payload->>'Order.UpdatedById' = '' then null else payload->>'Order.UpdatedById' end as updatedbyid
         from 
             zuora.order;
+    ''',
+    '''
+        create table if not exists sage.customer_info
+        (
+            id integer primary key,
+            payload jsonb
+        );
     '''
 ]
 

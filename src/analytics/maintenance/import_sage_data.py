@@ -33,7 +33,7 @@ response = object.get()
 
 for row in csv.DictReader(codecs.getreader('utf-8')(response[u'Body'])):
 
-
+    id = row['Id']
     print(row)
 
 
