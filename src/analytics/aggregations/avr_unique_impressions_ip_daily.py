@@ -117,7 +117,6 @@ while True:
 
         if first_date < last_date:
             for date in utility.get_days_from(first_date,last_date):
-                print(date)
                 start_date = date
                 end_date = utility.add_days(start_date,1)
 

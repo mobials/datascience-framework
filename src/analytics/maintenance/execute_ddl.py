@@ -988,6 +988,13 @@ queries = [
             id integer primary key,
             payload jsonb
         );
+    ''',
+    '''
+        create table if not exists sage.sales
+        (
+            id integer primary key,
+            payload jsonb
+        );
     '''
 ]
 

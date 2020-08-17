@@ -39,9 +39,9 @@ insert_query = '''
                         happened_at < %(end_date)s
                     UNION
                     SELECT 
-                        (payload->>'masterBusinessId')::uuid AS master_business_id,
+                        (payload->>'master_business_id')::uuid AS master_business_id,
                         happened_at,
-                        (payload->>'ipAddress') AS ip_address
+                        (payload->>'ip_address') AS ip_address
                     FROM 
                         s3.integrations_widget_was_rendered
                     WHERE 
@@ -50,9 +50,9 @@ insert_query = '''
                         happened_at < %(end_date)s
                     UNION
                     SELECT 
-                        (payload->>'masterBusinessId')::uuid AS master_business_id,
+                        (payload->>'master_business_id')::uuid AS master_business_id,
                         happened_at,
-                        (payload->>'ipAddress') AS ip_address
+                        (payload->>'ip_address') AS ip_address
                     FROM 
                         s3.integrations_button_widget_was_rendered
                     WHERE 
@@ -84,6 +84,8 @@ while True:
         next_run = start_date
     else:
         next_run = utility.get_next_run(start_date, last_run, frequency)
+
+    now = datetime.datetime(2050,1,1).replace(tzinfo=pytz.utc)
 
     if now < next_run:
         seconds_between_now_and_next_run = (next_run - now).seconds
@@ -117,7 +119,6 @@ while True:
 
         if first_date < last_date:
             for date in utility.get_weeks_from(first_date,last_date):
-                print(date)
                 start_date = date
                 end_date = utility.add_days(start_date,7)
 
