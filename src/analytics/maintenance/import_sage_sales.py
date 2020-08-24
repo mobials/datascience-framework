@@ -48,7 +48,6 @@ object = resource.Object(
             )
 response = object.get()
 
-
 with postgreshandler.get_analytics_connection() as connection:
     with connection.cursor() as cursor:
         for row in csv.DictReader(codecs.getreader('utf-8')(response[u'Body'])):

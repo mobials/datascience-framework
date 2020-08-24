@@ -29,6 +29,9 @@ queries = [
        CREATE SCHEMA IF NOT EXISTS sage;
     ''',
     '''
+        CREATE SCHEMA IF NOT EXISTS redash;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS operations.scheduler
         (
             schema text not null,
@@ -175,6 +178,12 @@ queries = [
         DO NOTHING;
     ''',
     '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('s3','authenticom_sales_data','2020-01-01','3 hour') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
         (
             id uuid primary key,
@@ -184,6 +193,8 @@ queries = [
         );
         ALTER TABLE autoverify.mpm_leads 
         SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
+        CREATE INDEX IF NOT EXISTS mpm_leads_created_at_idx 
+        ON autoverify.mpm_leads (created_at); 
     ''',
     '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_integration_settings
@@ -892,7 +903,7 @@ queries = [
             autoverify.sda_master_businesses;
     ''',
     '''
-        CREATE OR REPLACE FUNCTION autoverify.lead_content(is_insurance integer, is_trade integer, is_credit_partial integer, is_credit_verified integer, is_credit_finance integer, is_ecom integer, is_testdrive integer)
+        CREATE OR REPLACE FUNCTION autoverify.lead_content(is_insurance integer, is_trade integer, is_credit_partial integer, is_credit_verified integer, is_credit_finance integer, is_ecom integer, is_test_drive integer)
              RETURNS text[]
              LANGUAGE plpgsql
             AS $function$
@@ -912,7 +923,7 @@ queries = [
                     end if;
                 
                     if 
-                        is_testdrive = 1
+                        is_test_drive = 1
                     then 
                         result := array_append(result,'testdrive');
                     end if;
@@ -934,17 +945,11 @@ queries = [
                     then 
                         result := array_append(result,'payments');
                     end if;
-                
-                    if 
-                        is_testdrive = 1
-                    then 
-                        result := array_append(result,'testdrive');
-                    end if;
             
                     if 
                         result is null
                     then 
-                        raise exception 'Unhandled lead content. is_insurance = %; is_trade = %, is_credit_partial = %; is_credit_verified = %; is_credit_finance = %; is_ecom = %; is_testdrive = %',$1,$2,$3,$4,$5,$6,$7;
+                        result := array_append(result,'unclassified');
                     end if;
                 
                 return result;
@@ -995,6 +1000,261 @@ queries = [
             id integer primary key,
             payload jsonb
         );
+    ''',
+    '''
+        create or replace view autoverify.v_mpm_lead_content as 
+        select 
+            a.id,
+            (b.payload->>'master_business_id')::uuid as master_business_id,
+            a.created_at,
+            a.payload->>'device' as device,
+            autoverify.lead_content((a.payload->>'is_insurance')::int, (a.payload->>'is_trade')::int, (a.payload->>'is_credit_partial')::int, (a.payload->>'is_credit_verified')::int, (a.payload->>'is_credit_finance')::int, (a.payload->>'is_ecom')::int, (a.payload->>'is_test_drive')::int)
+        from 
+            autoverify.mpm_leads a
+        left join autoverify.mpm_integration_settings b on b.id = (a.payload->>'integration_settings_id')::uuid;
+    ''',
+    '''
+        create or replace view autoverify.v_active_master_businesses as 
+        select 
+            distinct((payload->>'master_business_id')::uuid) as master_business_id
+        from 
+            autoverify.mpm_integration_settings 
+        where 
+            payload->>'status' = 'active';
+    ''',
+    '''
+        create or replace view autoverify.v_mpm_integration_settings as 
+        select 
+            id,
+            (payload->>'master_business_id')::uuid as master_business_id,
+            payload->>'status' as status
+        from 
+            autoverify.mpm_integration_settings;
+    ''',
+    '''
+        create or replace view redash.v_avr_trade_leads_only as 
+        with lc as 
+        (
+            select distinct on (master_business_id,lead_content)
+            master_business_id,
+            created_at,
+            lead_content
+            from autoverify.v_mpm_lead_content 
+            where master_business_id in (select master_business_id from autoverify.v_active_master_businesses)
+            order by master_business_id,lead_content, created_at desc
+        )
+        select 
+            name,
+            website_url, 
+            master_business_id,
+            crm_id,
+            subscriptions,
+            last_trade_lead 
+        from 
+        (
+        select 
+            a.*,
+            (case when a.last_credit_lead is not null then 1 else 0 end + 
+            case when a.last_trade_lead is not null then 1 else 0 end + 
+            case when a.last_testdrive_lead is not null then 1 else 0 end +
+            case when a.last_insurance_lead is not null then 1 else 0 end +
+            case when a.last_payments_lead is not null then 1 else 0 end)
+            as lead_types
+        from 
+        (
+        select 
+            a.name,
+            a.website_url,
+            a.id as master_business_id,
+            a.crm_id,
+            a.subscriptions,
+            max(c.created_at) as last_credit_lead,
+            max(d.created_at) as last_trade_lead,
+            max(e.created_at) as last_testdrive_lead,
+            max(f.created_at) as last_insurance_lead,
+            max(g.created_at) as last_payments_lead,
+            json_array_length(a.subscriptions::json) as subscriptions_count
+        from 
+            autoverify.v_sda_master_businesses a 
+        left join lc c on c.master_business_id = a.id and ('credit' = ANY(c.lead_content) or 'finance' = ANY(c.lead_content))
+        left join lc d on d.master_business_id = a.id and 'trade' = ANY(d.lead_content)
+        left join lc e on e.master_business_id = a.id and 'testdrive' = ANY(e.lead_content)
+        left join lc f on f.master_business_id = a.id and 'insurance' = ANY(f.lead_content)
+        left join lc g on g.master_business_id = a.id and 'payments' = ANY(g.lead_content)
+        where 
+            a.id in (select master_business_id from autoverify.v_active_master_businesses)
+        and 
+            a.subscriptions like '%avr%'
+        group by 1,2,3,4,5,11
+        ) a 
+        ) a 
+        where last_trade_lead is not null and lead_types = 1;
+    ''',
+    '''
+        create or replace view redash.v_avr_credit_leads_only as 
+        with lc as 
+        (
+            select distinct on (master_business_id,lead_content)
+            master_business_id,
+            created_at,
+            lead_content
+            from autoverify.v_mpm_lead_content 
+            where master_business_id in (select master_business_id from autoverify.v_active_master_businesses)
+            order by master_business_id,lead_content, created_at desc
+        )
+        select 
+            name,
+            website_url, 
+            master_business_id,
+            crm_id,
+            subscriptions,
+            last_credit_lead 
+        from 
+        (
+        select 
+            a.*,
+            (case when a.last_credit_lead is not null then 1 else 0 end + 
+            case when a.last_trade_lead is not null then 1 else 0 end + 
+            case when a.last_testdrive_lead is not null then 1 else 0 end +
+            case when a.last_insurance_lead is not null then 1 else 0 end +
+            case when a.last_payments_lead is not null then 1 else 0 end)
+            as lead_types
+        from 
+        (
+        select 
+            a.name,
+            a.website_url,
+            a.id as master_business_id,
+            a.crm_id,
+            a.subscriptions,
+            max(c.created_at) as last_credit_lead,
+            max(d.created_at) as last_trade_lead,
+            max(e.created_at) as last_testdrive_lead,
+            max(f.created_at) as last_insurance_lead,
+            max(g.created_at) as last_payments_lead,
+            json_array_length(a.subscriptions::json) as subscriptions_count
+        from 
+            autoverify.v_sda_master_businesses a 
+        left join lc c on c.master_business_id = a.id and ('credit' = ANY(c.lead_content) or 'finance' = ANY(c.lead_content))
+        left join lc d on d.master_business_id = a.id and 'trade' = ANY(d.lead_content)
+        left join lc e on e.master_business_id = a.id and 'testdrive' = ANY(e.lead_content)
+        left join lc f on f.master_business_id = a.id and 'insurance' = ANY(f.lead_content)
+        left join lc g on g.master_business_id = a.id and 'payments' = ANY(g.lead_content)
+        where 
+            a.id in (select master_business_id from autoverify.v_active_master_businesses)
+        and 
+            a.subscriptions like '%avr%'
+        group by 1,2,3,4,5,11
+        ) a 
+        ) a 
+        where last_credit_lead is not null and lead_types = 1;
+    ''',
+    '''
+        create or replace view autoverify.v_mpm_leads as 
+        select 
+            id, 
+            case when payload->>'status' = '' then null else payload->>'status' end as status,
+            created_at,
+            updated_at,
+            case when payload->>'customer_first_name' = '' then null else payload->>'customer_first_name' end as customer_first_name,
+            case when payload->>'customer_last_name' = '' then null else payload->>'customer_last_name' end as customer_last_name,
+            case when payload->>'customer_email' = '' then null else payload->>'customer_email' end as customer_email,
+            case when payload->>'customer_phone' = '' then null else payload->>'customer_phone' end as customer_phone,
+            case when payload->>'customer_language' = '' then null else payload->>'customer_language' end as customer_language,
+            case when payload->>'customer_mobile_phone' = '' then null else payload->>'customer_mobile_phone' end as customer_mobile_phone,
+            case when payload->>'customer_payload' = '' then null else (payload->>'customer_payload')::json end as customer_payload,
+            case when payload->>'customer_address_line_1' = '' then null else payload->>'customer_address_line_1' end as customer_address_line_1,
+            case when payload->>'customer_address_line_2' = '' then null else payload->>'customer_address_line_2' end as customer_address_line_2,
+            case when payload->>'customer_city' = '' then null else payload->>'customer_city' end as customer_city,
+            case when payload->>'customer_postal_code' = '' then null else translate(payload->>'customer_postal_code',' ','') end as customer_postal_code,
+            case when payload->>'customer_country' = '' then null else payload->>'customer_country' end as customer_country,
+            case when payload->>'customer_province' = '' then null else payload->>'customer_province' end as customer_province,
+            case when payload->>'trade_high_value' = '' then null else (payload->>'trade_high_value')::double precision/100 end as trade_high_value, 
+            case when payload->>'trade_low_value' = '' then null else (payload->>'trade_low_value')::double precision/100 end as trade_low_value, 
+            case when payload->>'trade_deductions' = '' then null else payload->>'trade_deductions' end as trade_deductions,
+            case when payload->>'trade_customer_referral_url' = '' then null else payload->>'trade_customer_referral_url' end as trade_customer_referral_url,
+            case when payload->>'trade_vehicle_year' = '' then null else (payload->>'trade_vehicle_year')::int end as trade_vehicle_year,
+            case when payload->>'trade_vehicle_make' = '' then null else payload->>'trade_vehicle_make' end as trade_vehicle_make, 
+            case when payload->>'trade_vehicle_model' = '' then null else payload->>'trade_vehicle_model' end as trade_vehicle_model,
+            case when payload->>'trade_vehicle_style' = '' then null else payload->>'trade_vehicle_style' end as trade_vehicle_style,
+            case when payload->>'trade_vehicle_trim' = '' then null else payload->>'trade_vehicle_trim' end as trade_vehicle_trim,
+            case when payload->>'trade_vehicle_mileage' = '' then null else (payload->>'trade_vehicle_mileage')::double precision end as trade_vehicle_mileage,
+            case when payload->>'trade_vehicle_vin' = '' then null else payload->>'trade_vehicle_vin' end as trade_vehicle_vin, 
+            case when payload->>'insurance_quote_id' = '' then null else (payload->>'insurance_quote_id')::uuid end as insurance_quote_id, 
+            case when payload->>'insurance_referrer_url' = '' then null else payload->>'insurance_referrer_url' end as insurance_referrer_url, 
+            case when payload->>'insurance_quote_payload' = '' then null else (payload->>'insurance_quote_payload')::json end as insurance_quote_payload, 
+            case when payload->>'insurance_purchase_price' = '' then null else (payload->>'insurance_purchase_price')::double precision/100 end as insurance_purchase_price, 
+            case when payload->>'insurance_vehicle_year' = '' then null else (payload->>'insurance_vehicle_year')::int end as insurance_vehicle_year, 
+            case when payload->>'insurance_vehicle_make' = '' then null else payload->>'insurance_vehicle_make' end as insurance_vehicle_make, 
+            case when payload->>'insurance_vehicle_model' = '' then null else payload->>'insurance_vehicle_model' end as insurance_vehicle_model, 
+            case when payload->>'insurance_vehicle_trim' = '' then null else payload->>'insurance_vehicle_trim' end as insurance_vehicle_trim, 
+            case when payload->>'insurance_vehicle_style' = '' then null else payload->>'insurance_vehicle_style' end as insurance_vehicle_style, 
+            case when payload->>'insurance_vehicle_mileage' = '' then null else (payload->>'insurance_vehicle_mileage')::double precision end as insurance_vehicle_mileage,
+            case when payload->>'insurance_vehicle_vin' = '' then null else payload->>'insurance_vehicle_vin' end as insurance_vehicle_vin,
+            case when payload->>'customer_birthdate' = '' then null else to_timestamp(payload->>'customer_birthdate','YYYY-MM-DD HH24:MI:SS') end as customer_birthdate,
+            case when payload->>'customer_tracking_id' = '' then null else payload->>'customer_tracking_id' end as customer_tracking_id,
+            case when payload->>'credit_rating' = '' then null else (payload->>'credit_rating')::int end as credit_rating,
+            case when payload->>'credit_dealertrack_sent_at' = '' then null else to_timestamp(payload->>'credit_dealertrack_sent_at','YYYY-MM-DD HH24:MI:SS') end as credit_dealertrack_sent_at,
+            case when payload->>'source_url' = '' then null else payload->>'source_url' end as source_url,
+            case when payload->>'credit_vehicle_price' = '' then null else (payload->>'credit_vehicle_price')::double precision/100 end as credit_vehicle_price,
+            case when payload->>'credit_trade_in_value' = '' then null else (payload->>'credit_trade_in_value')::double precision/100 end as credit_trade_in_value,
+            case when payload->>'credit_down_payment' = '' then null else (payload->>'credit_down_payment')::double precision end as credit_down_payment,
+            case when payload->>'credit_sales_tax' = '' then null else (payload->>'credit_sales_tax')::double precision end as credit_sales_tax,
+            case when payload->>'credit_interest_rate' = '' then null else (payload->>'credit_interest_rate')::double precision end as credit_interest_rate,
+            case when payload->>'credit_loan_amount' = '' then null else (payload->>'credit_loan_amount')::double precision end as credit_loan_amount,
+            case when payload->>'language_code' = '' then null else payload->>'language_code' end as language_code,
+            case when payload->>'integration_settings_id' = '' then null else (payload->>'integration_settings_id')::uuid end as integration_settings_id,
+            case when payload->>'credit_creditor_name' = '' then null else payload->>'credit_creditor_name' end as credit_creditor_name,
+            case when payload->>'credit_payload' = '' then null else (payload->>'credit_payload')::json end as credit_payload,
+            case when payload->>'trade_low_list' = '' then null else (payload->>'trade_low_list')::float/100 end as trade_low_list,
+            case when payload->>'trade_high_list' = '' then null else (payload->>'trade_high_list')::float/100 end as trade_high_list,
+            case when payload->>'trade_list_count' = '' then null else (payload->>'trade_list_count')::int end as trade_list_count,
+            case when payload->>'trade_aged_discount' = '' then null else (payload->>'trade_aged_discount')::double precision/100 end as trade_aged_discount,
+            case when payload->>'trade_reconditioning' = '' then null else (payload->>'trade_reconditioning')::double precision/100 end as trade_reconditioning,
+            case when payload->>'trade_advertising' = '' then null else (payload->>'trade_advertising')::double precision/100 end as trade_advertising,
+            case when payload->>'trade_overhead' = '' then null else (payload->>'trade_overhead')::double precision/100 end as trade_overhead,
+            case when payload->>'trade_dealer_profit' = '' then null else (payload->>'trade_dealer_profit')::double precision/100 end as trade_dealer_profit,
+            case when payload->>'trade_in_source' = '' then null else payload->>'trade_in_source' end as trade_in_source,
+            case when payload->>'route_list' = '' then null else (payload->>'route_list')::json end as route_list,
+            case when payload->>'experiment' = '' then null else (payload->>'experiment')::json end as experiment,
+            case when payload->>'credit_payment_frequency' = '' then null else (payload->>'credit_payment_frequency')::int end as credit_payment_frequency,
+            case when payload->>'credit_trade_in_owing' = '' then null else (payload->>'credit_trade_in_owing')::double precision end as credit_trade_in_owing,
+            case when payload->>'credit_payment_amount' = '' then null else (payload->>'credit_payment_amount')::double precision end as credit_payment_amount,
+            case when payload->>'credit_term_in_months' = '' then null else (payload->>'credit_term_in_months')::int end as credit_term_in_months,
+            case when payload->>'credit_regional_rating' = '' then null else (payload->>'credit_regional_rating')::int end as credit_regional_rating,
+            case when payload->>'ecom_reserved' = '' then null else (payload->>'ecom_reserved')::int end as ecom_reserved,
+            case when payload->>'testdrive_requested_date' = '' then null else to_timestamp(payload->>'testdrive_requested_date','YYYY-MM-DD HH24:MI:SS') end as testdrive_requested_date,
+            case when payload->>'testdrive_time_of_day_preference' = '' then null else payload->>'testdrive_time_of_day_preference' end as testdrive_time_of_day_preference,
+            case when payload->>'testdrive_language' = '' then null else payload->>'testdrive_language' end as testdrive_language,
+            case when payload->>'testdrive_gender_preference' = '' then null else payload->>'testdrive_gender_preference' end as testdrive_gender_preference,
+            case when payload->>'testdrive_technology_interests' = '' then null else (payload->>'testdrive_technology_interests')::json end as testdrive_technology_interests,
+            case when payload->>'testdrive_route_name' = '' then null else payload->>'testdrive_route_name' end as testdrive_route_name,
+            case when payload->>'testdrive_beverage' = '' then null else payload->>'testdrive_beverage' end as testdrive_beverage,
+            case when payload->>'testdrive_comments' = '' then null else payload->>'testdrive_comments' end as testdrive_comments,
+            case when payload->>'oem_of_interest' = '' then null else payload->>'oem_of_interest' end as oem_of_interest,
+            case when payload->>'billing_key' = '' then null else payload->>'billing_key' end as billing_key,
+            case when payload->>'spincar_lead_report_url' = '' then null else payload->>'spincar_lead_report_url' end as spincar_lead_report_url,
+            case when payload->>'is_insurance' = '' then null else (payload->>'is_insurance')::int end as is_insurance,
+            case when payload->>'is_trade' = '' then null else (payload->>'is_trade')::int end as is_trade,
+            case when payload->>'is_credit_partial' = '' then null else (payload->>'is_credit_partial')::int end as is_credit_partial,
+            case when payload->>'is_credit_verified' = '' then null else (payload->>'is_credit_verified')::int end as is_credit_verified,
+            case when payload->>'is_credit_finance' = '' then null else (payload->>'is_credit_finance')::int end as is_credit_finance,
+            case when payload->>'is_ecom' = '' then null else (payload->>'is_ecom')::int end as is_ecom,
+            case when payload->>'is_spotlight' = '' then null else (payload->>'is_spotlight')::int end as is_spotlight,
+            case when payload->>'device' = '' then null else payload->>'device' end as device,
+            case when payload->>'is_credit_regional' = '' then null else (payload->>'is_credit_regional')::int end as is_credit_regional,
+            case when payload->>'is_test_drive' = '' then null else (payload->>'is_test_drive')::int end as is_test_drive
+        FROM 
+            autoverify.mpm_leads;
+    ''',
+    '''
+        CREATE TABLE IF NOT EXISTS s3.authenticom_sales_data
+        (
+            s3_id bigint REFERENCES s3.scanned_files(id) ON DELETE CASCADE,
+            payload jsonb
+        );
+        CREATE INDEX IF NOT EXISTS authenticom_sales_data_s3_id_idx 
+        ON s3.authenticom_sales_data (s3_id);
     '''
 ]
 
