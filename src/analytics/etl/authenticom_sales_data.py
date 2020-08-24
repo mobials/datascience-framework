@@ -73,7 +73,7 @@ while True:
 
         for object_summary in objects:
             last_modified = object_summary.last_modified
-            print(last_modified)
+            #print(last_modified)
             key = object_summary.key
             if not key.startswith('sales/'):
                 continue
