@@ -184,6 +184,12 @@ queries = [
         DO NOTHING;
     ''',
     '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('autoverify','accident_check_reports','2020-01-01','15 minute') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
         (
             id uuid primary key,
@@ -410,6 +416,14 @@ queries = [
         CREATE TABLE IF NOT EXISTS autoverify.insuresii_businesses
         (
             id uuid primary key,
+            payload jsonb not null
+        );
+    ''',
+    '''
+        CREATE TABLE IF NOT EXISTS autoverify.accident_check_reports
+        (
+            id uuid primary key,
+            created_at timestamptz not null,
             payload jsonb not null
         );
     ''',
@@ -1255,6 +1269,111 @@ queries = [
         );
         CREATE INDEX IF NOT EXISTS authenticom_sales_data_s3_id_idx 
         ON s3.authenticom_sales_data (s3_id);
+    ''',
+    '''
+        create or replace view s3.v_authenticom_sales_data as 
+        select 
+            case when payload->>'Cost' = '' then null else (payload->>'Cost')::double precision end as cost,
+            case when payload->>'MSRP' = '' then null else (payload->>'MSRP')::double precision end as msrp,
+            case when payload->>'Term' = '' then null else (payload->>'Term')::integer end as term,
+            case when payload->>'BankName' = '' then null else (payload->>'BankName') end as bankname,
+            case when payload->>'DealType' = '' then null else (payload->>'DealType') end as dealtype,
+            case when payload->>'SaleType' = '' then null else (payload->>'SaleType') end as saletype,
+            case when payload->>'BackGross' = '' then null else (payload->>'BackGross')::double precision end as backgross,
+            case when payload->>'CashPrice' = '' then null else (payload->>'CashPrice')::double precision end as cashprice,
+            case when payload->>'EntryDate' = '' then null else to_timestamp(payload->>'EntryDate','MM/DD/YYYY') end as entrydate,
+            case when payload->>'Language' = '' then null else (payload->>'Language') end as language,
+            case when payload->>'ListPrice' = '' then null else (payload->>'ListPrice')::double precision end as listprice,
+            case when payload->>'LeaseTerm' = '' then null else (payload->>'LeaseTerm')::integer end as leaseterm,
+            case when payload->>'TrimLevel' = '' then null else (payload->>'TrimLevel') end as trimlevel,
+            case when payload->>'ACDealerID' = '' then null else (payload->>'ACDealerID') end as acdealerid,
+            case when payload->>'DealNumber' = '' then null else (payload->>'DealNumber') end as dealnumber,
+            case when payload->>'DealStatus' = '' then null else (payload->>'DealStatus') end as dealstatus,
+            case when payload->>'FrontGross' = '' then null else (payload->>'FrontGross')::double precision end as frontgross,
+            case when payload->>'StatusDate' = '' then null else to_timestamp(payload->>'StatusDate','MM/DD/YYYY') end as statusdate,
+            case when payload->>'VehicleVIN' = '' then null else (payload->>'VehicleVIN') end as vehiclevin,
+            case when payload->>'CoBuyerCell' = '' then null else (payload->>'CoBuyerCell') end as cobuyercell,
+            case when payload->>'CoBuyerCity' = '' then null else (payload->>'CoBuyerCity') end as cobuyercity,
+            case when payload->>'CoBuyerName' = '' then null else (payload->>'CoBuyerName') end as cobuyername,
+            case when payload->>'CustomerZip' = '' then null else (payload->>'CustomerZip') end as customerzip,
+            case when payload->>'DownPayment' = '' then null else (payload->>'DownPayment')::double precision end as downpayment,
+            case when payload->>'VehicleMake' = '' then null else (payload->>'VehicleMake') end as vehiclemake,
+            case when payload->>'VehicleType' = '' then null else (payload->>'VehicleType') end as vehicletype,
+            case when payload->>'VehicleYear' = '' then null else (payload->>'VehicleYear')::integer end as vehicleyear,
+            case when payload->>'CoBuyerEmail' = '' then null else (payload->>'CoBuyerEmail') end as cobuyeremail,
+            case when payload->>'CoBuyerState' = '' then null else (payload->>'CoBuyerState') end as cobuyerstate,
+            case when payload->>'ContractDate' = '' then null else to_timestamp(payload->>'ContractDate','MM/DD/YYYY') end as contractdate,
+            case when payload->>'CustomerCity' = '' then null else (payload->>'CustomerCity') end as customercity,
+            case when payload->>'CustomerName' = '' then null else (payload->>'CustomerName') end as customername,
+            case when payload->>'DealBookDate' = '' then null else to_timestamp(payload->>'DealBookDate','MM/DD/YYYY') end as dealbookdate,
+            case when payload->>'RealBookDate' = '' then null else to_timestamp(payload->>'RealBookDate','MM/DD/YYYY') end as realbookdate,
+            case when payload->>'VehicleModel' = '' then null else (payload->>'VehicleModel') end as vehiclemodel,
+            case when payload->>'CustomerEmail' = '' then null else (payload->>'CustomerEmail') end as CustomerEmail,
+            case when payload->>'CustomerState' = '' then null else (payload->>'CustomerState') end as CustomerState,
+            case when payload->>'InvoiceAmount' = '' then null else (payload->>'InvoiceAmount')::double precision end as InvoiceAmount,
+            case when payload->>'RetailPayment' = '' then null else (payload->>'RetailPayment')::double precision end as RetailPayment,
+            case when payload->>'TradeIn_1_VIN' = '' then null else (payload->>'TradeIn_1_VIN') end as TradeIn_1_VIN,
+            case when payload->>'TradeIn_2_VIN' = '' then null else (payload->>'TradeIn_2_VIN') end as TradeIn_2_VIN,
+            case when payload->>'AccountingDate' = '' then null else to_timestamp(payload->>'AccountingDate','MM/DD/YYYY') end as AccountingDate,
+            case when payload->>'AmountFinanced' = '' then null else (payload->>'AmountFinanced')::double precision end as AmountFinanced,
+            case when payload->>'CoBuyerAddress' = '' then null else (payload->>'CoBuyerAddress') end as CoBuyerAddress,
+            case 
+                when payload->>'ClientDealerID' = '' then null 
+                when payload->>'ClientDealerID' = 'd6a8da09-ed94-4828-8ba4-4b35e99c4ab0' then 'bfd98837-6f44-46c2-a465-4425b5a4c67a'
+                else (payload->>'ClientDealerID') 
+            end as ClientDealerID,
+            case when payload->>'CoBuyerCountry' = '' then null else (payload->>'CoBuyerCountry') end as CoBuyerCountry,
+            case when payload->>'CoBuyerCustNum' = '' then null else (payload->>'CoBuyerCustNum') end as CoBuyerCustNum,
+            case when payload->>'CustomerCounty' = '' then null else (payload->>'CustomerCounty') end as CustomerCounty,
+            case when payload->>'CustomerNumber' = '' then null else (payload->>'CustomerNumber')::integer end as CustomerNumber,
+            case when payload->>'NetTradeAmount' = '' then null else (payload->>'NetTradeAmount')::double precision end as NetTradeAmount,
+            case when payload->>'TradeIn_1_Make' = '' then null else (payload->>'TradeIn_1_Make') end as TradeIn_1_Make,
+            case when payload->>'TradeIn_1_Year' = '' then null else (payload->>'TradeIn_1_Year')::integer end as TradeIn_1_Year,
+            case when payload->>'TradeIn_2_Make' = '' then null else (payload->>'TradeIn_2_Make') end as TradeIn_2_Make,
+            case when payload->>'TradeIn_2_Year' = '' then null else (payload->>'TradeIn_2_Year')::integer end as TradeIn_2_Year,
+            case when payload->>'VehicleMileage' = '' then null else (payload->>'VehicleMileage')::integer end as VehicleMileage,
+            case when payload->>'CoBuyerLastName' = '' then null else (payload->>'CoBuyerLastName') end as CoBuyerLastName,
+            case when payload->>'CustomerAddress' = '' then null else (payload->>'CustomerAddress') end as CustomerAddress,
+            case when payload->>'GrossProfitSale' = '' then null else (payload->>'GrossProfitSale')::double precision end as GrossProfitSale,
+            case when payload->>'Salesman_1_Name' = '' then null else (payload->>'Salesman_1_Name') end as Salesman_1_Name,
+            case when payload->>'TradeIn_1_Gross' = '' then null else (payload->>'TradeIn_1_Gross')::double precision end as TradeIn_1_Gross,
+            case when payload->>'TradeIn_1_Model' = '' then null else (payload->>'TradeIn_1_Model') end as TradeIn_1_Model,
+            case when payload->>'TradeIn_2_Gross' = '' then null else (payload->>'TradeIn_2_Gross')::double precision end as TradeIn_2_Gross,
+            case when payload->>'TradeIn_2_Model' = '' then null else (payload->>'TradeIn_2_Model') end as TradeIn_2_Model,
+            case when payload->>'CoBuyerFirstName' = '' then null else (payload->>'CoBuyerFirstName') end as CoBuyerFirstName,
+            case when payload->>'CoBuyerHomePhone' = '' then null else (payload->>'CoBuyerHomePhone') end as CoBuyerHomePhone,
+            case when payload->>'CoBuyerWorkPhone' = '' then null else (payload->>'CoBuyerWorkPhone') end as CoBuyerWorkPhone,
+            case when payload->>'CustomerLastName' = '' then null else (payload->>'CustomerLastName') end as CustomerLastName,
+            case when payload->>'SalesManagerName' = '' then null else (payload->>'SalesManagerName') end as SalesManagerName,
+            case when payload->>'TradeIn_1_Payoff' = '' then null else (payload->>'TradeIn_1_Payoff')::double precision end as TradeIn_1_Payoff,
+            case when payload->>'TradeIn_2_Payoff' = '' then null else (payload->>'TradeIn_2_Payoff')::double precision end as TradeIn_2_Payoff,
+            case when payload->>'CustomerBirthDate' = '' then null else to_timestamp(payload->>'CustomerBirthDate','MM/DD/YYYY') end as CustomerBirthDate,
+            case when payload->>'CustomerCellPhone' = '' then null else (payload->>'CustomerCellPhone') end as CustomerCellPhone,
+            case when payload->>'CustomerFirstName' = '' then null else (payload->>'CustomerFirstName') end as CustomerFirstName,
+            case when payload->>'CustomerHomePhone' = '' then null else (payload->>'CustomerHomePhone') end as CustomerHomePhone,
+            case when payload->>'CustomerWorkPhone' = '' then null else (payload->>'CustomerWorkPhone') end as CustomerWorkPhone
+        from 
+            s3.authenticom_sales_data;
+    ''',
+    '''
+        create or replace view autoverify.v_accident_check_reports as 
+        select 
+            id, 
+            created_at,
+            case when payload->>'vin' = '' then null else payload->>'vin' end as vin,
+            case when payload->>'status' = '' then null else payload->>'status' end as status,
+            case when payload->>'batch_id' = '' then null else (payload->>'batch_id') end as batch_id,
+            case when payload->>'expired_on' = '' then null else to_timestamp(payload->>'expired_on','YYYY-MM-DD HH24:MI:SS') end as expired_on,
+            case when payload->>'data_source' = '' then null else (payload->>'data_source')::integer end as data_source,
+            case when payload->>'is_archived' = '' then null else (payload->>'is_archived')::integer end as is_archived,
+            case when payload->>'vin_pattern' = '' then null else (payload->>'vin_pattern') end as vin_pattern,
+            case when payload->>'disclosure_id' = '' then null else (payload->>'disclosure_id')::integer end as disclosure_id,
+            case when payload->>'accident_reported' = '' then null else payload->>'accident_reported' end as accident_reported,
+            case when payload->>'master_business_id' = '' then null else (payload->>'master_business_id') end as master_business_id,
+            case when payload->>'accident_damage_level' = '' then null else payload->>'accident_damage_level' end as accident_damage_level,
+            case when payload->>'accident_repair_amount' = '' then null else (payload->>'accident_repair_amount')::integer end as accident_repair_amount
+        from 
+            autoverify.accident_check_reports;
     '''
 ]
 
