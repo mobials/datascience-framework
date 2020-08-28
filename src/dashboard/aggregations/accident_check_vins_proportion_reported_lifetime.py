@@ -24,7 +24,7 @@ update_query =  '''
                         {0}.{1} 
                     select 
                         master_business_id,
-                        sum(case when accident_reported = 'yes' then 1 else 0 end)/ count(*)::float as vins
+                        sum(case when accident_reported = 'yes' then 1 else 0 end)/ count(*)::double precision as vins
                     from 
                         autoverify.v_accident_check_reports
                     group by 

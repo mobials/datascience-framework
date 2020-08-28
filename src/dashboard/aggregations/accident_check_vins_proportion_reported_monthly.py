@@ -25,7 +25,7 @@ update_query =  '''
                     select 
                         master_business_id,
                         date_trunc('month',created_at) as date,
-                        sum(case when accident_reported = 'yes' then 1 else 0 end)/count(*)::float as vins
+                        sum(case when accident_reported = 'yes' then 1 else 0 end)/count(*)::double precision as vins
                     from 
                         autoverify.v_accident_check_reports
                     group by 
