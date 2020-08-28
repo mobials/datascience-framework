@@ -64,6 +64,30 @@ queries = [
         DO NOTHING;
     ''',
     '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('public','accident_check_vins_checked_weekly','2020-01-01 00:30:00','1 hour') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('public','accident_check_vins_checked_monthly','2020-01-01 00:30:00','1 hour') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('public','accident_check_vins_checked_quarterly','2020-01-01 00:30:00','1 hour') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('public','accident_check_vins_checked_yearly','2020-01-01 00:30:00','1 hour') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS autoverify.accident_check_reports
         (
             id uuid primary key,
@@ -250,6 +274,42 @@ queries = [
         (
             master_business_id text primary key,
             vins integer
+        );
+    ''',
+    '''
+        create table if not exists public.accident_check_vins_checked_weekly
+        (
+            master_business_id text,
+            date timestamptz,
+            vins integer,
+            CONSTRAINT accident_check_vins_checked_weekly_idx PRIMARY KEY (master_business_id,date)
+        );
+    ''',
+    '''
+        create table if not exists public.accident_check_vins_checked_monthly
+        (
+            master_business_id text,
+            date timestamptz,
+            vins integer,
+            CONSTRAINT accident_check_vins_checked_monthly_idx PRIMARY KEY (master_business_id,date)
+        );
+    ''',
+    '''
+        create table if not exists public.accident_check_vins_checked_quarterly
+        (
+            master_business_id text,
+            date timestamptz,
+            vins integer,
+            CONSTRAINT accident_check_vins_checked_quarterly_idx PRIMARY KEY (master_business_id,date)
+        );
+    ''',
+    '''
+        create table if not exists public.accident_check_vins_checked_yearly
+        (
+            master_business_id text,
+            date timestamptz,
+            vins integer,
+            CONSTRAINT accident_check_vins_checked_yearly_idx PRIMARY KEY (master_business_id,date)
         );
     '''
 ]
