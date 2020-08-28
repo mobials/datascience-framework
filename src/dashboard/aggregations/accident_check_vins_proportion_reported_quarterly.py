@@ -70,9 +70,10 @@ while True:
         with postgres_etl_connection.cursor() as cursor:
             cursor.execute(update_query)
             postgres_etl_connection.commit()
-            status = 'success'
-            last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-            run_time = last_update - start_time
+            if cursor.rowcount > 0:
+                status = 'success'
+                last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+                run_time = last_update - start_time
 
     except Exception as e:
         status = str(e)
