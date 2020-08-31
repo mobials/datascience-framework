@@ -94,7 +94,7 @@ while True:
         tuples = []
         mysql_etl_connection = mysqlhandler.get_autoverify_connection()
         try:
-            with mysql_etl_connection.cursor() as cursor:
+            with mysql_etl_connection.cursor(buffered=True) as cursor:
                 cursor.execute(read_query, {'min_created_at': min_created_at, 'max_created_at': max_created_at})
                 columns = [col[0] for col in cursor.description]
                 #count = 0
