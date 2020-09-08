@@ -160,6 +160,12 @@ queries = [
         DO NOTHING;
     ''',
     '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('operations','logging','2020-01-01 00:30:00','5 minutes') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS autoverify.accident_check_reports
         (
             id uuid primary key,

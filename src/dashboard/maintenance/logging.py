@@ -4,7 +4,6 @@ sys.path.append('/var/www/datascience-framework/src/')
 import settings
 import io
 import postgreshandler
-import mysqlhandler
 import os
 import datetime
 import psycopg2
@@ -12,27 +11,29 @@ import psycopg2.extras
 import pytz
 import time
 import utility
+import json
 
-schema = 'public'
+log_file_path = '/var/log/datascience-framework-etl.log'
+
+schema = 'operations'
 script = os.path.basename(__file__)[:-3]
 
-update_query =  '''
-                    insert into 
-                        {0}.{1} 
-                    select 
-                        master_business_id,
-                        date_trunc('month',created_at) as date,
-                        count(*) as vins
-                    from 
-                        autoverify.v_accident_check_reports
-                    group by 
-                        1,2
-                    on conflict 
-                        (master_business_id,date)
-                    do update 
-                    set 
-                        vins = excluded.vins;
-                '''.format(schema,script)
+script_monitor_query =  '''
+                            select 
+                                * 
+                            from 
+                                operations.scheduler 
+                            where 
+                                status != 'success'
+                            or 
+                                last_update  < last_run - frequency
+                            or 
+                                last_run < now() - interval '6 hours'
+                            and 
+                                schema != %(schema)s 
+                            and 
+                                script != %(script)s;
+                        '''
 
 while True:
     schedule_info = None
@@ -65,12 +66,14 @@ while True:
     postgres_etl_connection = postgreshandler.get_dashboard_connection()
     try:
         with postgres_etl_connection.cursor() as cursor:
-            cursor.execute(update_query)
-            postgres_etl_connection.commit()
-            if cursor.rowcount > 0:
-                status = 'success'
+            cursor.execute(script_monitor_query,cursor_factory=psycopg2.extras.DictCursor)
+            for record in cursor:
+                with open(log_file_path, 'a+') as fp:
+                    json.dump(record, fp)
                 last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-                run_time = last_update - start_time
+
+            status = 'success'
+            run_time = last_update - start_time
 
     except Exception as e:
         status = str(e)

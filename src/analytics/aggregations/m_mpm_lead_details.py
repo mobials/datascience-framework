@@ -1,8 +1,11 @@
 import sys
 sys.path.insert(0,'../..')
 sys.path.append('/var/www/datascience-framework/src/')
+import boto3
 import settings
 import io
+import zipfile
+import json
 import postgreshandler
 import mysqlhandler
 import os
@@ -13,30 +16,16 @@ import pytz
 import time
 import utility
 
-schema = 'public'
+schema = 'autoverify'
 script = os.path.basename(__file__)[:-3]
 
-update_query =  '''
-                    insert into 
-                        {0}.{1} 
-                    select 
-                        master_business_id,
-                        date_trunc('month',created_at) as date,
-                        count(*) as vins
-                    from 
-                        autoverify.v_accident_check_reports
-                    group by 
-                        1,2
-                    on conflict 
-                        (master_business_id,date)
-                    do update 
-                    set 
-                        vins = excluded.vins;
-                '''.format(schema,script)
+query = '''
+            refresh materialized view concurrently {0}.{1};
+        '''.format(schema,script)
 
 while True:
     schedule_info = None
-    scheduler_connection = postgreshandler.get_dashboard_connection()
+    scheduler_connection = postgreshandler.get_analytics_connection()
     schedule_info = postgreshandler.get_script_schedule(scheduler_connection,schema,script)
     if schedule_info is None:
         raise Exception('Schedule not found.')
@@ -62,22 +51,21 @@ while True:
 
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
-    postgres_etl_connection = postgreshandler.get_dashboard_connection()
+    postgres_etl_connection = postgreshandler.get_analytics_connection()
     try:
         with postgres_etl_connection.cursor() as cursor:
-            cursor.execute(update_query)
+            cursor.execute(query)
             postgres_etl_connection.commit()
-            if cursor.rowcount > 0:
-                status = 'success'
-                last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-                run_time = last_update - start_time
+            status = 'success'
+            last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+            run_time = last_update - start_time
 
     except Exception as e:
         status = str(e)
     finally:
         postgres_etl_connection.close()
 
-    scheduler_connection = postgreshandler.get_dashboard_connection()
+    scheduler_connection = postgreshandler.get_analytics_connection()
     postgreshandler.update_script_schedule(scheduler_connection,schema,script,now,status,run_time,last_update)
     scheduler_connection.commit()
     scheduler_connection.close()

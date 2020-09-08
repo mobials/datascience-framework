@@ -190,6 +190,12 @@ queries = [
         DO NOTHING;
     ''',
     '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('autoverify','m_mpm_lead_details','2020-01-01','6 hour') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
         (
             id uuid primary key,
@@ -971,22 +977,6 @@ queries = [
             $function$;
     ''',
     '''
-        create or replace view autoverify.v_mpm_lead_details as  
-        select 
-            id,
-            (payload->>'is_insurance')::integer as is_insurance,
-            (payload->>'is_trade')::integer as is_trade,
-            (payload->>'is_credit_partial')::integer as is_credit_partial,
-            (payload->>'is_credit_verified')::integer as is_credit_verified,
-            (payload->>'is_credit_finance')::integer as is_credit_finance,
-            (payload->>'is_ecom')::integer as is_ecom,
-            (payload->>'is_spotlight')::integer as is_spotlight,
-            (payload->>'is_credit_regional')::integer as is_credit_regional,
-            (payload->>'is_test_drive')::integer as is_test_drive
-         from 
-            autoverify.mpm_leads;
-    ''',
-    '''
         create or replace view zuora.v_order as 
         select 
             id,
@@ -1374,6 +1364,18 @@ queries = [
             case when payload->>'accident_repair_amount' = '' then null else (payload->>'accident_repair_amount')::integer end as accident_repair_amount
         from 
             autoverify.accident_check_reports;
+    ''',
+    '''
+        create materialized view if not exists autoverify.m_mpm_lead_details as 
+        select 
+            c.id as master_business_id,
+            a.*,
+            autoverify.lead_content(a.is_insurance, a.is_trade, a.is_credit_partial, a.is_credit_verified, a.is_credit_finance, a.is_ecom, a.is_test_drive) as lead_content
+        from 
+            autoverify.v_mpm_leads a
+        left join autoverify.v_mpm_integration_settings  b on b.id = a.integration_settings_id 
+        left join autoverify.sda_master_businesses c on c.id = b.master_business_id;
+        CREATE UNIQUE INDEX IF NOT EXISTS m_mpm_lead_details_id_idx ON autoverify.m_mpm_lead_details (id);
     '''
 ]
 
