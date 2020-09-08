@@ -191,7 +191,7 @@ queries = [
     ''',
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','m_mpm_lead_details','2020-01-01','6 hour') 
+        VALUES ('autoverify','m_mpm_lead_details','2020-01-01','3 hour') 
         ON CONFLICT ON CONSTRAINT scheduler_pk 
         DO NOTHING;
     ''',

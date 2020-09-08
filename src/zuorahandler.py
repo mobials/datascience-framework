@@ -10,6 +10,8 @@ import utility
 import pytz
 import psycopg2
 import psycopg2.extras
+import dateutil
+import dateutil.tz
 
 def execute_queries(query_payload,headers):
     query_url = settings.zuora_base_api_url + '/v1/batch-query/'
@@ -73,7 +75,10 @@ def create_queries(connection,tables):
 
 def create_query(connection,table):
     min_updated_date = get_max_updated_date(connection,table).replace(tzinfo = pytz.utc)
+    min_updated_date = min_updated_date.astimezone(dateutil.tz.gettz('America/Toronto'))#convert to ET
+
     max_updated_date = utility.add_hours(datetime.datetime.utcnow(),-2).replace(tzinfo = pytz.utc)
+    max_updated_date =  max_updated_date.astimezone(dateutil.tz.gettz('America/Toronto'))#convert to ET
 
     min_updated_date_string = min_updated_date.strftime("%Y-%m-%dT%H:%M:%S")
     max_updated_date_string = max_updated_date.strftime("%Y-%m-%dT%H:%M:%S")
