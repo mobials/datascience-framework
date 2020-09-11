@@ -59,6 +59,17 @@ insert_query = '''
                         happened_at >= %(start_date)s
                     AND 
                         happened_at < %(end_date)s
+                    UNION
+                    SELECT 
+                        (payload->>'master_business_id')::uuid AS master_business_id,
+                        happened_at,
+                        (payload->>'ip_address') AS ip_address
+                    FROM 
+                        s3.avr_button_widget_was_rendered
+                    WHERE 
+                        happened_at >= %(start_date)s
+                    AND 
+                        happened_at < %(end_date)s
                 ) a                 
                 GROUP BY
                     1,2
@@ -98,10 +109,12 @@ while True:
         min_date_integrations_widget_was_rendered = postgreshandler.get_min_value(postgres_etl_connection,'s3','integrations_widget_was_rendered','happened_at')
         min_date_integrations_button_widget_was_rendered = postgreshandler.get_min_value(postgres_etl_connection, 's3','integrations_button_widget_was_rendered','happened_at')
         min_date_avr_widget_impressions = postgreshandler.get_min_value(postgres_etl_connection, 's3','avr_widget_impressions','happened_at')
+        min_date_avr_button_widget_was_rendered = postgreshandler.get_min_value(postgres_etl_connection, 's3', 'avr_button_widget_was_rendered','happened_at')
 
         max_date_integrations_widget_was_rendered = postgreshandler.get_max_value(postgres_etl_connection,'s3','integrations_widget_was_rendered','happened_at')
         max_date_avr_widget_impressions = postgreshandler.get_max_value(postgres_etl_connection, 's3','avr_widget_impressions','happened_at')
         max_date_integrations_button_widget_was_rendered = postgreshandler.get_max_value(postgres_etl_connection, 's3','integrations_button_widget_was_rendered','happened_at')
+        max_date_avr_button_widget_was_rendered = postgreshandler.get_max_value(postgres_etl_connection, 's3','avr_button_widget_was_rendered', 'happened_at')
 
         max_date_avr_widget_impressions_ip_daily = postgreshandler.get_max_value(postgres_etl_connection, schema,script,'date')
 
@@ -111,9 +124,11 @@ while True:
             raise Exception('min_date_avr_widget_impressions is None')
         if min_date_integrations_button_widget_was_rendered is None:
             raise Exception('min_date_integrations_button_widget_was_rendered is None')
+        if min_date_integrations_button_widget_was_rendered is None:
+            raise Exception('min_date_button_widget_was_rendered is None')
 
-        first_date = utility.add_days(max_date_avr_widget_impressions_ip_daily,1) if max_date_avr_widget_impressions_ip_daily is not None else utility.get_day(min(min_date_integrations_widget_was_rendered,min_date_avr_widget_impressions,min_date_integrations_button_widget_was_rendered))
-        last_date = utility.get_day(min(max_date_integrations_widget_was_rendered,max_date_avr_widget_impressions,max_date_integrations_button_widget_was_rendered))
+        first_date = utility.add_days(max_date_avr_widget_impressions_ip_daily,1) if max_date_avr_widget_impressions_ip_daily is not None else utility.get_day(min(min_date_integrations_widget_was_rendered,min_date_avr_widget_impressions,min_date_integrations_button_widget_was_rendered,min_date_avr_button_widget_was_rendered))
+        last_date = utility.get_day(min(max_date_integrations_widget_was_rendered,max_date_avr_widget_impressions,max_date_integrations_button_widget_was_rendered,max_date_avr_button_widget_was_rendered))
 
         if first_date < last_date:
             for date in utility.get_days_from(first_date,last_date):

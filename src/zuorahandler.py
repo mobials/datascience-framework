@@ -74,10 +74,10 @@ def create_queries(connection,tables):
     return result
 
 def create_query(connection,table):
-    min_updated_date = get_max_updated_date(connection,table).replace(tzinfo = pytz.utc)
+    min_updated_date = get_max_updated_date(connection,table)
     min_updated_date = min_updated_date.astimezone(dateutil.tz.gettz('America/Toronto'))#convert to ET
 
-    max_updated_date = utility.add_hours(datetime.datetime.utcnow(),-2).replace(tzinfo = pytz.utc)
+    max_updated_date = utility.add_hours(datetime.datetime.utcnow(),-2)
     max_updated_date =  max_updated_date.astimezone(dateutil.tz.gettz('America/Toronto'))#convert to ET
 
     min_updated_date_string = min_updated_date.strftime("%Y-%m-%dT%H:%M:%S")
