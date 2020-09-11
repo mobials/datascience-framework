@@ -124,8 +124,8 @@ while True:
             raise Exception('min_date_avr_widget_impressions is None')
         if min_date_integrations_button_widget_was_rendered is None:
             raise Exception('min_date_integrations_button_widget_was_rendered is None')
-        if min_date_integrations_button_widget_was_rendered is None:
-            raise Exception('min_date_button_widget_was_rendered is None')
+        if min_date_avr_button_widget_was_rendered is None:
+            raise Exception('min_date_min_date_avr_button_widget_was_rendered is None')
 
         first_date = utility.add_days(max_date_avr_widget_impressions_ip_daily,1) if max_date_avr_widget_impressions_ip_daily is not None else utility.get_day(min(min_date_integrations_widget_was_rendered,min_date_avr_widget_impressions,min_date_integrations_button_widget_was_rendered,min_date_avr_button_widget_was_rendered))
         last_date = utility.get_day(min(max_date_integrations_widget_was_rendered,max_date_avr_widget_impressions,max_date_integrations_button_widget_was_rendered,max_date_avr_button_widget_was_rendered))
