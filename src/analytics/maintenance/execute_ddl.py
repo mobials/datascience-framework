@@ -370,7 +370,7 @@ queries = [
             master_business_id uuid,
             date timestamptz,
             impressions int8,
-            constraint avr_widget_impressions_ip_daily_pk primary key (master_business_id,date,impressions)
+            constraint avr_unique_impressions_ip_daily_pk primary key (master_business_id,date)
         );
         CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_daily_date_idx 
         ON avr_unique_impressions_ip_daily(date);
@@ -381,7 +381,7 @@ queries = [
             master_business_id uuid,
             date timestamptz,
             impressions int8,
-            constraint avr_widget_impressions_ip_weekly_pk primary key (master_business_id,date,impressions)
+            constraint avr_unique_impressions_ip_weekly_pk primary key (master_business_id,date)
         );
         CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_weekly_date_idx 
         ON avr_unique_impressions_ip_weekly(date);
@@ -392,7 +392,7 @@ queries = [
             master_business_id uuid,
             date timestamptz,
             impressions int8,
-            constraint avr_widget_impressions_ip_monthly_pk primary key (master_business_id,date,impressions)
+            constraint avr_unique_impressions_ip_monthly_pk primary key (master_business_id,date)
         );
         CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_monthly_date_idx 
         ON avr_unique_impressions_ip_monthly(date);
@@ -403,7 +403,7 @@ queries = [
             master_business_id uuid,
             date timestamptz,
             impressions int8,
-            constraint avr_unique_impressions_ip_quarterly_pk primary key (master_business_id,date,impressions)
+            constraint avr_unique_impressions_ip_quarterly_pk primary key (master_business_id,date)
         );
         CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_quarterly_date_idx 
         ON avr_unique_impressions_ip_quarterly(date);
