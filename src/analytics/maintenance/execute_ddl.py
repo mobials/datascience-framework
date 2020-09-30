@@ -32,6 +32,19 @@ queries = [
         CREATE SCHEMA IF NOT EXISTS redash;
     ''',
     '''
+        CREATE SCHEMA IF NOT EXISTS miscellaneous;
+    ''',
+    '''
+        CREATE TABLE IF NOT EXISTS miscellaneous.dealer_socket_sales_reports_gross_profit
+        (
+            dealer text not null,
+            purchase_number bigint not null,
+            purchase_date timestamptz not null,
+            payload jsonb,
+            CONSTRAINT dealer_socket_sales_reports_gross_profit_pkey PRIMARY KEY (dealer,purchase_number,purchase_date)
+        );
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS operations.scheduler
         (
             schema text not null,
@@ -588,6 +601,14 @@ queries = [
         );
     ''',
     '''
+        CREATE TABLE IF NOT EXISTS zuora.contact
+        (
+            id text primary key,
+            updateddate timestamptz not null,
+            payload jsonb
+        );
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS zuora.invoice
         (
             id text primary key,
@@ -1006,9 +1027,43 @@ queries = [
             case when payload->>'Order.CreatedDate' = '' then null else to_timestamp(payload->>'Order.CreatedDate','YYYY-MM-DD HH24:MI:SSTZHTZM') end as createddate,
             case when payload->>'Order.Description' = '' then null else payload->>'Order.Description' end as description,
             case when payload->>'Order.OrderNumber' = '' then null else payload->>'Order.OrderNumber' end as ordernumber,
-            case when payload->>'Order.UpdatedById' = '' then null else payload->>'Order.UpdatedById' end as updatedbyid
+            case when payload->>'Order.UpdatedById' = '' then null else payload->>'Order.UpdatedById' end as updatedbyid,
+            case when payload->>'Account.Id' = '' then null else payload->>'Account.Id' end as accountid
         from 
             zuora.order;
+    ''',
+    '''
+        create or replace view zuora.v_contact as 
+        select 
+            id,
+            updateddate,
+            case when payload->>'Contact.Fax' = '' then null else (payload->>'Contact.Fax')::text end as fax,
+            case when payload->>'Contact.City' = '' then null else (payload->>'Contact.City')::text end as city,
+            case when payload->>'Contact.State' = '' then null else (payload->>'Contact.State')::text end as state,
+            case when payload->>'Contact.County' = '' then null else (payload->>'Contact.County')::text end as county,
+            case when payload->>'Contact.Country' = '' then null else (payload->>'Contact.Country')::text end as country,
+            case when payload->>'Contact.Address1' = '' then null else (payload->>'Contact.Address1')::text end as address1,
+            case when payload->>'Contact.Address2' = '' then null else (payload->>'Contact.Address2')::text end as address2,
+            case when payload->>'Contact.LastName' = '' then null else (payload->>'Contact.LastName')::text end as lastname,
+            case when payload->>'Contact.NickName' = '' then null else (payload->>'Contact.NickName')::text end as nickname,
+            case when payload->>'Contact.AccountId' = '' then null else (payload->>'Contact.AccountId')::text end as accountid,
+            case when payload->>'Contact.FirstName' = '' then null else (payload->>'Contact.FirstName')::text end as firstname,
+            case when payload->>'Contact.HomePhone' = '' then null else (payload->>'Contact.HomePhone')::text end as homephone,
+            case when payload->>'Contact.TaxRegion' = '' then null else (payload->>'Contact.TaxRegion')::text end as taxregion,
+            case when payload->>'Contact.WorkEmail' = '' then null else (payload->>'Contact.WorkEmail')::text end as workemail,
+            case when payload->>'Contact.WorkPhone' = '' then null else (payload->>'Contact.WorkPhone')::text end as workphone,
+            case when payload->>'Contact.OtherPhone' = '' then null else (payload->>'Contact.OtherPhone')::text end as otherphone,
+            case when payload->>'Contact.PostalCode' = '' then null else replace((payload->>'Contact.PostalCode')::text,' ','') end as postalcode,
+            case when payload->>'Contact.is_deleted' = '' then null else (payload->>'Contact.is_deleted')::boolean end as is_deleted,
+            case when payload->>'Contact.CreatedById' = '' then null else (payload->>'Contact.CreatedById')::text end as createdbyid,
+            case when payload->>'Contact.CreatedDate' = '' then null else to_timestamp(payload->>'Contact.CreatedDate','YYYY-MM-DD HH24:MI:SSTZHTZM') end as createddate,
+            case when payload->>'Contact.Description' = '' then null else (payload->>'Contact.Description')::text end as description,
+            case when payload->>'Contact.MobilePhone' = '' then null else (payload->>'Contact.MobilePhone')::text end as mobilephone,
+            case when payload->>'Contact.UpdatedById' = '' then null else (payload->>'Contact.UpdatedById')::text end as updatedbyid,
+            case when payload->>'Contact.PersonalEmail' = '' then null else (payload->>'Contact.PersonalEmail')::text end as personalemail,
+            case when payload->>'Contact.OtherPhoneType' = '' then null else (payload->>'Contact.OtherPhoneType')::text end as otherphonetype
+        from 
+            zuora.contact;
     ''',
     '''
         create table if not exists sage.customer_info
@@ -1395,6 +1450,255 @@ queries = [
         left join autoverify.v_mpm_integration_settings  b on b.id = a.integration_settings_id 
         left join autoverify.sda_master_businesses c on c.id = b.master_business_id;
         CREATE UNIQUE INDEX IF NOT EXISTS m_mpm_lead_details_id_idx ON autoverify.m_mpm_lead_details (id);
+    ''',
+    '''
+        create or replace view autoverify.v_tradesii_leads as 
+        select 
+            id,
+            created_at,
+            case when payload->>'type' = '' then null else (payload->>'type')::int end as type,
+            case when payload->>'status' = '' then null else (payload->>'status')::int end as status,
+            case when payload->>'payload' = '' then null else (payload->>'payload')::json end as payload,
+            case when payload->>'customer_ip' = '' then null else (payload->>'customer_ip')::text end as customer_ip,
+            case when payload->>'vehicle_vin' = '' then null else (payload->>'vehicle_vin')::text end as vehicle_vin,
+            case when payload->>'vehicle_make' = '' then null else (payload->>'vehicle_make')::text end as vehicle_make,
+            case when payload->>'vehicle_trim' = '' then null else (payload->>'vehicle_trim')::text end as vehicle_trim,
+            case when payload->>'vehicle_year' = '' then null else (payload->>'vehicle_year')::int end as vehicle_year,
+            case when payload->>'customer_name' = '' then null else (payload->>'customer_name')::text end as customer_name,
+            case when payload->>'vehicle_model' = '' then null else (payload->>'vehicle_model')::text end as vehicle_model,
+            case when payload->>'vehicle_style' = '' then null else (payload->>'vehicle_style')::text end as vehicle_style,
+            case when payload->>'vehicle_prices' = '' then null else replace(payload->>'vehicle_prices','"\','')::json end as vehicle_prices,
+            case when payload->>'vehicle_mileage' = '' then null else (payload->>'vehicle_mileage')::double precision end as vehicle_mileage,
+            case when payload->>'tradesii_report_id' = '' then null else (payload->>'tradesii_report_id')::uuid end as tradesii_report_id,
+            case when payload->>'vehicle_deductions' = '' then null else replace(payload->>'vehicle_deductions','"\','')::json end as vehicle_deductions,	
+            case when payload->>'customer_postal_code' = '' then null else replace((payload->>'customer_postal_code')::text,' ','') end as customer_postal_code,
+            case when payload->>'customer_phone_number' = '' then null else (payload->>'customer_phone_number')::text end as customer_phone_number,
+            case when payload->>'customer_referrer_url' = '' then null else (payload->>'customer_referrer_url')::text end as customer_referrer_url,	
+            case when payload->>'customer_email_address' = '' then null else (payload->>'customer_email_address')::text end as customer_email_address,
+            case when payload->>'tradesii_business_profile_id' = '' then null else (payload->>'tradesii_business_profile_id')::uuid end as tradesii_business_profile_id
+        from 
+            autoverify.tradesii_leads;
+    ''',
+    '''
+        create or replace view autoverify.v_tradesii_businesses as 
+        select 
+            id,
+            created_at,
+            updated_at,
+            case when payload->>'city' = '' then null else (payload->>'city')::text end as city,
+            case when payload->>'name' = '' then null else (payload->>'name')::text end as name,
+            case when payload->>'status' = '' then null else (payload->>'status')::int end as status,
+            case when payload->>'crm_type' = '' then null else (payload->>'crm_type')::int end as crm_type,
+            case when payload->>'postal_code' = '' then null else replace((payload->>'postal_code')::text,' ','') end as postal_code,
+            case when payload->>'website_url' = '' then null else (payload->>'website_url')::text end as website_url,
+            case when payload->>'country_code' = '' then null else (payload->>'country_code')::text end as country_code,
+            case when payload->>'phone_number' = '' then null else (payload->>'phone_number')::json end as phone_number,
+            case when payload->>'province_code' = '' then null else (payload->>'province_code')::text end as province_code,
+            case when payload->>'address_line_1' = '' then null else (payload->>'address_line_1')::text end as address_line_1,
+            case when payload->>'address_line_2' = '' then null else (payload->>'address_line_2')::text end as address_line_2,
+            case when payload->>'crm_account_id' = '' then null else (payload->>'crm_account_id')::text end as crm_account_id,
+            case when payload->>'master_business_id' = '' then null else (payload->>'master_business_id')::uuid end as master_business_id,
+            case when payload->>'stripe_customer_id' = '' then null else (payload->>'stripe_customer_id')::text end as stripe_customer_id
+        from 
+            autoverify.tradesii_businesses;
+    ''',
+    '''
+        create or replace view autoverify.v_tradesii_business_profiles as
+        select 
+            id,
+            created_at,
+            case when payload->>'type' = '' then null else (payload->>'type')::int end as type,
+            case when payload->>'gtm_id' = '' then null else (payload->>'gtm_id')::text end as gtm_id,
+            case when payload->>'status' = '' then null else (payload->>'status')::int end as status,
+            case when payload->>'api_key' = '' then null else (payload->>'api_key')::uuid end as api_key,
+            case when payload->>'language' = '' then null else (payload->>'language')::text end as language,
+            case when payload->>'external_id' = '' then null else (payload->>'external_id')::text end as external_id,
+            case when payload->>'integration_name' = '' then null else (payload->>'integration_name')::text end as integration_name,
+            case when payload->>'business_crm_type' = '' then null else (payload->>'business_crm_type')::text end as business_crm_type,
+            case when payload->>'credsii_integration' = '' then null else (payload->>'credsii_integration')::int end as credsii_integration,
+            case when payload->>'crm_recipient_emails' = '' then null else (payload->>'crm_recipient_emails')::json end as crm_recipient_emails,
+            case when payload->>'tradesii_business_id' = '' then null else (payload->>'tradesii_business_id')::uuid end as tradesii_business_id,
+            case when payload->>'lead_recipient_emails' = '' then null else (payload->>'lead_recipient_emails')::json end as lead_recipient_emails,
+            case when payload->>'phone_number_verification' = '' then null else (payload->>'phone_number_verification')::int end as phone_number_verification,
+            case when payload->>'regional_price_adjustment' = '' then null else (payload->>'regional_price_adjustment')::double precision end as regional_price_adjustment
+        from 
+            autoverify.tradesii_business_profiles;
+    ''',
+    '''
+        create or replace view autoverify.v_credsii_leads as 
+        SELECT 
+            id, 
+            created_at, 
+            updated_at, 
+            case when payload->>'city' = '' then null else (payload->>'city')::text end as city,
+            case when payload->>'country' = '' then null else (payload->>'country')::text end as country,
+            case when payload->>'province' = '' then null else (payload->>'province')::text end as province,
+            case when payload->>'birthdate' = '' then null else to_timestamp(payload->>'birthdate','YYYY-MM-DD')::text end as birthdate,
+            case when payload->>'last_name' = '' then null else (payload->>'last_name')::text end as last_name,
+            case when payload->>'lead_type' = '' then null else (payload->>'lead_type')::int end as lead_type,
+            case when payload->>'report_id' = '' then null else (payload->>'report_id')::uuid end as report_id,
+            case when payload->>'first_name' = '' then null else (payload->>'first_name')::text end as first_name,
+            case when payload->>'billing_key' = '' then null else (payload->>'billing_key')::text end as billing_key,
+            case when payload->>'lead_status' = '' then null else (payload->>'lead_status')::int end as lead_status,
+            case when payload->>'postal_code' = '' then null else replace((payload->>'postal_code')::text,' ','') end as postal_code,
+            case when payload->>'tracking_id' = '' then null else (payload->>'tracking_id')::text end as tracking_id,
+            case when payload->>'meta_monthly' = '' then null else (payload->>'meta_monthly')::double precision end as meta_monthly,
+            case when payload->>'phone_number' = '' then null else (payload->>'phone_number')::json end as phone_number,
+            case when payload->>'credit_rating' = '' then null else (payload->>'credit_rating')::text end as credit_rating,
+            case when payload->>'email_address' = '' then null else (payload->>'email_address')::text end as email_address,
+            case when payload->>'address_line_1' = '' then null else (payload->>'address_line_1')::text end as address_line_1,
+            case when payload->>'address_line_2' = '' then null else (payload->>'address_line_2')::text end as address_line_2,
+            case when payload->>'financial_form' = '' then null else (payload->>'financial_form')::text end as financial_form,
+            case when payload->>'meta_sales_tax' = '' then null else (payload->>'meta_sales_tax')::double precision end as meta_sales_tax,
+            case when payload->>'conversation_id' = '' then null else (payload->>'conversation_id')::text end as conversation_id,
+            case when payload->>'meta_source_url' = '' then null else (payload->>'meta_source_url')::text end as meta_source_url,
+            case when payload->>'meta_loan_amount' = '' then null else (payload->>'meta_loan_amount')::double precision end as meta_loan_amount,
+            case when payload->>'route_one_result' = '' then null else (payload->>'route_one_result')::text end as route_one_result,
+            case when payload->>'routeone_sent_at' = '' then null else (payload->>'routeone_sent_at')::text end as routeone_sent_at,
+            case when payload->>'meta_down_payment' = '' then null else (payload->>'meta_down_payment')::double precision end as meta_down_payment,
+            case when payload->>'meta_loan_balance' = '' then null else (payload->>'meta_loan_balance')::double precision end as meta_loan_balance,
+            case when payload->>'meta_interest_rate' = '' then null else (payload->>'meta_interest_rate')::double precision end as meta_interest_rate,
+            case when payload->>'meta_loan_duration' = '' then null else (payload->>'meta_loan_duration')::integer end as meta_loan_duration,
+            case when payload->>'meta_vehicle_price' = '' then null else (payload->>'meta_vehicle_price')::double precision end as meta_vehicle_price,
+            case when payload->>'dealertrack_sent_at' = '' then null else to_timestamp((payload->>'dealertrack_sent_at')::text,'YYYY-MM-DD HH24:MI:SS') end as dealertrack_sent_at,
+            case when payload->>'meta_trade_in_value' = '' then null else (payload->>'meta_trade_in_value')::double precision end as meta_trade_in_value,
+            case when payload->>'financial_form_stored_at' = '' then null else to_timestamp((payload->>'financial_form_stored_at')::text,'YYYY-MM-DD HH24:MI:SS') end as financial_form_stored_at
+        FROM 
+            autoverify.credsii_leads;
+    ''',
+    '''
+        create or replace view autoverify.v_credsii_businesses as 
+        SELECT 
+            id, 
+            created_at, 
+            updated_at, 
+            case when payload->>'city' = '' then null else (payload->>'city')::text end as city,
+            case when payload->>'name' = '' then null else (payload->>'name')::text end as name,
+            case when payload->>'status' = '' then null else (payload->>'status')::int end as status,
+            case when payload->>'country' = '' then null else (payload->>'country')::text end as country,
+            case when payload->>'crm_type' = '' then null else (payload->>'crm_type')::int end as crm_type,
+            case when payload->>'province' = '' then null else (payload->>'province')::text end as province,
+            case when payload->>'postal_code' = '' then null else replace((payload->>'postal_code')::text,' ','') end as postal_code,
+            case when payload->>'website_url' = '' then null else (payload->>'website_url')::text end as website_url,
+            case when payload->>'phone_number' = '' then null else (payload->>'phone_number')::json end as phone_number,
+            case when payload->>'address_line_1' = '' then null else (payload->>'address_line_1')::text end as address_line_1,
+            case when payload->>'address_line_2' = '' then null else (payload->>'address_line_2')::text end as address_line_2,
+            case when payload->>'crm_account_id' = '' then null else (payload->>'crm_account_id')::text end as crm_account_id,
+            case when payload->>'master_business_id' = '' then null else (payload->>'master_business_id')::uuid end as master_business_id,
+            case when payload->>'stripe_customer_id' = '' then null else (payload->>'stripe_customer_id')::text end as stripe_customer_id
+        FROM 
+            autoverify.credsii_businesses;
+    ''',
+    '''
+        create or replace view autoverify.v_credsii_business_profiles as 
+    SELECT 
+        id, 
+        created_at, 
+        updated_at, 
+        case when payload->>'crm' = '' then null else (payload->>'crm')::int end as crm,
+        case when payload->>'type' = '' then null else (payload->>'type')::int end as type,
+        case when payload->>'banks' = '' then null else (payload->>'banks')::json end as banks,
+        case when payload->>'status' = '' then null else (payload->>'status')::int end as status,
+        case when payload->>'api_key' = '' then null else (payload->>'api_key')::uuid end as api_key,
+        case when payload->>'buttons' = '' then null else (payload->>'buttons')::json end as buttons,
+        case when payload->>'language' = '' then null else (payload->>'language')::text end as language,
+        case when payload->>'live_date' = '' then null else to_timestamp((payload->>'live_date')::text,'YYYY-MM-DD HH24:MI:SS') end as live_date,
+        case when payload->>'fax_number' = '' then null else (payload->>'fax_number')::text end as fax_number,
+        case when payload->>'business_id' = '' then null else (payload->>'business_id')::uuid end as business_id,
+        case when payload->>'external_id' = '' then null else (payload->>'external_id')::text end as external_id,
+        case when payload->>'route_one_key' = '' then null else (payload->>'route_one_key')::text end as route_one_key,
+        case when payload->>'dealertrack_id' = '' then null else (payload->>'dealertrack_id')::text end as dealertrack_id,
+        case when payload->>'finance_emails' = '' then null else (payload->>'finance_emails')::json end as finance_emails,
+        case when payload->>'interest_rates' = '' then null else (payload->>'interest_rates')::json end as interest_rates,
+        case when payload->>'integration_name' = '' then null else (payload->>'integration_name')::text end as integration_name,
+        case when payload->>'crm_recipient_emails' = '' then null else (payload->>'crm_recipient_emails')::json end as crm_recipient_emails,
+        case when payload->>'lead_recipient_emails' = '' then null else (payload->>'lead_recipient_emails')::json end as lead_recipient_emails,
+        case when payload->>'dealertrack_confirm_id' = '' then null else (payload->>'dealertrack_confirm_id')::text end as dealertrack_confirm_id
+    FROM 
+        autoverify.credsii_business_profiles;
+    ''',
+    '''
+        create or replace view autoverify.v_credsii_reports as 
+        SELECT 
+            id, 
+            created_at, 
+            updated_at, 
+            case when payload->>'city' = '' then null else (payload->>'city')::text end as city,
+            case when payload->>'status' = '' then null else (payload->>'status')::int end as status,
+            case when payload->>'country' = '' then null else (payload->>'country')::text end as country,
+            case when payload->>'language' = '' then null else (payload->>'language')::text end as language,
+            case when payload->>'province' = '' then null else (payload->>'province')::text end as province,
+            case when payload->>'verified' = '' then null else (payload->>'verified')::int end as verified,
+            case when payload->>'birthdate' = '' then null else to_timestamp((payload->>'birthdate')::text,'YYYY-MM-DD HH24:MI:SS') end as birthdate,
+            case when payload->>'last_name' = '' then null else (payload->>'last_name')::text end as last_name,
+            case when payload->>'first_name' = '' then null else (payload->>'first_name')::text end as first_name,
+            case when payload->>'profile_id' = '' then null else (payload->>'profile_id')::uuid end as profile_id,
+            case when payload->>'source_url' = '' then null else (payload->>'source_url')::text end as source_url,
+            case when payload->>'postal_code' = '' then null else replace((payload->>'postal_code')::text,' ','') end as postal_code,
+            case when payload->>'tracking_id' = '' then null else (payload->>'tracking_id')::text end as tracking_id,
+            case when payload->>'phone_number' = '' then null else (payload->>'phone_number')::json end as phone_number,
+            case when payload->>'credit_rating' = '' then null else (payload->>'credit_rating')::int end as credit_rating,
+            case when payload->>'email_address' = '' then null else (payload->>'email_address')::text end as email_address,
+            case when payload->>'address_line_1' = '' then null else (payload->>'address_line_1')::text end as address_line_1,
+            case when payload->>'address_line_2' = '' then null else (payload->>'address_line_2')::text end as address_line_2,
+            case when payload->>'tradesii_report_id' = '' then null else (payload->>'tradesii_report_id')::uuid end as tradesii_report_id
+        FROM 
+            autoverify.credsii_reports;
+    ''',
+    '''
+        create or replace view autoverify.v_insuresii_leads as 
+        select 
+            id, 
+            created_at,
+            updated_at,
+            case when payload->>'vin' = '' then null else (payload->>'vin')::text end as vin,
+            case when payload->>'city' = '' then null else (payload->>'city')::text end as city,
+            case when payload->>'make' = '' then null else (payload->>'make')::text end as make,
+            case when payload->>'trim' = '' then null else (payload->>'trim')::text end as trim,
+            case when payload->>'year' = '' then null else (payload->>'year')::int end as year,
+            case when payload->>'email' = '' then null else (payload->>'email')::text end as email,
+            case when payload->>'model' = '' then null else (payload->>'model')::text end as model,
+            case when payload->>'phone' = '' then null else (payload->>'phone')::text end as phone,
+            case when payload->>'style' = '' then null else (payload->>'style')::text end as style,
+            case when payload->>'country' = '' then null else (payload->>'country')::text end as country,
+            case when payload->>'mileage' = '' then null else (payload->>'mileage')::double precision end as mileage,
+            case when payload->>'payload' = '' then null else (payload->>'payload')::json end as payload,
+            case when payload->>'language' = '' then null else (payload->>'language')::text end as language,
+            case when payload->>'province' = '' then null else (payload->>'province')::text end as province,
+            case when payload->>'quote_id' = '' then null else (payload->>'quote_id')::uuid end as quote_id,
+            case when payload->>'last_name' = '' then null else (payload->>'last_name')::text end as last_name,
+            case when payload->>'lead_type' = '' then null else (payload->>'lead_type')::text end as lead_type,
+            case when payload->>'first_name' = '' then null else (payload->>'first_name')::text end as first_name,
+            case when payload->>'profile_id' = '' then null else (payload->>'profile_id')::uuid end as profile_id,
+            case when payload->>'lead_status' = '' then null else (payload->>'lead_status')::text end as lead_status,
+            case when payload->>'postal_code' = '' then null else replace((payload->>'postal_code')::text,' ','') end as postal_code,
+            case when payload->>'mobile_phone' = '' then null else (payload->>'mobile_phone')::text end as mobile_phone,
+            case when payload->>'referrer_url' = '' then null else (payload->>'referrer_url')::text end as referrer_url,
+            case when payload->>'quote_payload' = '' then null else (payload->>'quote_payload')::json end as quote_payload,
+            case when payload->>'address_line_1' = '' then null else (payload->>'address_line_1')::text end as address_line_1,
+            case when payload->>'address_line_2' = '' then null else (payload->>'address_line_2')::text end as address_line_2,
+            case when payload->>'purchase_price' = '' then null else (payload->>'purchase_price')::double precision end as purchase_price
+        from 
+            autoverify.insuresii_leads;
+    ''',
+    '''
+        create or replace view autoverify.v_insuresii_business_profiles as 
+        SELECT 
+            id, 
+            case when payload->>'type' = '' then null else (payload->>'type')::text end as type,
+            case when payload->>'gtm_id' = '' then null else (payload->>'gtm_id')::text end as gtm_id,
+            case when payload->>'status' = '' then null else (payload->>'status')::text end as status,
+            case when payload->>'api_key' = '' then null else (payload->>'api_key')::text end as api_key,
+            case when payload->>'crm_type' = '' then null else (payload->>'crm_type')::text end as crm_type,
+            case when payload->>'language' = '' then null else (payload->>'language')::text end as language,
+            case when payload->>'live_date' = '' then null else to_timestamp((payload->>'live_date')::text,'YYYY-MM-DD HH24:MI:SS') end as live_date,
+            case when payload->>'business_id' = '' then null else (payload->>'business_id')::uuid end as business_id,
+            case when payload->>'external_id' = '' then null else (payload->>'external_id')::text end as external_id,
+            case when payload->>'crm_recipient_emails' = '' then null else (payload->>'crm_recipient_emails')::json end as crm_recipient_emails,
+            case when payload->>'lead_recipient_emails' = '' then null else (payload->>'lead_recipient_emails')::json end as lead_recipient_emails,
+            case when payload->>'requires_mobile_verification' = '' then null else (payload->>'requires_mobile_verification')::int end as requires_mobile_verification
+        FROM 
+            autoverify.insuresii_business_profiles;
     '''
 ]
 

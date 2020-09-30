@@ -116,6 +116,11 @@ def get_query_columns(table):
                     INVOICE.ID,
                     *
                 '''
+    elif table == 'Order':
+        result =    '''
+                        ACCOUNT.ID,
+                        *
+                    '''
     return result
 
 def get_max_updated_date(connection,table):

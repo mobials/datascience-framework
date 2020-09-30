@@ -23,7 +23,8 @@ tables = [
     'CreditMemo',
     'Account',
     'Subscription',
-    'Order'
+    'Order',
+    'Contact',
 ]
 
 while True:

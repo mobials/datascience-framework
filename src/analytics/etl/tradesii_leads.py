@@ -15,6 +15,8 @@ import psycopg2.extras
 import pytz
 import time
 import utility
+import json
+
 
 schema = 'autoverify'
 script = os.path.basename(__file__)[:-3]
@@ -105,13 +107,14 @@ while True:
                     info = dict(zip(columns, row))
                     id = info['id']
                     created_at = info['created_at']
-
+                    info['vehicle_prices'] = json.loads(info['vehicle_prices'])
                     #clean up some fields we don't need in the payload
                     del info['id']
                     del info['created_at']
 
                     #convert the remaining entries into json
                     payload = json.dumps(info,default=str)
+                    #payload = psycopg2.extras.Json(info)
 
                     tuple = (
                         id,
