@@ -35,6 +35,9 @@ queries = [
         CREATE SCHEMA IF NOT EXISTS miscellaneous;
     ''',
     '''
+        CREATE SCHEMA IF NOT EXISTS vendors;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS miscellaneous.dealer_socket_sales_reports_gross_profit
         (
             dealer text not null,
@@ -211,6 +214,12 @@ queries = [
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
         VALUES ('autoverify','m_mpm_lead_details','2020-01-01','3 hour') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('vendors','dataone','2020-01-01','1 day') 
         ON CONFLICT ON CONSTRAINT scheduler_pk 
         DO NOTHING;
     ''',
@@ -646,6 +655,16 @@ queries = [
             id text primary key,
             updateddate timestamptz not null,
             payload jsonb
+        );
+    ''',
+    '''
+        CREATE TABLE IF NOT EXISTS vendors.dataone 
+        (
+            s3_id BIGINT references s3.scanned_files(id) ON DELETE CASCADE,
+            vin_pattern TEXT NOT NULL,
+            vehicle_id INT NOT NULL,
+            payload json,
+            CONSTRAINT  dataone_vin_pat_veh_id_idx PRIMARY KEY (vin_pattern,vehicle_id)
         );
     ''',
     '''
