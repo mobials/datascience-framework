@@ -224,6 +224,12 @@ queries = [
         DO NOTHING;
     ''',
     '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('vendors','marketcheck_ca','2020-01-01','1 day') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
         (
             id uuid primary key,
@@ -663,9 +669,83 @@ queries = [
             s3_id BIGINT references s3.scanned_files(id) ON DELETE CASCADE,
             vin_pattern TEXT NOT NULL,
             vehicle_id INT NOT NULL,
-            payload json,
+            payload jsonb,
             CONSTRAINT  dataone_vin_pat_veh_id_idx PRIMARY KEY (vin_pattern,vehicle_id)
         );
+    ''',
+    '''
+        CREATE TABLE IF NOT EXISTS vendors.marketcheck_ca 
+        (
+            s3_id BIGINT references s3.scanned_files(id) ON DELETE CASCADE,
+            id text,
+            dealer_id text,
+            vin text,
+            heading text,
+            price double precision,
+            miles double precision,
+            stock_no text,
+            year integer,
+            make text,
+            model text,
+            trim text,
+            vehicle_type text,
+            body_type text,
+            body_subtype text,
+            drivetrain text,
+            fuel_type text,
+            engine text,
+            engine_block text,
+            engine_size double precision,
+            engine_measure text,
+            engine_aspiration text,
+            transmission text,
+            speeds integer,
+            doors integer,
+            cylinders integer,
+            interior_color text,
+            exterior_color text,
+            taxonomy_vin text,
+            scraped_at timestamptz,
+            status_date timestamptz,
+            source text,
+            domain_id bigint,
+            more_info text,
+            zip text,
+            latitude double precision,
+            longitude double precision,
+            address text,
+            city text,
+            city_state text,
+            city_state_zip text,
+            county text,
+            state text,
+            street text,
+            area text,
+            seller_type text,
+            seller_email text,
+            seller_phone text,
+            seller_name_orig text,
+            aws text,
+            photo_url text,
+            listing_type text,
+            seller_comments text,
+            options text,
+            features text,
+            photo_links text,
+            car_street text,
+            car_address text,
+            car_city text,
+            car_state text,
+            car_zip text,
+            is_certified integer,
+            currency_indicator text,
+            miles_indicator text,
+            trim_orig text,
+            trim_r text,
+            msrp double precision,
+            decoder_source text
+        );
+        CREATE INDEX IF NOT EXISTS marketcheck_ca_s3_id_idx ON vendors.marketcheck_ca (s3_id);
     ''',
     '''
         create or replace view zuora.v_account as

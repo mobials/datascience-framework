@@ -118,7 +118,7 @@ while True:
                 if len(tuples) > 0:
                     with etl_connection.cursor() as cursor:
                         cursor.execute(truncate_query)
-                        psycopg2.extras.execute_values(cursor, insert_query, tuples)
+                        psycopg2.extras.execute_values(cursor,insert_query,tuples)
                         status = 'success'
                         last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
                         run_time = last_update - start_time

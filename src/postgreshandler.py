@@ -19,9 +19,9 @@ def get_dashboard_connection():
 
 def get_datascience_connection():
     connection_string = {
-                            "dbname": settings.datascience_db,
-                            "user": settings.datascience_user,
-                            "password": settings.datascience_pass,
+                            "dbname": settings.datascience_database,
+                            "user": settings.datascience_username,
+                            "password": settings.datascience_password,
                             "host": settings.datascience_host,
                             "port":settings.datascience_port
                         }

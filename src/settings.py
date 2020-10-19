@@ -18,9 +18,9 @@ tradalgo_staging_db = os.getenv('TRADALGO_STAGING_DB')
 tradalgo_staging_port = os.getenv('TRADALGO_STAGING_PORT')
 tradalgo_staging_host = os.getenv('TRADALGO_STAGING_HOST')
 
-datascience_user = os.getenv('DATASCIENCE_USER')
-datascience_pass = os.getenv('DATASCIENCE_PASS')
-datascience_db = os.getenv('DATASCIENCE_DB')
+datascience_username = os.getenv('DATASCIENCE_USERNAME')
+datascience_password = os.getenv('DATASCIENCE_PASSWORD')
+datascience_database = os.getenv('DATASCIENCE_DATABASE')
 datascience_port = os.getenv('DATASCIENCE_PORT')
 datascience_host = os.getenv('DATASCIENCE_HOST')
 
