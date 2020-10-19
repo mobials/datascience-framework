@@ -14,8 +14,7 @@ import psycopg2
 import psycopg2.extras
 import pytz
 import time
-import utilitys
-import logging
+import utility
 
 schema = 'autoverify'
 script = os.path.basename(__file__)[:-3]
