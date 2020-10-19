@@ -133,7 +133,6 @@ while True:
                 run_time = last_update - start_time
     except Exception as e:
         status = str(e)
-        print(status, file=sys.stderr)
     finally:
         postgres_etl_connection.close()
         mysql_etl_connection.close()

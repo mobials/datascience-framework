@@ -84,7 +84,6 @@ while True:
 
     start_time = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
-
     postgres_etl_connection = postgreshandler.get_analytics_connection()
     try:
         last_created_at = postgreshandler.get_max_value(postgres_etl_connection,schema,script,'created_at')
