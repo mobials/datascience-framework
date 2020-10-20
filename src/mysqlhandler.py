@@ -1,6 +1,7 @@
+import sys
+sys.path.append('/var/www/datascience-framework/src/')
 import mysql.connector
 import settings
-
 
 def get_autoverify_connection():
     result =  mysql.connector.connect(
