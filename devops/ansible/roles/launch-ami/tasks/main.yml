@@ -27,5 +27,5 @@
       app: "{{ app_name }}"
       department: datascience
     monitoring: yes
-    assign_public_ip: yes
+    assign_public_ip: "{{ ec2_public_ip | default(yes) }}"
   register: ec2
