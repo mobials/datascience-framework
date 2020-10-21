@@ -1,0 +1,58 @@
+---
+- name: create the www root directy
+  file:
+    path: "{{ app_deploy_directory }}"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+  become: yes
+  become_user: root
+
+# we download the repo as the root user in order to maintain our ssh-agent key forwarding. This is a bit of a flaw
+# with ansible in general...
+- name: download the repo
+  git:
+    repo: "{{ app_github_repo }}"
+    dest: "{{ app_deploy_directory }}"
+    version: "{{ app_branch_name | default('master') }}"
+    force: yes
+    accept_hostkey: yes
+
+# copy over our template files to the appropriate directories
+- name: create our .env files for the project
+  template:
+    src: "{{ ansible_inventory_sources[0] }}/templates/.env.j2"
+    dest: "{{ app_deploy_directory }}/.env"
+    owner: ubuntu
+    group: ubuntu
+    mode: '0666'
+  become: yes
+  become_user: root
+
+- name: Install requirements
+  pip:
+    executable: /usr/bin/pip3
+    requirements: "{{ app_deploy_directory }}/requirements.txt"
+
+
+
+
+
+# - name: Make the jupyter directory
+
+# - name: Install jupyter
+
+
+
+
+
+# - name: Copy jupyter service 
+#   shell: "cp {{ etl_home }}config/* /etc/supervisor/conf.d/"
+#   become_user: root
+#   become: yes
+
+# - name: start jupyter
+#   service:
+#     name: jupyter
+#     state: started
+#   become: true
