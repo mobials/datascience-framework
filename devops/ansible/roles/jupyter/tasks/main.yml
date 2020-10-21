@@ -34,13 +34,10 @@
     executable: /usr/bin/pip3
     requirements: "{{ app_deploy_directory }}/requirements.txt"
 
-
-
-
-
-# - name: Make the jupyter directory
-
-# - name: Install jupyter
+- name: Install jupyter
+  apt:
+    name: python3-notebook jupyter jupyter-core
+    state: present
 
 
 
