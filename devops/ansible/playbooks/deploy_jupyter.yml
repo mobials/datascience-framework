@@ -40,7 +40,6 @@
         ami_id: "{{ ami_result.results[0].ami_id }}"
         security_groups:
           - "default"
-          - "{{ env }}-airflow-sg"
 
     - name: Add new instance to our hosts
       add_host:
