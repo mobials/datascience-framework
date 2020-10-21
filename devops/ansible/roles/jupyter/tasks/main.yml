@@ -36,9 +36,12 @@
 
 - name: Install jupyter
   apt:
-    name: python3-notebook jupyter jupyter-core
+    name: "{{ item }}" 
     state: present
-
+  with_items:
+    - python3-notebook
+    - jupyter
+    - jupyter-core
 
 
 
