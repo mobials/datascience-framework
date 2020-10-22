@@ -1,0 +1,15 @@
+[Unit]
+Description=Jupyter Notebook
+
+[Service]
+Type=simple
+PIDFile=/run/jupyter.pid
+ExecStart=/usr/bin/jupyter-notebook --config=/etc/jupyter/jupyter_notebook_config.json --notebook-dir=/etc/jupyter/notebooks
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/etc/jupyter/notebooks
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

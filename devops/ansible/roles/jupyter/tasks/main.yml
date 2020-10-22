@@ -35,24 +35,31 @@
     state: present
   become: true
 
-- name: Install requirements
+- name: Install datascience requirements
   pip:
     executable: /usr/bin/pip3
     requirements: "{{ app_deploy_directory }}/requirements.txt"
 
+- name: Add jupyter notebooks directory
+  file: 
+    path: /etc/jupyter/notebooks
+    state: directory
+  become: true
 
+- name: Add jupyter config
+  template:
+    src: jupyter_notebook_config.json.j2
+    dest: /etc/jupyter/jupyter_notebook_config.json
+  become: true
 
+- name: Create the jupyter service
+  template:
+    src: jupyter.service.j2
+    dest: /etc/systemd/system/jupyter.service
+  become: true
 
-
-
-
-# - name: Copy jupyter service 
-#   shell: "cp {{ etl_home }}config/* /etc/supervisor/conf.d/"
-#   become_user: root
-#   become: yes
-
-# - name: start jupyter
-#   service:
-#     name: jupyter
-#     state: started
-#   become: true
+- name: Start and enable the service, reload the daemon
+  service:
+    name: jupyter
+    state: started
+  become: true

@@ -36,6 +36,6 @@ provisioned_ami_prefix: "{{ env }}-datascience-etl-base"
 
 ec2_instance_type: t3.large
 ec2_volume_size: 100
-ec2_public_ip: no
+ec2_public_ip: yes
 
 etl_home: "{{ app_deploy_directory }}/src/analytics/"
