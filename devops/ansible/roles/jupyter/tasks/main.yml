@@ -29,16 +29,18 @@
   become: yes
   become_user: root
 
-- name: Install requirements
-  pip:
-    executable: /usr/bin/pip3
-    requirements: "{{ app_deploy_directory }}/requirements.txt"
-
 - name: Install jupyter
   apt:
     name: jupyter-notebook
     state: present
   become: true
+
+- name: Install requirements
+  pip:
+    executable: /usr/bin/pip3
+    requirements: "{{ app_deploy_directory }}/requirements.txt"
+
+
 
 
 
