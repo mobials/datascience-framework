@@ -39,7 +39,6 @@
         service: jupyter
         ami_id: "{{ ami_result.results[0].ami_id }}"
         security_groups:
-          - default
           - jupyter
 
     - name: Add new instance to our hosts
