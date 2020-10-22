@@ -5,11 +5,10 @@ echo "Beginning deployment..."
 sh bin/devops-setup.sh
 
 export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
-GIT_BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
 
 cd devops/ansible
 
-ansible-playbook -i inventories/jupyter/staging playbooks/deploy_jupyter.yml --extra-vars "app_branch_name=$GIT_BRANCH_NAME" -vvv
+ansible-playbook -i inventories/jupyter/staging playbooks/deploy_jupyter.yml
 
 cd ../..
 
