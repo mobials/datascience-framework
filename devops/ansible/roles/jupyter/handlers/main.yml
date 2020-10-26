@@ -1,0 +1,6 @@
+---
+- name: restart_jupyter
+  systemd:
+    name: jupyter
+    state: restarted
+  become: true

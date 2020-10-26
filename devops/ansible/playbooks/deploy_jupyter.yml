@@ -1,0 +1,73 @@
+---
+- hosts: localhost
+  connection: local
+  pre_tasks:
+    - name: change python interpreter if on macosx
+      set_fact:
+        ansible_python_interpreter: /usr/bin/python
+      when: ansible_distribution == "MacOSX"
+  roles:
+    - deployment/deployment-protection
+    - role: deployment/slack-notification
+      vars:
+        slack_notification_message: "{{ slack_notification_start }}"
+
+
+- name: Spin up EC2 using latest AMI
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  tasks:
+    - name: Search for the latest AMI
+      ec2_ami_find:
+        is_public: no
+        region: "{{ region }}"
+        name: "{{ provisioned_ami_prefix }}-*"
+        owner: self
+        sort: creationDate
+        sort_order: descending
+        sort_end: 1
+        no_result_action: fail
+      register: ami_result
+
+    - name: Launch instance from AMI
+      include_role:
+        name: launch-ami
+      vars:
+        subnet_id: "{{ public_subnet_id }}"
+        instance_name: "{{ env }}-{{ app_name }}"
+        service: jupyter
+        ami_id: "{{ ami_result.results[0].ami_id }}"
+        security_groups:
+          - jupyter
+
+    - name: Add new instance to our hosts
+      add_host:
+        name: "{{ item.private_ip }}"
+        groups: tag_service_jupyter
+      register: add_host_result
+      when: ec2.changed == true
+      with_items: "{{ ec2.instances }}"
+
+
+- hosts: tag_service_jupyter
+  name: Install the application and create users
+  gather_facts: no
+  pre_tasks:
+    - name: Wait for system to become reachable
+      wait_for_connection:
+      register: connection_result
+    - name: Gather facts for first time
+      setup:
+  roles:
+    - jupyter
+
+
+# send slack notification for completed deployment
+- hosts: localhost
+  connection: local
+  roles:
+    - role: deployment/slack-notification
+      vars:
+        slack_notification_message: "{{ slack_notification_complete }} {{ release_url | default('') }}"
+      tags: slack
