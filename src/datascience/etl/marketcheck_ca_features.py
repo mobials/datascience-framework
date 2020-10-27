@@ -100,8 +100,8 @@ while True:
                     else:
                         info = dict(zip(column_headings, split_text))
 
-                    if '|' not in info['features_texts'] and '|' not in info['options_texts']:
-                        continue
+                    # if '|' not in info['features_texts'] and '|' not in info['options_texts']:
+                    #     continue
 
                     info = {
                         'vin_ss':info['vin_ss'],
@@ -132,6 +132,7 @@ while True:
                         last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
                         run_time = last_update - start_time
                 etl_connection.commit()
+            #break
 
     except Exception as e:
         status = str(e)
@@ -140,7 +141,7 @@ while True:
         etl_connection.close()
 
     #update the scheduler
-    scheduler_connection = postgreshandler.get_datascience_connection()
-    postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
-    scheduler_connection.commit()
-    scheduler_connection.close()
+    # scheduler_connection = postgreshandler.get_datascience_connection()
+    # postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
+    # scheduler_connection.commit()
+    # scheduler_connection.close()
