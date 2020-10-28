@@ -53,6 +53,16 @@
   become: true
   notify: restart_jupyter
 
+- name: Set the jupyter directory perms
+  file:
+    path: /etc/jupyter
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    recurse: yes
+  become: yes
+  become_user: root
+
 - name: Create the jupyter service
   template:
     src: jupyter.service.j2
