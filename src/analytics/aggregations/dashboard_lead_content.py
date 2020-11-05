@@ -42,7 +42,14 @@ insert_query =  '''
                                                     '2000-01-01'
                                                 )
                     AND 
-                        created_at < date_trunc('day',now())
+                        created_at < date_trunc('day',
+                                                    (
+                                                        SELECT 
+                                                            MAX(created_at) 
+                                                        FROM 
+                                                            autoverify.mpm_leads
+                                                    )
+                                                )
                     ORDER BY 
                         created_at ASC
                     ON CONFLICT (id)
