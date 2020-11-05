@@ -230,6 +230,12 @@ queries = [
         DO NOTHING;
     ''',
     '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('autoverify','dashboard_lead_content','2020-01-01','15 minute') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
         (
             id uuid primary key,
@@ -1488,7 +1494,7 @@ queries = [
             case when payload->>'CoBuyerCountry' = '' then null else (payload->>'CoBuyerCountry') end as CoBuyerCountry,
             case when payload->>'CoBuyerCustNum' = '' then null else (payload->>'CoBuyerCustNum') end as CoBuyerCustNum,
             case when payload->>'CustomerCounty' = '' then null else (payload->>'CustomerCounty') end as CustomerCounty,
-            case when payload->>'CustomerNumber' = '' then null else (payload->>'CustomerNumber')::integer end as CustomerNumber,
+            case when payload->>'CustomerNumber' = '' then null else (payload->>'CustomerNumber')::text end as CustomerNumber,
             case when payload->>'NetTradeAmount' = '' then null else (payload->>'NetTradeAmount')::double precision end as NetTradeAmount,
             case when payload->>'TradeIn_1_Make' = '' then null else (payload->>'TradeIn_1_Make') end as TradeIn_1_Make,
             case when payload->>'TradeIn_1_Year' = '' then null else (payload->>'TradeIn_1_Year')::integer end as TradeIn_1_Year,
@@ -1798,6 +1804,17 @@ queries = [
             case when payload->>'requires_mobile_verification' = '' then null else (payload->>'requires_mobile_verification')::int end as requires_mobile_verification
         FROM 
             autoverify.insuresii_business_profiles;
+    ''',
+    '''
+        create table if not exists autoverify.dashboard_lead_content
+        (
+            id uuid PRIMARY KEY,
+            master_business_id uuid,
+            integration_settings_id uuid,
+            created_at timestamptz,
+            device text,
+            lead_content text [] CHECK (cardinality(lead_content) > 0)
+        );
     '''
 ]
 
