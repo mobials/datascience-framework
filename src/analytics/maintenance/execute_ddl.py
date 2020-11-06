@@ -242,6 +242,12 @@ queries = [
         DO NOTHING;
     ''',
     '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('public','dashboard_mixed_leads_lifetime_device','2020-01-01','15 minute') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
         (
             id uuid primary key,
@@ -1829,6 +1835,16 @@ queries = [
             mixed_lead_type text,
             leads numeric,
             CONSTRAINT dashboard_mixed_leads_lifetime_pk PRIMARY KEY (master_business_id,mixed_lead_type)
+        );
+    ''',
+    '''
+        create table if not exists public.dashboard_mixed_leads_lifetime_device
+        (
+            master_business_id uuid,
+            mixed_lead_type text,
+            device text,
+            leads numeric,
+            CONSTRAINT dashboard_mixed_leads_lifetime__device_pk PRIMARY KEY (master_business_id,mixed_lead_type,device)
         );
     ''',
     '''
