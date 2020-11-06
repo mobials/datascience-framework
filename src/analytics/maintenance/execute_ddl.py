@@ -1828,8 +1828,7 @@ queries = [
             master_business_id uuid,
             mixed_lead_type text,
             leads numeric,
-            device text,
-            CONSTRAINT dashboard_mixed_leads_lifetime_pk PRIMARY KEY (master_business_id,mixed_lead_type,device)
+            CONSTRAINT dashboard_mixed_leads_lifetime_pk PRIMARY KEY (master_business_id,mixed_lead_type)
         );
     ''',
     '''

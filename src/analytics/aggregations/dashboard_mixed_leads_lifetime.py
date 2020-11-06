@@ -25,13 +25,12 @@ insert_query =  '''
                     SELECT 
                         master_business_id,
                         array_to_string(lead_content, '-'::text) AS mixed_lead_type,
-                        count(*) as leads,
-                        device
+                        count(*) as leads
                     FROM 
                         autoverify.dashboard_lead_content
                     GROUP BY 
-                        1,2,4
-                    ON CONFLICT (master_business_id,mixed_lead_type,device) 
+                        1,2
+                    ON CONFLICT (master_business_id,mixed_lead_type) 
                     DO UPDATE
                         SET leads = excluded.leads;
                 '''.format(schema,script)
