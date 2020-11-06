@@ -1836,6 +1836,8 @@ queries = [
             leads numeric,
             CONSTRAINT dashboard_mixed_leads_lifetime_pk PRIMARY KEY (master_business_id,mixed_lead_type)
         );
+        ALTER TABLE public.dashboard_mixed_leads_lifetime
+        SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
     ''',
     '''
         create table if not exists public.dashboard_mixed_leads_lifetime_device
@@ -1846,6 +1848,8 @@ queries = [
             leads numeric,
             CONSTRAINT dashboard_mixed_leads_lifetime__device_pk PRIMARY KEY (master_business_id,mixed_lead_type,device)
         );
+        ALTER TABLE public.dashboard_mixed_leads_lifetime_device
+        SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
     ''',
     '''
         CREATE OR REPLACE VIEW autoverify.v_mpm_lead_details
