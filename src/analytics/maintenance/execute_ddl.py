@@ -236,6 +236,12 @@ queries = [
         DO NOTHING;
     ''',
     '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('public','dashboard_mixed_leads_lifetime','2020-01-01','15 minute') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
+    ''',
+    '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
         (
             id uuid primary key,
@@ -1809,12 +1815,122 @@ queries = [
         create table if not exists autoverify.dashboard_lead_content
         (
             id uuid PRIMARY KEY,
-            master_business_id uuid,
+            master_business_id uuid not null,
             integration_settings_id uuid,
             created_at timestamptz,
             device text,
             lead_content text [] CHECK (cardinality(lead_content) > 0)
         );
+    ''',
+    '''
+        create table if not exists public.dashboard_mixed_leads_lifetime
+        (
+            master_business_id uuid,
+            mixed_lead_type text,
+            leads numeric,
+            device text,
+            CONSTRAINT dashboard_mixed_leads_lifetime_pk PRIMARY KEY (master_business_id,mixed_lead_type,device)
+        );
+    ''',
+    '''
+        CREATE OR REPLACE VIEW autoverify.v_mpm_lead_details
+        AS SELECT 
+            b.master_business_id,
+            a.id,
+            a.status,
+            a.created_at,
+            a.updated_at,
+            a.customer_first_name,
+            a.customer_last_name,
+            a.customer_email,
+            a.customer_phone,
+            a.customer_language,
+            a.customer_mobile_phone,
+            a.customer_payload,
+            a.customer_address_line_1,
+            a.customer_address_line_2,
+            a.customer_city,
+            a.customer_postal_code,
+            a.customer_country,
+            a.customer_province,
+            a.trade_high_value,
+            a.trade_low_value,
+            a.trade_deductions,
+            a.trade_customer_referral_url,
+            a.trade_vehicle_year,
+            a.trade_vehicle_make,
+            a.trade_vehicle_model,
+            a.trade_vehicle_style,
+            a.trade_vehicle_trim,
+            a.trade_vehicle_mileage,
+            a.trade_vehicle_vin,
+            a.insurance_quote_id,
+            a.insurance_referrer_url,
+            a.insurance_quote_payload,
+            a.insurance_purchase_price,
+            a.insurance_vehicle_year,
+            a.insurance_vehicle_make,
+            a.insurance_vehicle_model,
+            a.insurance_vehicle_trim,
+            a.insurance_vehicle_style,
+            a.insurance_vehicle_mileage,
+            a.insurance_vehicle_vin,
+            a.customer_birthdate,
+            a.customer_tracking_id,
+            a.credit_rating,
+            a.credit_dealertrack_sent_at,
+            a.source_url,
+            a.credit_vehicle_price,
+            a.credit_trade_in_value,
+            a.credit_down_payment,
+            a.credit_sales_tax,
+            a.credit_interest_rate,
+            a.credit_loan_amount,
+            a.language_code,
+            a.integration_settings_id,
+            a.credit_creditor_name,
+            a.credit_payload,
+            a.trade_low_list,
+            a.trade_high_list,
+            a.trade_list_count,
+            a.trade_aged_discount,
+            a.trade_reconditioning,
+            a.trade_advertising,
+            a.trade_overhead,
+            a.trade_dealer_profit,
+            a.trade_in_source,
+            a.route_list,
+            a.experiment,
+            a.credit_payment_frequency,
+            a.credit_trade_in_owing,
+            a.credit_payment_amount,
+            a.credit_term_in_months,
+            a.credit_regional_rating,
+            a.ecom_reserved,
+            a.testdrive_requested_date,
+            a.testdrive_time_of_day_preference,
+            a.testdrive_language,
+            a.testdrive_gender_preference,
+            a.testdrive_technology_interests,
+            a.testdrive_route_name,
+            a.testdrive_beverage,
+            a.testdrive_comments,
+            a.oem_of_interest,
+            a.billing_key,
+            a.spincar_lead_report_url,
+            a.is_insurance,
+            a.is_trade,
+            a.is_credit_partial,
+            a.is_credit_verified,
+            a.is_credit_finance,
+            a.is_ecom,
+            a.is_spotlight,
+            a.device,
+            a.is_credit_regional,
+            a.is_test_drive,
+            autoverify.lead_content(a.is_insurance, a.is_trade, a.is_credit_partial, a.is_credit_verified, a.is_credit_finance, a.is_ecom, a.is_test_drive) AS lead_content
+        FROM autoverify.v_mpm_leads a
+        LEFT JOIN autoverify.v_mpm_integration_settings b ON b.id = a.integration_settings_id;
     '''
 ]
 
