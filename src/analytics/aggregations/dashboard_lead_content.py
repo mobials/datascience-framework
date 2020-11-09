@@ -40,7 +40,7 @@ insert_query =  '''
                                                             autoverify.dashboard_lead_content
                                                     ),
                                                     '2000-01-01'
-                                                )
+                                                ) - interval '3 days'
                     AND 
                         created_at < date_trunc('day',
                                                     (
@@ -53,7 +53,13 @@ insert_query =  '''
                     ORDER BY 
                         created_at ASC
                     ON CONFLICT (id)
-                    DO NOTHING
+                    DO UPDATE 
+                    SET 
+                        master_business_id = excluded.master_business_id,
+                        integration_settings_id = excluded.integration_settings_id,
+                        created_at = excluded.created_at,
+                        device = excluded.device,
+                        lead_content = excluded.lead_content
                 '''.format(schema,script)
 while True:
     schedule_info = None
