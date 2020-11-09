@@ -236,18 +236,6 @@ queries = [
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('public','dashboard_mixed_leads_lifetime','2020-01-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('public','dashboard_mixed_leads_lifetime_device','2020-01-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
         (
             id uuid primary key,
@@ -1827,29 +1815,6 @@ queries = [
             device text,
             lead_content text [] CHECK (cardinality(lead_content) > 0)
         );
-    ''',
-    '''
-        create table if not exists public.dashboard_mixed_leads_lifetime
-        (
-            master_business_id uuid,
-            mixed_lead_type text,
-            leads numeric,
-            CONSTRAINT dashboard_mixed_leads_lifetime_pk PRIMARY KEY (master_business_id,mixed_lead_type)
-        );
-        ALTER TABLE public.dashboard_mixed_leads_lifetime
-        SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
-    ''',
-    '''
-        create table if not exists public.dashboard_mixed_leads_lifetime_device
-        (
-            master_business_id uuid,
-            mixed_lead_type text,
-            device text,
-            leads numeric,
-            CONSTRAINT dashboard_mixed_leads_lifetime__device_pk PRIMARY KEY (master_business_id,mixed_lead_type,device)
-        );
-        ALTER TABLE public.dashboard_mixed_leads_lifetime_device
-        SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
     ''',
     '''
         CREATE OR REPLACE VIEW autoverify.v_mpm_lead_details
