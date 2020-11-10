@@ -1924,45 +1924,7 @@ queries = [
             a.sub_type,
             a.is_accident_check
         FROM autoverify.v_mpm_leads a
-        LEFT JOIN autoverify.v_mpm_integration_settings b ON b.id = a.integration_settings_id
-        WHERE a.id not in 
-        (
-            'db2413bf-b48c-4c39-8a35-f6107abd1a20',
-            'e0476694-a9c8-41ff-b21a-2c8ddc832c47',
-            '4afce89c-3657-43ee-9df1-062359e0dbb3',
-            '15b5f47a-5497-4d95-bc03-854dd05807df',
-            '0be60657-c2ea-4e5f-b921-8fc39c34e00f',
-            '459f1049-1b68-4b02-9093-a89e5e047de9',
-            'ad734d0b-1124-45bc-83e0-f3f336f4f28f',
-            '6781ef80-f282-4b12-85fb-158eb055750a',
-            'df0d8785-e33b-4daf-8797-31548b115c66',
-            'bb05e58f-d792-45af-87bb-8f67396400f7',
-            '82b37b96-4f10-43f5-b645-f337872895e2',
-            'd8ca84f0-de24-4c12-bc67-d61ccd0ee124',
-            '3417ebf0-d9a9-4bfb-87f8-8ee00bb94b21',
-            '501f02ff-6fbc-4f20-b956-151f82491b81',
-            '318f8cbf-fd3e-4baf-bea0-4c841f071ec3',
-            '8169f2db-0b9e-468e-ba98-18ce539e086e',
-            'ad4ba273-26e8-4842-9b58-c83f4e1d4348',
-            '9cf27e54-4d39-4dba-b91e-e130350aa7a9',
-            'fb9bc399-0efd-47a7-87c5-f5fc2587db4e',
-            'c715e1f4-c4a3-48f2-abf2-ac4a3f635ffc',
-            '59440ff3-51fa-4f7d-9b5c-8a04258a6622',
-            '7b6281dc-c44a-4113-990f-8054e51f644a',
-            '030e3078-cd4a-49e3-8754-5a3620737491',
-            'bdf03e8a-81ee-4ee8-8836-852079b43035',
-            '98ac2984-d8c0-45b0-b24e-92bbb7cee297',
-            '1b9219c3-4e1a-4660-acbb-c5c65ccff935',
-            'c08406f0-c1f8-48d3-adf5-9472ef29cacd',
-            '85b778b3-914d-4ad3-903a-b93655829ca5',
-            'b65a4bfd-c299-4211-899b-460a5b7b0f32',
-            'f44fac48-7a90-445a-9aa7-25970475252c',
-            'd7f17625-e03c-4d61-a046-b1eb806c6980',
-            '91b177d0-e743-4475-9ea9-be62e0351a31',
-            'a5a6732c-9221-42e5-aa25-a8e392697c6b',
-            '73501bfa-896a-4011-a5eb-b4a6109c8ee5',
-            '0e8e4a9c-8bc5-4d49-976a-95ac9f455b12'
-        );
+        LEFT JOIN autoverify.v_mpm_integration_settings b ON b.id = a.integration_settings_id;
     ''',
     '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_lead_details 
@@ -2126,6 +2088,112 @@ queries = [
               FOREIGN KEY(version) 
               REFERENCES autoverify.roi_arguments(version)
         );                  
+    ''',
+    '''
+        create materialized view if not exists public.m_lifetime_master_leads as 
+        SELECT 
+            master_business_id,
+            lead_content[1] AS master_lead_type,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2;
+        CREATE unique INDEX IF NOT EXISTS  m_lifetime_master_leads_unq_idx ON  public.m_lifetime_master_leads (master_business_id,master_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_lifetime_master_leads_device as 
+        SELECT 
+            master_business_id,
+            lead_content[1] AS master_lead_type,
+            device,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3;
+        CREATE unique INDEX IF NOT EXISTS  m_lifetime_master_leads_device_unq_idx ON  public.m_lifetime_master_leads_device (master_business_id,device,master_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_master_leads_daily as 
+        SELECT 
+            master_business_id,
+            date_trunc('day',created_at) as date,
+            lead_content[1] AS master_lead_type,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3;  
+        CREATE unique INDEX IF NOT EXISTS  m_master_leads_daily_unq_idx ON  public.m_master_leads_daily (master_business_id,date,master_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_master_leads_daily_device as 
+        SELECT 
+            master_business_id,
+            date_trunc('day',created_at) as date,
+            lead_content[1] AS master_lead_type,
+            device,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3,4;  
+        CREATE unique INDEX IF NOT EXISTS  m_master_leads_daily_device_unq_idx ON  public.m_master_leads_daily_device (master_business_id,date,device,master_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_master_leads_monthly as 
+        SELECT 
+            master_business_id,
+            date_trunc('month',created_at) as date,
+            lead_content[1] AS master_lead_type,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3;  
+        CREATE unique INDEX IF NOT EXISTS  m_master_leads_montly_unq_idx ON  public.m_master_leads_monthly (master_business_id,date,master_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_master_leads_monthly_device as 
+        SELECT 
+            master_business_id,
+            date_trunc('month',created_at) as date,
+            lead_content[1] AS master_lead_type,
+            device,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3,4;  
+        CREATE unique INDEX IF NOT EXISTS  m_master_leads_montly_device_unq_idx ON  public.m_master_leads_monthly_device (master_business_id,date,device,master_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_master_leads_weekly as 
+        SELECT 
+            master_business_id,
+            date_trunc('week',created_at) as date,
+            lead_content[1] AS master_lead_type,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3;  
+        CREATE unique INDEX IF NOT EXISTS  m_master_leads_weekly_unq_idx ON  public.m_master_leads_weekly (master_business_id,date,master_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_master_leads_weekly_device as 
+        SELECT 
+            master_business_id,
+            date_trunc('week',created_at) as date,
+            lead_content[1] AS master_lead_type,
+            device,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3,4;  
+        CREATE unique INDEX IF NOT EXISTS  m_master_leads_weekly_device_unq_idx ON  public.m_master_leads_weekly_device (master_business_id,date,device,master_lead_type);
     '''
 ]
 
