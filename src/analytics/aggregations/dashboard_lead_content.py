@@ -16,7 +16,7 @@ import pytz
 import time
 import utility
 
-schema = 'dashboard'
+schema = 'autoverify'
 script = os.path.basename(__file__)[:-3]
 
 insert_query =  '''
@@ -37,7 +37,7 @@ insert_query =  '''
                                                         SELECT 
                                                             max(created_at) 
                                                         FROM
-                                                            dashboard.master_lead_content
+                                                            autoveriify.dashboard_lead_content
                                                     ),
                                                     '2000-01-01'
                                                 ) - interval '3 days'
