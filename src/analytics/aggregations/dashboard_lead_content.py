@@ -37,7 +37,7 @@ insert_query =  '''
                                                         SELECT 
                                                             max(created_at) 
                                                         FROM
-                                                            autoveriify.dashboard_lead_content
+                                                            autoverify.dashboard_lead_content
                                                     ),
                                                     '2000-01-01'
                                                 ) - interval '3 days'
