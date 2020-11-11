@@ -240,6 +240,12 @@ queries = [
         VALUES ('autoverify','mpm_lead_details','2020-01-01','3 hour') 
         ON CONFLICT ON CONSTRAINT scheduler_pk 
         DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
+        VALUES ('public','dashboard_refresh','2020-01-01 00:06:00','6 hours') 
+        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        DO NOTHING;
     '''
     '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
@@ -2194,6 +2200,254 @@ queries = [
         GROUP BY 
             1,2,3,4;  
         CREATE unique INDEX IF NOT EXISTS  m_master_leads_weekly_device_unq_idx ON  public.m_master_leads_weekly_device (master_business_id,date,device,master_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_master_leads_yearly as 
+        SELECT 
+            master_business_id,
+            date_trunc('year',created_at) as date,
+            lead_content[1] AS master_lead_type,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3;  
+        CREATE unique INDEX IF NOT EXISTS  m_master_leads_yearly_unq_idx ON  public.m_master_leads_yearly (master_business_id,date,master_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_master_leads_yearly_device as 
+        SELECT 
+            master_business_id,
+            date_trunc('year',created_at) as date,
+            lead_content[1] AS master_lead_type,
+            device,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3,4;  
+        CREATE unique INDEX IF NOT EXISTS  m_master_leads_yearly_device_unq_idx ON  public.m_master_leads_yearly_device (master_business_id,date,device,master_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_mixed_leads_monthly as 
+        SELECT 
+            master_business_id,
+            date_trunc('month',created_at) as date,
+            array_to_string(lead_content, '-'::text) AS mixed_lead_type,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3;  
+        CREATE unique INDEX IF NOT EXISTS  m_mixed_leads_monthly_unq_idx ON  public.m_mixed_leads_monthly (master_business_id,date,mixed_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_mixed_leads_monthly_device as 
+        SELECT 
+            master_business_id,
+            date_trunc('month',created_at) as date,
+            array_to_string(lead_content, '-'::text) AS mixed_lead_type,
+            device,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3,4;  
+        CREATE unique INDEX IF NOT EXISTS  m_mixed_leads_monthly_device_unq_idx ON  public.m_mixed_leads_monthly_device (master_business_id,date,device,mixed_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_mixed_leads_yearly_device as 
+        SELECT 
+            master_business_id,
+            date_trunc('year',created_at) as date,
+            array_to_string(lead_content, '-'::text) AS mixed_lead_type,
+            device,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3,4;  
+        CREATE unique INDEX IF NOT EXISTS  m_mixed_leads_yearly_device_unq_idx ON  public.m_mixed_leads_yearly_device (master_business_id,date,device,mixed_lead_type);
+    ''',
+    '''
+        create materialized view if not exists public.m_mixed_leads_yearly as 
+        SELECT 
+            master_business_id,
+            date_trunc('year',created_at) as date,
+            array_to_string(lead_content, '-'::text) AS mixed_lead_type,
+            count(*)::numeric as leads
+        FROM 
+            autoverify.dashboard_lead_content
+        GROUP BY 
+            1,2,3;  
+        CREATE unique INDEX IF NOT EXISTS  m_mixed_leads_yearly_unq_idx ON  public.m_mixed_leads_yearly (master_business_id,date,mixed_lead_type);
+    ''',
+    '''
+        CREATE OR REPLACE VIEW autoverify.v_master_lead_type_estimated_value as
+        SELECT 
+            version as version,
+            'trade' as master_lead_type,
+            vehicle_sale_profit * (trade_lead_conversion_probability + trade_lead_conversion_probability * high_quality_trade_in_probability) as value,
+            trade_lead_conversion_probability as conversion_rate
+        from 
+            autoverify.roi_arguments
+        where 
+            version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
+        union
+        SELECT 
+            version as version,
+            'credit' as master_lead_type,
+            vehicle_sale_profit * (credit_lead_conversion_probability + credit_lead_conversion_probability * high_quality_trade_in_probability * trade_with_credit_lead_probability) as value,
+            credit_lead_conversion_probability as conversion_rate
+        from 
+            autoverify.roi_arguments
+        where 
+            version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
+        union
+        SELECT 
+            version as version,
+            'insurance' as master_lead_type,
+            vehicle_sale_profit * (insurance_lead_conversion_probability + insurance_lead_conversion_probability * high_quality_trade_in_probability * trade_with_insurance_lead_probability) as value,
+            insurance_lead_conversion_probability as conversion_rate
+        from 
+            autoverify.roi_arguments
+        where 
+            version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
+        union
+        SELECT 
+            version as version,
+            'finance' as master_lead_type,
+            vehicle_sale_profit * (finance_lead_conversion_probability + finance_lead_conversion_probability * high_quality_trade_in_probability * trade_with_finance_lead_probability) as value,
+            finance_lead_conversion_probability as conversion_rate
+        from 
+            autoverify.roi_arguments
+        where 
+            version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
+        union
+        SELECT 
+            version as version,
+            'payments' as master_lead_type,
+            vehicle_sale_profit * (payments_lead_conversion_probability + payments_lead_conversion_probability * high_quality_trade_in_probability * trade_with_payments_lead_probability) as value,
+            payments_lead_conversion_probability as conversion_rate
+        from 
+            autoverify.roi_arguments
+        where 
+            version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
+        union
+        SELECT 
+            version as version,
+            'testdrive' as master_lead_type,
+            vehicle_sale_profit * (testdrive_lead_conversion_probability + testdrive_lead_conversion_probability * high_quality_trade_in_probability * trade_with_testdrive_lead_probability) as value,
+            testdrive_lead_conversion_probability as conversion_rate
+        from 
+            autoverify.roi_arguments
+        where 
+            version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
+        union
+        SELECT 
+            version as version,
+            'spotlight' as master_lead_type,
+            vehicle_sale_profit * (spotlight_lead_conversion_probability + spotlight_lead_conversion_probability * high_quality_trade_in_probability * trade_with_spotlight_lead_probability) as value,
+            spotlight_lead_conversion_probability as conversion_rate
+        from 
+            autoverify.roi_arguments
+        where 
+            version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1);
+    ''',
+    '''
+        create materialized view if not exists public.m_estimated_revenue_quarterly as 
+        select 
+            a.master_business_id,
+            a.date,
+            sum(a.leads * coalesce(b.value,0)) as estimated_revenue
+        from 
+            (select 
+            master_business_id,
+            date_trunc('quarter',created_at) as date,
+            lead_content[1] as master_lead_type,
+            count(*) as leads
+        from 
+            autoverify.dashboard_lead_content
+        group by 1,2,3) a
+        left join autoverify.v_master_lead_type_estimated_value b on b.master_lead_type = a.master_lead_type
+        group by 1,2;
+        CREATE unique INDEX IF NOT EXISTS m_estimated_revenue_quarterly_unq_idx ON  public.m_estimated_revenue_quarterly (master_business_id,date);
+    ''',
+    '''
+        create materialized view if not exists public.m_estimated_revenue_yearly as 
+        select 
+            a.master_business_id,
+            a.date,
+            sum(a.leads * coalesce(b.value,0)) as estimated_revenue
+        from 
+            (select 
+            master_business_id,
+            date_trunc('year',created_at) as date,
+            lead_content[1] as master_lead_type,
+            count(*) as leads
+        from 
+            autoverify.dashboard_lead_content
+        group by 1,2,3) a
+        left join autoverify.v_master_lead_type_estimated_value b on b.master_lead_type = a.master_lead_type
+        group by 1,2;
+        CREATE unique INDEX IF NOT EXISTS m_estimated_revenue_yearly_unq_idx ON  public.m_estimated_revenue_yearly (master_business_id,date);
+    ''',
+    '''
+        create materialized view if not exists public.m_lifetime_estimated_revenue as 
+        select 
+            a.master_business_id,
+            sum(a.leads * coalesce(b.value,0)) as estimated_revenue
+        from 
+            (select 
+            master_business_id,
+            lead_content[1] as master_lead_type,
+            count(*) as leads
+        from 
+            autoverify.dashboard_lead_content
+        group by 1,2) a
+        left join autoverify.v_master_lead_type_estimated_value b on b.master_lead_type = a.master_lead_type
+        group by 1;
+        CREATE unique INDEX IF NOT EXISTS m_lifetime_estimated_revenue_unq_idx ON  public.m_lifetime_estimated_revenue (master_business_id);
+    ''',
+    '''
+        create materialized view if not exists public.m_estimated_vehicles_sold_monthly as 
+        select 
+            a.master_business_id,
+            a.date,
+            sum(a.leads * b.conversion_rate) as estimated_vehicles_sold
+        from
+        (
+            select 
+                master_business_id,
+                date_trunc('month',created_at) as date,
+                lead_content[1] as master_lead_type,
+                count(*) as leads
+            from 
+                autoverify.dashboard_lead_content
+            group by 1,2,3
+        ) a 
+        left join autoverify.v_master_lead_type_estimated_value b on b.master_lead_type = a.master_lead_type
+        group by 1,2;
+        CREATE unique INDEX IF NOT EXISTS m_estimated_vehicles_sold_monthly_unq_idx ON  public.m_estimated_vehicles_sold_monthly (master_business_id,date);
+    ''',
+    '''
+        create materialized view if not exists public.m_lifetime_estimated_vehicles_sold as 
+        select 
+            a.master_business_id,
+            sum(a.leads * b.conversion_rate) as estimated_vehicles_sold
+        from
+        (
+            select 
+                master_business_id,
+                lead_content[1] as master_lead_type,
+                count(*) as leads
+            from 
+                autoverify.dashboard_lead_content
+            group by 1,2
+        ) a 
+        left join autoverify.v_master_lead_type_estimated_value b on b.master_lead_type = a.master_lead_type
+        group by 1;
+        CREATE unique INDEX IF NOT EXISTS m_lifetime_estimated_vehicles_sold_unq_idx ON  public.m_lifetime_estimated_vehicles_sold (master_business_id);
     '''
 ]
 

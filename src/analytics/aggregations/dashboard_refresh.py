@@ -19,21 +19,29 @@ import utility
 schema = 'public'
 script = os.path.basename(__file__)[:-3]
 
-insert_query =  '''
-                    INSERT INTO 
-                        {0}.{1}
-                    SELECT 
-                        master_business_id,
-                        array_to_string(lead_content, '-'::text) AS mixed_lead_type,
-                        count(*) as leads
-                    FROM 
-                        autoverify.dashboard_lead_content
-                    GROUP BY 
-                        1,2
-                    ON CONFLICT (master_business_id,mixed_lead_type) 
-                    DO UPDATE
-                        SET leads = excluded.leads;
-                '''.format(schema,script)
+materialized_views = [
+    'm_estimated_revenue_quarterly',
+    'm_estimated_revenue_yearly',
+    'm_estimated_vehicles_sold_monthly',
+    'm_lifetime_estimated_revenue',
+    'm_lifetime_estimated_vehicles_sold',
+    'm_lifetime_master_leads',
+    'm_lifetime_master_leads_device',
+    'm_lifetime_mixed_leads',
+    'm_lifetime_mixed_leads_device',
+    'm_master_leads_daily',
+    'm_master_leads_daily_device',
+    'm_master_leads_monthly',
+    'm_master_leads_monthly_device',
+    'm_master_leads_weekly',
+    'm_master_leads_weekly_device',
+    'm_master_leads_yearly',
+    'm_master_leads_yearly_device',
+    'm_mixed_leads_monthly',
+    'm_mixed_leads_monthly_device',
+    'm_mixed_leads_yearly',
+    'm_mixed_leads_yearly_device'
+]
 while True:
     schedule_info = None
     scheduler_connection = postgreshandler.get_analytics_connection()
@@ -65,12 +73,14 @@ while True:
     postgres_etl_connection = postgreshandler.get_analytics_connection()
     try:
         with postgres_etl_connection.cursor() as cursor:
-            cursor.execute(insert_query)
+            for materialized_view in materialized_views:
+                query = '''refresh materialized view concurrently {0}.{1}'''.format(schema,materialized_view)
+                with postgres_etl_connection.cursor() as cursor:
+                    cursor.execute(query)
             postgres_etl_connection.commit()
-        status = 'success'
-        last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-        run_time = last_update - start_time
-
+            status = 'success'
+            last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+            run_time = last_update - start_time
     except Exception as e:
         status = str(e)
     finally:
