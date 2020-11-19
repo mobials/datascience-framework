@@ -124,4 +124,9 @@ def get_quarters_from(start_date,end_date):
         yield start_date
         start_date = add_months(start_date,3)
 
+def get_vin_pattern(vin):
+    if len(vin) != 17:
+        raise Exception('''Invalid VIN {0}'''.format(vin))
+    result = vin[0:8] + vin[9:11]
+    return result
 

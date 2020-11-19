@@ -696,74 +696,21 @@ queries = [
         (
             s3_id BIGINT references s3.scanned_files(id) ON DELETE CASCADE,
             id text,
-            dealer_id text,
+            dealer_id integer,
             vin text,
-            heading text,
             price double precision,
             miles double precision,
-            stock_no text,
-            year integer,
-            make text,
-            model text,
-            trim text,
-            vehicle_type text,
-            body_type text,
-            body_subtype text,
-            drivetrain text,
-            fuel_type text,
-            engine text,
-            engine_block text,
-            engine_size double precision,
-            engine_measure text,
-            engine_aspiration text,
-            transmission text,
-            speeds integer,
-            doors integer,
-            cylinders integer,
-            interior_color text,
-            exterior_color text,
             taxonomy_vin text,
             scraped_at timestamptz,
             status_date timestamptz,
-            source text,
-            domain_id bigint,
-            more_info text,
             zip text,
             latitude double precision,
             longitude double precision,
-            address text,
             city text,
-            city_state text,
-            city_state_zip text,
-            county text,
-            state text,
-            street text,
-            area text,
-            seller_type text,
-            seller_email text,
-            seller_phone text,
-            seller_name_orig text,
-            aws text,
-            photo_url text,
-            listing_type text,
-            seller_comments text,
-            options text,
-            features text,
-            photo_links text,
-            car_street text,
-            car_address text,
-            car_city text,
-            car_state text,
-            car_zip text,
-            is_certified integer,
-            currency_indicator text,
-            miles_indicator text,
-            trim_orig text,
-            trim_r text,
-            msrp double precision,
-            decoder_source text
+            state text
         );
         CREATE INDEX IF NOT EXISTS marketcheck_ca_s3_id_idx ON vendors.marketcheck_ca (s3_id);
+        CREATE INDEX IF NOT EXISTS marketcheck_ca_status_date_idx ON vendors.marketcheck_ca (status_date);
     ''',
     '''
         create or replace view zuora.v_account as
@@ -2448,6 +2395,37 @@ queries = [
         left join autoverify.v_master_lead_type_estimated_value b on b.master_lead_type = a.master_lead_type
         group by 1;
         CREATE unique INDEX IF NOT EXISTS m_lifetime_estimated_vehicles_sold_unq_idx ON  public.m_lifetime_estimated_vehicles_sold (master_business_id);
+    ''',
+    '''
+        create or replace view operations.v_alerts as 
+        select 
+            a.*,
+            now() - a.last_run as time_since_last_run,
+            case 
+                when now() - a.last_run > frequency 
+                then 1
+                else 0
+            end as is_overdue,
+            case 
+                when status is not null and status != 'success' 
+                then 1 
+                else 0 
+            end as bad_status
+        from 
+            operations.scheduler a;
+    ''',
+    '''
+        create table if not exists autoverify.spotlight_parameters
+        (
+            version integer not null,
+            spotlight text not null,
+            region text not null,
+            payload jsonb not null,
+            primary key (version,spotlight,region) 
+        );
+        insert into autoverify.spotlight_parameters values (1,'low mileage','CA','{"age":"90 days","vehicle_grouping":"make","minimum_milege":"500","minimum_vehicles":"100"}')
+        on conflict (version,spotlight,region) do update set payload = excluded.payload;
+
     '''
 ]
 
