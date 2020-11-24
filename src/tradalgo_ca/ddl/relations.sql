@@ -153,7 +153,8 @@ CREATE OR REPLACE VIEW v_vacuum_stats AS
 
 
 CREATE OR REPLACE VIEW v_dataone_t1 AS
-    SELECT a.vin_pattern,
+    SELECT
+        a.vin_pattern,
         a.year,
         a.make,
         a.model,

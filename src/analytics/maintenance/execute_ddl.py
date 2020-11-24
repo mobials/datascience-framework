@@ -2425,7 +2425,27 @@ queries = [
         );
         insert into autoverify.spotlight_parameters values (1,'low mileage','CA','{"age":"90 days","vehicle_grouping":"make","minimum_milege":"500","minimum_vehicles":"100"}')
         on conflict (version,spotlight,region) do update set payload = excluded.payload;
-
+    ''',
+    '''
+        create table if not exists operations.sessions
+        (
+            id BIGSERIAL NOT NULL,
+            schema text not null,
+            script text not null,
+	        payload jsonb NOT NULL,
+	        validated boolean default false,
+	        CONSTRAINT versions_pk PRIMARY KEY (id)
+        );
+    ''',
+    '''
+        create table if not exists autoverify.spotlight_low_mileage_ca
+        (
+            session_id bigint REFERENCES operations.sessions(id) ON DELETE CASCADE,
+            vin_pattern text not null,
+            region text not null,
+            mileage int not null,
+            CONSTRAINT session_id_vin_pattern_region_pk PRIMARY KEY (session_id,vin_pattern,region)
+        );
     '''
 ]
 

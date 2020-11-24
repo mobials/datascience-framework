@@ -328,5 +328,36 @@ def get_min_value(connection,schema,table,column):
         if result is not None and result[0] is not None:
             return result[0]
 
+def create_session(connection,schema,script,payload):
+    query = '''
+                INSERT INTO
+                    operations.sessions
+                (
+                    schema,
+                    script,
+                    payload
+                )
+                VALUES
+                (
+                    %(schema)s,
+                    %(script)s,
+                    %(payload)s
+                )
+                RETURNING 
+                    id
+            '''.format(schema)
+    _payload = psycopg2.extras.Json(payload)
+    with connection.cursor() as cursor:
+        cursor.execute(query, {
+                                'schema':schema,
+                                'script':script,
+                                'payload':_payload
+        })
+        result = cursor.fetchone()
+        if result is not None and result[0] is not None:
+            result = result[0]
+            return result
+
+
 
 

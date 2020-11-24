@@ -130,7 +130,6 @@ while True:
                     except:
                         continue
 
-
                     vin = None if info['vin_ss'] == '' else info['vin_ss']
                     if vin is None:
                         continue
@@ -138,8 +137,10 @@ while True:
                     taxonomy_vin = None if info['taxonomy_vin_ss'] == '' else info['taxonomy_vin_ss']
                     if taxonomy_vin is None:
                         continue
-
-                    if utility.get_vin_pattern(vin) != taxonomy_vin:
+                    try:
+                        if utility.get_vin_pattern(vin) != taxonomy_vin:
+                            continue
+                    except:
                         continue
 
                     scraped_at = None if info['scraped_at_dts'] == '' else datetime.datetime.strptime(info['scraped_at_dts'], "%Y-%m-%dT%H:%M:%SZ")
@@ -206,6 +207,6 @@ while True:
 
     #update the scheduler
     scheduler_connection = postgreshandler.get_analytics_connection()
-    postgreshandler.update_script_schedule(scheduler_connection, script, now, status, run_time, last_update)
+    postgreshandler.update_script_schedule(scheduler_connection,schema,script,now,status,run_time,last_update)
     scheduler_connection.commit()
     scheduler_connection.close()
