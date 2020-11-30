@@ -1,8 +1,8 @@
-numpy==1.17.4
-psycopg2-binary==2.8.2
-boto3==1.12.20
-python-dotenv==0.10.5
-scikit-learn==0.20.3
-pandas==0.24.2
-matplotlib==3.0.3
-mysql-connector-python==8.0.21
+numpy==1.19.4
+psycopg2-binary==2.8.6
+boto3==1.16.25
+python-dotenv==0.15.0
+scikit-learn==0.23.2
+pandas==1.1.4
+mysql-connector-python==8.0.22
+pytz==2020.4

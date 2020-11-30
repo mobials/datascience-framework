@@ -2,7 +2,6 @@ import pathlib
 import sys
 import dotenv
 import os
-import psycopg2
 
 dotenv.load_dotenv()
 

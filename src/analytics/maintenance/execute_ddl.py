@@ -1,13 +1,13 @@
 import sys
 sys.path.insert(0,'../..')
 import boto3
-import src.settings
 import io
-import postgreshandler
 import json
 import os
 import datetime
 import psycopg2
+import src.settings
+import postgreshandler
 
 queries = [
     '''
@@ -62,189 +62,195 @@ queries = [
         );
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','mpm_leads','2020-07-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','mpm_integration_settings','2020-07-01','15 minute')
-         ON CONFLICT ON CONSTRAINT scheduler_pk 
-         DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','tradesii_businesses','2020-07-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','tradesii_leads','2020-07-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','tradesii_business_profiles','2020-07-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','sda_master_businesses','2020-07-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','credsii_leads','2020-07-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','credsii_reports','2020-07-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','credsii_businesses','2020-07-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','credsii_business_profiles','2020-07-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('s3','avr_widget_impressions','2020-01-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('s3','avr_button_widget_was_rendered','2020-01-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('s3','integrations_widget_was_rendered','2020-08-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('public','avr_unique_impressions_ip_daily','2020-01-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('public','avr_unique_impressions_ip_weekly','2020-01-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('s3','integrations_button_widget_was_rendered','2020-08-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','insuresii_leads','2020-08-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','insuresii_quotes','2020-08-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','insuresii_business_profiles','2020-08-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','insuresii_businesses','2020-08-01','15 minute') 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','mpm_leads','2020-07-01','15 minute')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('public','avr_unique_impressions_ip_monthly','2020-01-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','mpm_integration_settings','2020-07-01','15 minute')
+         ON CONFLICT ON CONSTRAINT scheduler_pk
+         DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','tradesii_businesses','2020-07-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('public','avr_unique_impressions_ip_quarterly','2020-01-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','tradesii_leads','2020-07-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('zuora','zuora','2020-01-01','3 hour') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','tradesii_business_profiles','2020-07-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('s3','authenticom_sales_data','2020-01-01','3 hour') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','sda_master_businesses','2020-07-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','accident_check_reports','2020-01-01','15 minute') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','credsii_leads','2020-07-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','m_mpm_lead_details','2020-01-01','3 hour') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','credsii_reports','2020-07-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('vendors','dataone','2020-01-01','1 day') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','credsii_businesses','2020-07-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('vendors','marketcheck_ca','2020-01-01','1 day') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','credsii_business_profiles','2020-07-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','dashboard_lead_content','2020-01-01 00:30:00','3 hours') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('s3','avr_widget_impressions','2020-01-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('autoverify','mpm_lead_details','2020-01-01','3 hour') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('s3','avr_button_widget_was_rendered','2020-01-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency) 
-        VALUES ('public','dashboard_refresh','2020-01-01 00:06:00','6 hours') 
-        ON CONFLICT ON CONSTRAINT scheduler_pk 
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('s3','integrations_widget_was_rendered','2020-08-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('public','avr_unique_impressions_ip_daily','2020-01-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('public','avr_unique_impressions_ip_weekly','2020-01-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('s3','integrations_button_widget_was_rendered','2020-08-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','insuresii_leads','2020-08-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','insuresii_quotes','2020-08-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','insuresii_business_profiles','2020-08-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','insuresii_businesses','2020-08-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('public','avr_unique_impressions_ip_monthly','2020-01-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('public','avr_unique_impressions_ip_quarterly','2020-01-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('zuora','zuora','2020-01-01','3 hour')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('s3','authenticom_sales_data','2020-01-01','3 hour')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','accident_check_reports','2020-01-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','m_mpm_lead_details','2020-01-01','3 hour')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('vendors','dataone','2020-01-01','1 day')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('vendors','marketcheck_ca','2020-01-01','1 day')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('vendors','marketcheck_us','2020-01-01','1 day')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','dashboard_lead_content','2020-01-01 00:30:00','3 hours')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','mpm_lead_details','2020-01-01','3 hour')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('public','dashboard_refresh','2020-01-01 00:06:00','6 hours')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     '''
     '''
@@ -255,10 +261,12 @@ queries = [
             updated_at timestamptz not null,
             payload jsonb not null
         );
-        ALTER TABLE autoverify.mpm_leads 
+        ALTER TABLE autoverify.mpm_leads
         SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
-        CREATE INDEX IF NOT EXISTS mpm_leads_created_at_idx 
-        ON autoverify.mpm_leads (created_at); 
+        CREATE INDEX IF NOT EXISTS mpm_leads_created_at_idx
+        ON autoverify.mpm_leads (created_at);
+        CREATE INDEX IF NOT EXISTS mpm_leads_updated_at_idx
+        ON autoverify.mpm_leads (updated_at);
     ''',
     '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_integration_settings
@@ -276,7 +284,7 @@ queries = [
             created_at timestamptz not null,
             payload jsonb not null
         );
-        ALTER TABLE autoverify.tradesii_leads 
+        ALTER TABLE autoverify.tradesii_leads
         SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
     ''',
     '''
@@ -314,7 +322,7 @@ queries = [
             updated_at timestamptz not null,
             payload jsonb not null
         );
-        ALTER TABLE autoverify.credsii_leads 
+        ALTER TABLE autoverify.credsii_leads
         SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
     ''',
     '''
@@ -325,7 +333,7 @@ queries = [
             updated_at timestamptz not null,
             payload jsonb not null
         );
-        ALTER TABLE autoverify.credsii_reports 
+        ALTER TABLE autoverify.credsii_reports
         SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
     ''',
     '''
@@ -347,7 +355,7 @@ queries = [
         );
     ''',
     '''
-        CREATE TABLE IF NOT EXISTS s3.scanned_files 
+        CREATE TABLE IF NOT EXISTS s3.scanned_files
         (
             id bigserial,
             file text NOT NULL,
@@ -366,9 +374,9 @@ queries = [
             happened_at timestamptz,
             payload jsonb
         );
-        CREATE INDEX IF NOT EXISTS avr_widget_impressions_s3_id_idx 
+        CREATE INDEX IF NOT EXISTS avr_widget_impressions_s3_id_idx
         ON s3.avr_widget_impressions (s3_id);
-        CREATE INDEX IF NOT EXISTS avr_widget_impressions_idx 
+        CREATE INDEX IF NOT EXISTS avr_widget_impressions_idx
         ON s3.avr_widget_impressions (happened_at);
     ''',
     '''
@@ -379,9 +387,9 @@ queries = [
             happened_at timestamptz,
             payload jsonb
         );
-        CREATE INDEX IF NOT EXISTS avr_button_widget_was_rendered_s3_id_idx 
+        CREATE INDEX IF NOT EXISTS avr_button_widget_was_rendered_s3_id_idx
         ON s3.avr_button_widget_was_rendered (s3_id);
-        CREATE INDEX IF NOT EXISTS avr_button_widget_was_rendered_idx 
+        CREATE INDEX IF NOT EXISTS avr_button_widget_was_rendered_idx
         ON s3.avr_button_widget_was_rendered (happened_at);
     ''',
     '''
@@ -392,9 +400,9 @@ queries = [
             happened_at timestamptz not null,
             payload jsonb not null
         );
-        CREATE INDEX IF NOT EXISTS integrations_widget_was_rendered_s3_id_idx 
+        CREATE INDEX IF NOT EXISTS integrations_widget_was_rendered_s3_id_idx
         ON s3.integrations_widget_was_rendered (s3_id);
-        CREATE INDEX IF NOT EXISTS integrations_widget_was_rendered_date_idx 
+        CREATE INDEX IF NOT EXISTS integrations_widget_was_rendered_date_idx
         ON s3.integrations_widget_was_rendered (happened_at);
     ''',
     '''
@@ -405,9 +413,9 @@ queries = [
             happened_at timestamptz not null,
             payload jsonb not null
         );
-        CREATE INDEX IF NOT EXISTS integrations_button_widget_was_rendered_s3_id_idx 
+        CREATE INDEX IF NOT EXISTS integrations_button_widget_was_rendered_s3_id_idx
         ON s3.integrations_button_widget_was_rendered (s3_id);
-        CREATE INDEX IF NOT EXISTS integrations_button_widget_was_rendered_date_idx 
+        CREATE INDEX IF NOT EXISTS integrations_button_widget_was_rendered_date_idx
         ON s3.integrations_button_widget_was_rendered (happened_at);
     ''',
     '''
@@ -418,7 +426,7 @@ queries = [
             impressions int8,
             constraint avr_unique_impressions_ip_daily_pk primary key (master_business_id,date)
         );
-        CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_daily_date_idx 
+        CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_daily_date_idx
         ON avr_unique_impressions_ip_daily(date);
     ''',
     '''
@@ -429,7 +437,7 @@ queries = [
             impressions int8,
             constraint avr_unique_impressions_ip_weekly_pk primary key (master_business_id,date)
         );
-        CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_weekly_date_idx 
+        CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_weekly_date_idx
         ON avr_unique_impressions_ip_weekly(date);
     ''',
     '''
@@ -440,7 +448,7 @@ queries = [
             impressions int8,
             constraint avr_unique_impressions_ip_monthly_pk primary key (master_business_id,date)
         );
-        CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_monthly_date_idx 
+        CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_monthly_date_idx
         ON avr_unique_impressions_ip_monthly(date);
     ''',
     '''
@@ -451,7 +459,7 @@ queries = [
             impressions int8,
             constraint avr_unique_impressions_ip_quarterly_pk primary key (master_business_id,date)
         );
-        CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_quarterly_date_idx 
+        CREATE INDEX IF NOT EXISTS avr_unique_impressions_ip_quarterly_date_idx
         ON avr_unique_impressions_ip_quarterly(date);
     ''',
     '''
@@ -462,7 +470,7 @@ queries = [
             updated_at timestamptz not null,
             payload jsonb not null
         );
-        ALTER TABLE autoverify.insuresii_leads 
+        ALTER TABLE autoverify.insuresii_leads
         SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
     ''',
     '''
@@ -473,7 +481,7 @@ queries = [
             updated_at timestamptz not null,
             payload jsonb not null
         );
-        ALTER TABLE autoverify.insuresii_quotes 
+        ALTER TABLE autoverify.insuresii_quotes
         SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
     ''',
     '''
@@ -512,9 +520,9 @@ queries = [
             pg_size_pretty(a.index_bytes) AS index,
             pg_size_pretty(a.toast_bytes) AS toast,
             pg_size_pretty(a.table_bytes) AS "table"
-        FROM 
-        ( 
-            SELECT 
+        FROM
+        (
+            SELECT
                 a_1.oid,
                 a_1.table_schema,
                 a_1.table_name,
@@ -523,9 +531,9 @@ queries = [
                 a_1.index_bytes,
                 a_1.toast_bytes,
                 a_1.total_bytes - a_1.index_bytes - COALESCE(a_1.toast_bytes, 0::bigint) AS table_bytes
-            FROM 
-            ( 
-                SELECT 
+            FROM
+            (
+                SELECT
                     c.oid,
                     n.nspname AS table_schema,
                     c.relname AS table_name,
@@ -533,9 +541,9 @@ queries = [
                     pg_total_relation_size(c.oid::regclass) AS total_bytes,
                     pg_indexes_size(c.oid::regclass) AS index_bytes,
                     pg_total_relation_size(c.reltoastrelid::regclass) AS toast_bytes
-                FROM 
+                FROM
                     pg_class c
-                 LEFT JOIN pg_namespace n 
+                 LEFT JOIN pg_namespace n
                  ON n.oid = c.relnamespace
                   WHERE c.relkind = 'r'::"char"
             ) a_1
@@ -682,7 +690,7 @@ queries = [
         );
     ''',
     '''
-        CREATE TABLE IF NOT EXISTS vendors.dataone 
+        CREATE TABLE IF NOT EXISTS vendors.dataone
         (
             s3_id BIGINT references s3.scanned_files(id) ON DELETE CASCADE,
             vin_pattern TEXT NOT NULL,
@@ -692,7 +700,7 @@ queries = [
         );
     ''',
     '''
-        CREATE TABLE IF NOT EXISTS vendors.marketcheck_ca 
+        CREATE TABLE IF NOT EXISTS vendors.marketcheck_ca
         (
             s3_id BIGINT references s3.scanned_files(id) ON DELETE CASCADE,
             id text,
@@ -711,6 +719,27 @@ queries = [
         );
         CREATE INDEX IF NOT EXISTS marketcheck_ca_s3_id_idx ON vendors.marketcheck_ca (s3_id);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_status_date_idx ON vendors.marketcheck_ca (status_date);
+    ''',
+'''
+        CREATE TABLE IF NOT EXISTS vendors.marketcheck_us
+        (
+            s3_id BIGINT references s3.scanned_files(id) ON DELETE CASCADE,
+            id text,
+            dealer_id integer,
+            vin text,
+            price double precision,
+            miles double precision,
+            taxonomy_vin text,
+            scraped_at timestamptz,
+            status_date timestamptz,
+            zip text,
+            latitude double precision,
+            longitude double precision,
+            city text,
+            state text
+        );
+        CREATE INDEX IF NOT EXISTS marketcheck_us_s3_id_idx ON vendors.marketcheck_us (s3_id);
+        CREATE INDEX IF NOT EXISTS marketcheck_us_status_date_idx ON vendors.marketcheck_us (status_date);
     ''',
     '''
         create or replace view zuora.v_account as
@@ -1033,56 +1062,56 @@ queries = [
             AS $function$
             declare
                     result text[];
-                begin 
-                    if 
+                begin
+                    if
                         is_credit_finance = 1
-                    then 
+                    then
                         result := array_append(result,'finance');
                     end if;
-                
+
                     if
                         is_credit_finance = 0 and (is_credit_verified = 1 or is_credit_partial = 1)
-                    then 
+                    then
                         result := array_append(result,'credit');
                     end if;
-                
-                    if 
+
+                    if
                         is_test_drive = 1
-                    then 
+                    then
                         result := array_append(result,'testdrive');
                     end if;
-                
-                    if 
+
+                    if
                         is_trade = 1
-                    then 
+                    then
                         result := array_append(result,'trade');
                     end if;
-                
-                    if 
+
+                    if
                         is_insurance = 1
-                    then 
+                    then
                         result := array_append(result,'insurance');
-                    end if; 
-                
-                    if 
+                    end if;
+
+                    if
                         is_ecom = 1
-                    then 
+                    then
                         result := array_append(result,'payments');
                     end if;
-            
-                    if 
+
+                    if
                         result is null
-                    then 
+                    then
                         result := array_append(result,'unclassified');
                     end if;
-                
+
                 return result;
             end;
             $function$;
     ''',
     '''
-        create or replace view zuora.v_order as 
-        select 
+        create or replace view zuora.v_order as
+        select
             id,
             updateddate,
             case when payload->>'Order.OrderDate' = '' then null else (payload->>'Order.OrderDate')::timestamp at time zone 'America/Toronto' end as orderdate,
@@ -1093,12 +1122,12 @@ queries = [
             case when payload->>'Order.OrderNumber' = '' then null else payload->>'Order.OrderNumber' end as ordernumber,
             case when payload->>'Order.UpdatedById' = '' then null else payload->>'Order.UpdatedById' end as updatedbyid,
             case when payload->>'Account.Id' = '' then null else payload->>'Account.Id' end as accountid
-        from 
+        from
             zuora.order;
     ''',
     '''
-        create or replace view zuora.v_contact as 
-        select 
+        create or replace view zuora.v_contact as
+        select
             id,
             updateddate,
             case when payload->>'Contact.Fax' = '' then null else (payload->>'Contact.Fax')::text end as fax,
@@ -1126,7 +1155,7 @@ queries = [
             case when payload->>'Contact.UpdatedById' = '' then null else (payload->>'Contact.UpdatedById')::text end as updatedbyid,
             case when payload->>'Contact.PersonalEmail' = '' then null else (payload->>'Contact.PersonalEmail')::text end as personalemail,
             case when payload->>'Contact.OtherPhoneType' = '' then null else (payload->>'Contact.OtherPhoneType')::text end as otherphonetype
-        from 
+        from
             zuora.contact;
     ''',
     '''
@@ -1144,67 +1173,67 @@ queries = [
         );
     ''',
     '''
-        create or replace view autoverify.v_mpm_lead_content as 
-        select 
+        create or replace view autoverify.v_mpm_lead_content as
+        select
             a.id,
             (b.payload->>'master_business_id')::uuid as master_business_id,
             a.created_at,
             a.payload->>'device' as device,
             autoverify.lead_content((a.payload->>'is_insurance')::int, (a.payload->>'is_trade')::int, (a.payload->>'is_credit_partial')::int, (a.payload->>'is_credit_verified')::int, (a.payload->>'is_credit_finance')::int, (a.payload->>'is_ecom')::int, (a.payload->>'is_test_drive')::int)
-        from 
+        from
             autoverify.mpm_leads a
         left join autoverify.mpm_integration_settings b on b.id = (a.payload->>'integration_settings_id')::uuid;
     ''',
     '''
-        create or replace view autoverify.v_active_master_businesses as 
-        select 
+        create or replace view autoverify.v_active_master_businesses as
+        select
             distinct((payload->>'master_business_id')::uuid) as master_business_id
-        from 
-            autoverify.mpm_integration_settings 
-        where 
+        from
+            autoverify.mpm_integration_settings
+        where
             payload->>'status' = 'active';
     ''',
     '''
-        create or replace view autoverify.v_mpm_integration_settings as 
-        select 
+        create or replace view autoverify.v_mpm_integration_settings as
+        select
             id,
             (payload->>'master_business_id')::uuid as master_business_id,
             payload->>'status' as status
-        from 
+        from
             autoverify.mpm_integration_settings;
     ''',
     '''
-        create or replace view redash.v_avr_trade_leads_only as 
-        with lc as 
+        create or replace view redash.v_avr_trade_leads_only as
+        with lc as
         (
             select distinct on (master_business_id,lead_content)
             master_business_id,
             created_at,
             lead_content
-            from autoverify.v_mpm_lead_content 
+            from autoverify.v_mpm_lead_content
             where master_business_id in (select master_business_id from autoverify.v_active_master_businesses)
             order by master_business_id,lead_content, created_at desc
         )
-        select 
+        select
             name,
-            website_url, 
+            website_url,
             master_business_id,
             crm_id,
             subscriptions,
-            last_trade_lead 
-        from 
+            last_trade_lead
+        from
         (
-        select 
+        select
             a.*,
-            (case when a.last_credit_lead is not null then 1 else 0 end + 
-            case when a.last_trade_lead is not null then 1 else 0 end + 
+            (case when a.last_credit_lead is not null then 1 else 0 end +
+            case when a.last_trade_lead is not null then 1 else 0 end +
             case when a.last_testdrive_lead is not null then 1 else 0 end +
             case when a.last_insurance_lead is not null then 1 else 0 end +
             case when a.last_payments_lead is not null then 1 else 0 end)
             as lead_types
-        from 
+        from
         (
-        select 
+        select
             a.name,
             a.website_url,
             a.id as master_business_id,
@@ -1216,54 +1245,54 @@ queries = [
             max(f.created_at) as last_insurance_lead,
             max(g.created_at) as last_payments_lead,
             json_array_length(a.subscriptions::json) as subscriptions_count
-        from 
-            autoverify.v_sda_master_businesses a 
+        from
+            autoverify.v_sda_master_businesses a
         left join lc c on c.master_business_id = a.id and ('credit' = ANY(c.lead_content) or 'finance' = ANY(c.lead_content))
         left join lc d on d.master_business_id = a.id and 'trade' = ANY(d.lead_content)
         left join lc e on e.master_business_id = a.id and 'testdrive' = ANY(e.lead_content)
         left join lc f on f.master_business_id = a.id and 'insurance' = ANY(f.lead_content)
         left join lc g on g.master_business_id = a.id and 'payments' = ANY(g.lead_content)
-        where 
+        where
             a.id in (select master_business_id from autoverify.v_active_master_businesses)
-        and 
+        and
             a.subscriptions like '%avr%'
         group by 1,2,3,4,5,11
-        ) a 
-        ) a 
+        ) a
+        ) a
         where last_trade_lead is not null and lead_types = 1;
     ''',
     '''
-        create or replace view redash.v_avr_credit_leads_only as 
-        with lc as 
+        create or replace view redash.v_avr_credit_leads_only as
+        with lc as
         (
             select distinct on (master_business_id,lead_content)
             master_business_id,
             created_at,
             lead_content
-            from autoverify.v_mpm_lead_content 
+            from autoverify.v_mpm_lead_content
             where master_business_id in (select master_business_id from autoverify.v_active_master_businesses)
             order by master_business_id,lead_content, created_at desc
         )
-        select 
+        select
             name,
-            website_url, 
+            website_url,
             master_business_id,
             crm_id,
             subscriptions,
-            last_credit_lead 
-        from 
+            last_credit_lead
+        from
         (
-        select 
+        select
             a.*,
-            (case when a.last_credit_lead is not null then 1 else 0 end + 
-            case when a.last_trade_lead is not null then 1 else 0 end + 
+            (case when a.last_credit_lead is not null then 1 else 0 end +
+            case when a.last_trade_lead is not null then 1 else 0 end +
             case when a.last_testdrive_lead is not null then 1 else 0 end +
             case when a.last_insurance_lead is not null then 1 else 0 end +
             case when a.last_payments_lead is not null then 1 else 0 end)
             as lead_types
-        from 
+        from
         (
-        select 
+        select
             a.name,
             a.website_url,
             a.id as master_business_id,
@@ -1275,26 +1304,26 @@ queries = [
             max(f.created_at) as last_insurance_lead,
             max(g.created_at) as last_payments_lead,
             json_array_length(a.subscriptions::json) as subscriptions_count
-        from 
-            autoverify.v_sda_master_businesses a 
+        from
+            autoverify.v_sda_master_businesses a
         left join lc c on c.master_business_id = a.id and ('credit' = ANY(c.lead_content) or 'finance' = ANY(c.lead_content))
         left join lc d on d.master_business_id = a.id and 'trade' = ANY(d.lead_content)
         left join lc e on e.master_business_id = a.id and 'testdrive' = ANY(e.lead_content)
         left join lc f on f.master_business_id = a.id and 'insurance' = ANY(f.lead_content)
         left join lc g on g.master_business_id = a.id and 'payments' = ANY(g.lead_content)
-        where 
+        where
             a.id in (select master_business_id from autoverify.v_active_master_businesses)
-        and 
+        and
             a.subscriptions like '%avr%'
         group by 1,2,3,4,5,11
-        ) a 
-        ) a 
+        ) a
+        ) a
         where last_credit_lead is not null and lead_types = 1;
     ''',
     '''
-        create or replace view autoverify.v_mpm_leads as 
-        select 
-            id, 
+        create or replace view autoverify.v_mpm_leads as
+        select
+            id,
             case when payload->>'status' = '' then null else payload->>'status' end as status,
             created_at,
             updated_at,
@@ -1311,26 +1340,26 @@ queries = [
             case when payload->>'customer_postal_code' = '' then null else translate(payload->>'customer_postal_code',' ','') end as customer_postal_code,
             case when payload->>'customer_country' = '' then null else payload->>'customer_country' end as customer_country,
             case when payload->>'customer_province' = '' then null else payload->>'customer_province' end as customer_province,
-            case when payload->>'trade_high_value' = '' then null else (payload->>'trade_high_value')::double precision/100 end as trade_high_value, 
-            case when payload->>'trade_low_value' = '' then null else (payload->>'trade_low_value')::double precision/100 end as trade_low_value, 
+            case when payload->>'trade_high_value' = '' then null else (payload->>'trade_high_value')::double precision/100 end as trade_high_value,
+            case when payload->>'trade_low_value' = '' then null else (payload->>'trade_low_value')::double precision/100 end as trade_low_value,
             case when payload->>'trade_deductions' = '' then null else payload->>'trade_deductions' end as trade_deductions,
             case when payload->>'trade_customer_referral_url' = '' then null else payload->>'trade_customer_referral_url' end as trade_customer_referral_url,
             case when payload->>'trade_vehicle_year' = '' then null else (payload->>'trade_vehicle_year')::int end as trade_vehicle_year,
-            case when payload->>'trade_vehicle_make' = '' then null else payload->>'trade_vehicle_make' end as trade_vehicle_make, 
+            case when payload->>'trade_vehicle_make' = '' then null else payload->>'trade_vehicle_make' end as trade_vehicle_make,
             case when payload->>'trade_vehicle_model' = '' then null else payload->>'trade_vehicle_model' end as trade_vehicle_model,
             case when payload->>'trade_vehicle_style' = '' then null else payload->>'trade_vehicle_style' end as trade_vehicle_style,
             case when payload->>'trade_vehicle_trim' = '' then null else payload->>'trade_vehicle_trim' end as trade_vehicle_trim,
             case when payload->>'trade_vehicle_mileage' = '' then null else (payload->>'trade_vehicle_mileage')::double precision end as trade_vehicle_mileage,
-            case when payload->>'trade_vehicle_vin' = '' then null else payload->>'trade_vehicle_vin' end as trade_vehicle_vin, 
-            case when payload->>'insurance_quote_id' = '' then null else (payload->>'insurance_quote_id')::uuid end as insurance_quote_id, 
-            case when payload->>'insurance_referrer_url' = '' then null else payload->>'insurance_referrer_url' end as insurance_referrer_url, 
-            case when payload->>'insurance_quote_payload' = '' then null else (payload->>'insurance_quote_payload')::json end as insurance_quote_payload, 
-            case when payload->>'insurance_purchase_price' = '' then null else (payload->>'insurance_purchase_price')::double precision/100 end as insurance_purchase_price, 
-            case when payload->>'insurance_vehicle_year' = '' then null else (payload->>'insurance_vehicle_year')::int end as insurance_vehicle_year, 
-            case when payload->>'insurance_vehicle_make' = '' then null else payload->>'insurance_vehicle_make' end as insurance_vehicle_make, 
-            case when payload->>'insurance_vehicle_model' = '' then null else payload->>'insurance_vehicle_model' end as insurance_vehicle_model, 
-            case when payload->>'insurance_vehicle_trim' = '' then null else payload->>'insurance_vehicle_trim' end as insurance_vehicle_trim, 
-            case when payload->>'insurance_vehicle_style' = '' then null else payload->>'insurance_vehicle_style' end as insurance_vehicle_style, 
+            case when payload->>'trade_vehicle_vin' = '' then null else payload->>'trade_vehicle_vin' end as trade_vehicle_vin,
+            case when payload->>'insurance_quote_id' = '' then null else (payload->>'insurance_quote_id')::uuid end as insurance_quote_id,
+            case when payload->>'insurance_referrer_url' = '' then null else payload->>'insurance_referrer_url' end as insurance_referrer_url,
+            case when payload->>'insurance_quote_payload' = '' then null else (payload->>'insurance_quote_payload')::json end as insurance_quote_payload,
+            case when payload->>'insurance_purchase_price' = '' then null else (payload->>'insurance_purchase_price')::double precision/100 end as insurance_purchase_price,
+            case when payload->>'insurance_vehicle_year' = '' then null else (payload->>'insurance_vehicle_year')::int end as insurance_vehicle_year,
+            case when payload->>'insurance_vehicle_make' = '' then null else payload->>'insurance_vehicle_make' end as insurance_vehicle_make,
+            case when payload->>'insurance_vehicle_model' = '' then null else payload->>'insurance_vehicle_model' end as insurance_vehicle_model,
+            case when payload->>'insurance_vehicle_trim' = '' then null else payload->>'insurance_vehicle_trim' end as insurance_vehicle_trim,
+            case when payload->>'insurance_vehicle_style' = '' then null else payload->>'insurance_vehicle_style' end as insurance_vehicle_style,
             case when payload->>'insurance_vehicle_mileage' = '' then null else (payload->>'insurance_vehicle_mileage')::double precision end as insurance_vehicle_mileage,
             case when payload->>'insurance_vehicle_vin' = '' then null else payload->>'insurance_vehicle_vin' end as insurance_vehicle_vin,
             case when payload->>'customer_birthdate' = '' then null else to_timestamp(payload->>'customer_birthdate','YYYY-MM-DD HH24:MI:SS') end as customer_birthdate,
@@ -1388,7 +1417,7 @@ queries = [
             case when payload->>'is_test_drive' = '' then null else (payload->>'is_test_drive')::int end as is_test_drive,
             case when payload->>'subType' = '' then null else (payload->>'subType')::text end as sub_type,
             case when payload->>'is_accident_check' = '' then null else (payload->>'is_accident_check')::int end as is_accident_check
-        FROM 
+        FROM
             autoverify.mpm_leads;
     ''',
     '''
@@ -1397,12 +1426,12 @@ queries = [
             s3_id bigint REFERENCES s3.scanned_files(id) ON DELETE CASCADE,
             payload jsonb
         );
-        CREATE INDEX IF NOT EXISTS authenticom_sales_data_s3_id_idx 
+        CREATE INDEX IF NOT EXISTS authenticom_sales_data_s3_id_idx
         ON s3.authenticom_sales_data (s3_id);
     ''',
     '''
-        create or replace view s3.v_authenticom_sales_data as 
-        select 
+        create or replace view s3.v_authenticom_sales_data as
+        select
             case when payload->>'Cost' = '' then null else (payload->>'Cost')::double precision end as cost,
             case when payload->>'MSRP' = '' then null else (payload->>'MSRP')::double precision end as msrp,
             case when payload->>'Term' = '' then null else (payload->>'Term')::integer end as term,
@@ -1447,10 +1476,10 @@ queries = [
             case when payload->>'AccountingDate' = '' then null else to_timestamp(payload->>'AccountingDate','MM/DD/YYYY') end as AccountingDate,
             case when payload->>'AmountFinanced' = '' then null else (payload->>'AmountFinanced')::double precision end as AmountFinanced,
             case when payload->>'CoBuyerAddress' = '' then null else (payload->>'CoBuyerAddress') end as CoBuyerAddress,
-            case 
-                when payload->>'ClientDealerID' = '' then null 
+            case
+                when payload->>'ClientDealerID' = '' then null
                 when payload->>'ClientDealerID' = 'd6a8da09-ed94-4828-8ba4-4b35e99c4ab0' then 'bfd98837-6f44-46c2-a465-4425b5a4c67a'
-                else (payload->>'ClientDealerID') 
+                else (payload->>'ClientDealerID')
             end as ClientDealerID,
             case when payload->>'CoBuyerCountry' = '' then null else (payload->>'CoBuyerCountry') end as CoBuyerCountry,
             case when payload->>'CoBuyerCustNum' = '' then null else (payload->>'CoBuyerCustNum') end as CoBuyerCustNum,
@@ -1482,13 +1511,13 @@ queries = [
             case when payload->>'CustomerFirstName' = '' then null else (payload->>'CustomerFirstName') end as CustomerFirstName,
             case when payload->>'CustomerHomePhone' = '' then null else (payload->>'CustomerHomePhone') end as CustomerHomePhone,
             case when payload->>'CustomerWorkPhone' = '' then null else (payload->>'CustomerWorkPhone') end as CustomerWorkPhone
-        from 
+        from
             s3.authenticom_sales_data;
     ''',
     '''
-        create or replace view autoverify.v_accident_check_reports as 
-        select 
-            id, 
+        create or replace view autoverify.v_accident_check_reports as
+        select
+            id,
             created_at,
             case when payload->>'vin' = '' then null else payload->>'vin' end as vin,
             case when payload->>'status' = '' then null else payload->>'status' end as status,
@@ -1502,24 +1531,24 @@ queries = [
             case when payload->>'master_business_id' = '' then null else (payload->>'master_business_id') end as master_business_id,
             case when payload->>'accident_damage_level' = '' then null else payload->>'accident_damage_level' end as accident_damage_level,
             case when payload->>'accident_repair_amount' = '' then null else (payload->>'accident_repair_amount')::integer end as accident_repair_amount
-        from 
+        from
             autoverify.accident_check_reports;
     ''',
     '''
-        create materialized view if not exists autoverify.m_mpm_lead_details as 
-        select 
+        create materialized view if not exists autoverify.m_mpm_lead_details as
+        select
             c.id as master_business_id,
             a.*,
             autoverify.lead_content(a.is_insurance, a.is_trade, a.is_credit_partial, a.is_credit_verified, a.is_credit_finance, a.is_ecom, a.is_test_drive) as lead_content
-        from 
+        from
             autoverify.v_mpm_leads a
-        left join autoverify.v_mpm_integration_settings  b on b.id = a.integration_settings_id 
+        left join autoverify.v_mpm_integration_settings  b on b.id = a.integration_settings_id
         left join autoverify.sda_master_businesses c on c.id = b.master_business_id;
         CREATE UNIQUE INDEX IF NOT EXISTS m_mpm_lead_details_id_idx ON autoverify.m_mpm_lead_details (id);
     ''',
     '''
-        create or replace view autoverify.v_tradesii_leads as 
-        select 
+        create or replace view autoverify.v_tradesii_leads as
+        select
             id,
             created_at,
             case when payload->>'type' = '' then null else (payload->>'type')::int end as type,
@@ -1536,18 +1565,18 @@ queries = [
             case when payload->>'vehicle_prices' = '' then null else replace(payload->>'vehicle_prices','"\','')::json end as vehicle_prices,
             case when payload->>'vehicle_mileage' = '' then null else (payload->>'vehicle_mileage')::double precision end as vehicle_mileage,
             case when payload->>'tradesii_report_id' = '' then null else (payload->>'tradesii_report_id')::uuid end as tradesii_report_id,
-            case when payload->>'vehicle_deductions' = '' then null else replace(payload->>'vehicle_deductions','"\','')::json end as vehicle_deductions,	
+            case when payload->>'vehicle_deductions' = '' then null else replace(payload->>'vehicle_deductions','"\','')::json end as vehicle_deductions,
             case when payload->>'customer_postal_code' = '' then null else replace((payload->>'customer_postal_code')::text,' ','') end as customer_postal_code,
             case when payload->>'customer_phone_number' = '' then null else (payload->>'customer_phone_number')::text end as customer_phone_number,
-            case when payload->>'customer_referrer_url' = '' then null else (payload->>'customer_referrer_url')::text end as customer_referrer_url,	
+            case when payload->>'customer_referrer_url' = '' then null else (payload->>'customer_referrer_url')::text end as customer_referrer_url,
             case when payload->>'customer_email_address' = '' then null else (payload->>'customer_email_address')::text end as customer_email_address,
             case when payload->>'tradesii_business_profile_id' = '' then null else (payload->>'tradesii_business_profile_id')::uuid end as tradesii_business_profile_id
-        from 
+        from
             autoverify.tradesii_leads;
     ''',
     '''
-        create or replace view autoverify.v_tradesii_businesses as 
-        select 
+        create or replace view autoverify.v_tradesii_businesses as
+        select
             id,
             created_at,
             updated_at,
@@ -1565,12 +1594,12 @@ queries = [
             case when payload->>'crm_account_id' = '' then null else (payload->>'crm_account_id')::text end as crm_account_id,
             case when payload->>'master_business_id' = '' then null else (payload->>'master_business_id')::uuid end as master_business_id,
             case when payload->>'stripe_customer_id' = '' then null else (payload->>'stripe_customer_id')::text end as stripe_customer_id
-        from 
+        from
             autoverify.tradesii_businesses;
     ''',
     '''
         create or replace view autoverify.v_tradesii_business_profiles as
-        select 
+        select
             id,
             created_at,
             case when payload->>'type' = '' then null else (payload->>'type')::int end as type,
@@ -1587,15 +1616,15 @@ queries = [
             case when payload->>'lead_recipient_emails' = '' then null else (payload->>'lead_recipient_emails')::json end as lead_recipient_emails,
             case when payload->>'phone_number_verification' = '' then null else (payload->>'phone_number_verification')::int end as phone_number_verification,
             case when payload->>'regional_price_adjustment' = '' then null else (payload->>'regional_price_adjustment')::double precision end as regional_price_adjustment
-        from 
+        from
             autoverify.tradesii_business_profiles;
     ''',
     '''
-        create or replace view autoverify.v_credsii_leads as 
-        SELECT 
-            id, 
-            created_at, 
-            updated_at, 
+        create or replace view autoverify.v_credsii_leads as
+        SELECT
+            id,
+            created_at,
+            updated_at,
             case when payload->>'city' = '' then null else (payload->>'city')::text end as city,
             case when payload->>'country' = '' then null else (payload->>'country')::text end as country,
             case when payload->>'province' = '' then null else (payload->>'province')::text end as province,
@@ -1629,15 +1658,15 @@ queries = [
             case when payload->>'dealertrack_sent_at' = '' then null else to_timestamp((payload->>'dealertrack_sent_at')::text,'YYYY-MM-DD HH24:MI:SS') end as dealertrack_sent_at,
             case when payload->>'meta_trade_in_value' = '' then null else (payload->>'meta_trade_in_value')::double precision end as meta_trade_in_value,
             case when payload->>'financial_form_stored_at' = '' then null else to_timestamp((payload->>'financial_form_stored_at')::text,'YYYY-MM-DD HH24:MI:SS') end as financial_form_stored_at
-        FROM 
+        FROM
             autoverify.credsii_leads;
     ''',
     '''
-        create or replace view autoverify.v_credsii_businesses as 
-        SELECT 
-            id, 
-            created_at, 
-            updated_at, 
+        create or replace view autoverify.v_credsii_businesses as
+        SELECT
+            id,
+            created_at,
+            updated_at,
             case when payload->>'city' = '' then null else (payload->>'city')::text end as city,
             case when payload->>'name' = '' then null else (payload->>'name')::text end as name,
             case when payload->>'status' = '' then null else (payload->>'status')::int end as status,
@@ -1652,15 +1681,15 @@ queries = [
             case when payload->>'crm_account_id' = '' then null else (payload->>'crm_account_id')::text end as crm_account_id,
             case when payload->>'master_business_id' = '' then null else (payload->>'master_business_id')::uuid end as master_business_id,
             case when payload->>'stripe_customer_id' = '' then null else (payload->>'stripe_customer_id')::text end as stripe_customer_id
-        FROM 
+        FROM
             autoverify.credsii_businesses;
     ''',
     '''
-        create or replace view autoverify.v_credsii_business_profiles as 
-    SELECT 
-        id, 
-        created_at, 
-        updated_at, 
+        create or replace view autoverify.v_credsii_business_profiles as
+    SELECT
+        id,
+        created_at,
+        updated_at,
         case when payload->>'crm' = '' then null else (payload->>'crm')::int end as crm,
         case when payload->>'type' = '' then null else (payload->>'type')::int end as type,
         case when payload->>'banks' = '' then null else (payload->>'banks')::json end as banks,
@@ -1680,15 +1709,15 @@ queries = [
         case when payload->>'crm_recipient_emails' = '' then null else (payload->>'crm_recipient_emails')::json end as crm_recipient_emails,
         case when payload->>'lead_recipient_emails' = '' then null else (payload->>'lead_recipient_emails')::json end as lead_recipient_emails,
         case when payload->>'dealertrack_confirm_id' = '' then null else (payload->>'dealertrack_confirm_id')::text end as dealertrack_confirm_id
-    FROM 
+    FROM
         autoverify.credsii_business_profiles;
     ''',
     '''
-        create or replace view autoverify.v_credsii_reports as 
-        SELECT 
-            id, 
-            created_at, 
-            updated_at, 
+        create or replace view autoverify.v_credsii_reports as
+        SELECT
+            id,
+            created_at,
+            updated_at,
             case when payload->>'city' = '' then null else (payload->>'city')::text end as city,
             case when payload->>'status' = '' then null else (payload->>'status')::int end as status,
             case when payload->>'country' = '' then null else (payload->>'country')::text end as country,
@@ -1708,13 +1737,13 @@ queries = [
             case when payload->>'address_line_1' = '' then null else (payload->>'address_line_1')::text end as address_line_1,
             case when payload->>'address_line_2' = '' then null else (payload->>'address_line_2')::text end as address_line_2,
             case when payload->>'tradesii_report_id' = '' then null else (payload->>'tradesii_report_id')::uuid end as tradesii_report_id
-        FROM 
+        FROM
             autoverify.credsii_reports;
     ''',
     '''
-        create or replace view autoverify.v_insuresii_leads as 
-        select 
-            id, 
+        create or replace view autoverify.v_insuresii_leads as
+        select
+            id,
             created_at,
             updated_at,
             case when payload->>'vin' = '' then null else (payload->>'vin')::text end as vin,
@@ -1744,13 +1773,13 @@ queries = [
             case when payload->>'address_line_1' = '' then null else (payload->>'address_line_1')::text end as address_line_1,
             case when payload->>'address_line_2' = '' then null else (payload->>'address_line_2')::text end as address_line_2,
             case when payload->>'purchase_price' = '' then null else (payload->>'purchase_price')::double precision end as purchase_price
-        from 
+        from
             autoverify.insuresii_leads;
     ''',
     '''
-        create or replace view autoverify.v_insuresii_business_profiles as 
-        SELECT 
-            id, 
+        create or replace view autoverify.v_insuresii_business_profiles as
+        SELECT
+            id,
             case when payload->>'type' = '' then null else (payload->>'type')::text end as type,
             case when payload->>'gtm_id' = '' then null else (payload->>'gtm_id')::text end as gtm_id,
             case when payload->>'status' = '' then null else (payload->>'status')::text end as status,
@@ -1763,7 +1792,7 @@ queries = [
             case when payload->>'crm_recipient_emails' = '' then null else (payload->>'crm_recipient_emails')::json end as crm_recipient_emails,
             case when payload->>'lead_recipient_emails' = '' then null else (payload->>'lead_recipient_emails')::json end as lead_recipient_emails,
             case when payload->>'requires_mobile_verification' = '' then null else (payload->>'requires_mobile_verification')::int end as requires_mobile_verification
-        FROM 
+        FROM
             autoverify.insuresii_business_profiles;
     ''',
     '''
@@ -1779,7 +1808,7 @@ queries = [
     ''',
     '''
         CREATE OR REPLACE VIEW autoverify.v_mpm_lead_details
-        AS SELECT 
+        AS SELECT
             b.master_business_id,
             a.id,
             a.status,
@@ -1880,7 +1909,7 @@ queries = [
         LEFT JOIN autoverify.v_mpm_integration_settings b ON b.id = a.integration_settings_id;
     ''',
     '''
-        CREATE TABLE IF NOT EXISTS autoverify.mpm_lead_details 
+        CREATE TABLE IF NOT EXISTS autoverify.mpm_lead_details
         (
             master_business_id uuid NULL,
             id uuid NULL,
@@ -1985,32 +2014,32 @@ queries = [
     '''
     ,
     '''
-        create materialized view if not exists public.m_lifetime_mixed_leads as 
-        SELECT 
+        create materialized view if not exists public.m_lifetime_mixed_leads as
+        SELECT
             master_business_id,
             array_to_string(lead_content, '-'::text) AS mixed_lead_type,
             count(*) as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
+        GROUP BY
             1,2;
         CREATE unique INDEX IF NOT EXISTS  m_lifetime_mixed_leads_unq_idx ON  public.m_lifetime_mixed_leads (master_business_id,mixed_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_lifetime_mixed_leads_device as 
-        SELECT 
+        create materialized view if not exists public.m_lifetime_mixed_leads_device as
+        SELECT
             master_business_id,
             array_to_string(lead_content, '-'::text) AS mixed_lead_type,
             device,
             count(*) as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
+        GROUP BY
             1,2,3;
         CREATE unique INDEX IF NOT EXISTS m_lifetime_mixed_leads_device_unq_idx ON  public.m_lifetime_mixed_leads_device (master_business_id,mixed_lead_type,device);
     ''',
     '''
-        CREATE TABLE if not exists autoverify.roi_arguments 
+        CREATE TABLE if not exists autoverify.roi_arguments
         (
             "version" int4 NOT NULL,
             vehicle_sale_profit double precision NOT NULL,
@@ -2038,282 +2067,282 @@ queries = [
             "version" int4 NULL,
             "date" timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT fk_roi_arguments
-              FOREIGN KEY(version) 
+              FOREIGN KEY(version)
               REFERENCES autoverify.roi_arguments(version)
-        );                  
+        );
     ''',
     '''
-        create materialized view if not exists public.m_lifetime_master_leads as 
-        SELECT 
+        create materialized view if not exists public.m_lifetime_master_leads as
+        SELECT
             master_business_id,
             lead_content[1] AS master_lead_type,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
+        GROUP BY
             1,2;
         CREATE unique INDEX IF NOT EXISTS  m_lifetime_master_leads_unq_idx ON  public.m_lifetime_master_leads (master_business_id,master_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_lifetime_master_leads_device as 
-        SELECT 
+        create materialized view if not exists public.m_lifetime_master_leads_device as
+        SELECT
             master_business_id,
             lead_content[1] AS master_lead_type,
             device,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
+        GROUP BY
             1,2,3;
         CREATE unique INDEX IF NOT EXISTS  m_lifetime_master_leads_device_unq_idx ON  public.m_lifetime_master_leads_device (master_business_id,device,master_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_master_leads_daily as 
-        SELECT 
+        create materialized view if not exists public.m_master_leads_daily as
+        SELECT
             master_business_id,
             date_trunc('day',created_at) as date,
             lead_content[1] AS master_lead_type,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3;  
+        GROUP BY
+            1,2,3;
         CREATE unique INDEX IF NOT EXISTS  m_master_leads_daily_unq_idx ON  public.m_master_leads_daily (master_business_id,date,master_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_master_leads_daily_device as 
-        SELECT 
+        create materialized view if not exists public.m_master_leads_daily_device as
+        SELECT
             master_business_id,
             date_trunc('day',created_at) as date,
             lead_content[1] AS master_lead_type,
             device,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3,4;  
+        GROUP BY
+            1,2,3,4;
         CREATE unique INDEX IF NOT EXISTS  m_master_leads_daily_device_unq_idx ON  public.m_master_leads_daily_device (master_business_id,date,device,master_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_master_leads_monthly as 
-        SELECT 
+        create materialized view if not exists public.m_master_leads_monthly as
+        SELECT
             master_business_id,
             date_trunc('month',created_at) as date,
             lead_content[1] AS master_lead_type,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3;  
+        GROUP BY
+            1,2,3;
         CREATE unique INDEX IF NOT EXISTS  m_master_leads_montly_unq_idx ON  public.m_master_leads_monthly (master_business_id,date,master_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_master_leads_monthly_device as 
-        SELECT 
+        create materialized view if not exists public.m_master_leads_monthly_device as
+        SELECT
             master_business_id,
             date_trunc('month',created_at) as date,
             lead_content[1] AS master_lead_type,
             device,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3,4;  
+        GROUP BY
+            1,2,3,4;
         CREATE unique INDEX IF NOT EXISTS  m_master_leads_montly_device_unq_idx ON  public.m_master_leads_monthly_device (master_business_id,date,device,master_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_master_leads_weekly as 
-        SELECT 
+        create materialized view if not exists public.m_master_leads_weekly as
+        SELECT
             master_business_id,
             date_trunc('week',created_at) as date,
             lead_content[1] AS master_lead_type,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3;  
+        GROUP BY
+            1,2,3;
         CREATE unique INDEX IF NOT EXISTS  m_master_leads_weekly_unq_idx ON  public.m_master_leads_weekly (master_business_id,date,master_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_master_leads_weekly_device as 
-        SELECT 
+        create materialized view if not exists public.m_master_leads_weekly_device as
+        SELECT
             master_business_id,
             date_trunc('week',created_at) as date,
             lead_content[1] AS master_lead_type,
             device,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3,4;  
+        GROUP BY
+            1,2,3,4;
         CREATE unique INDEX IF NOT EXISTS  m_master_leads_weekly_device_unq_idx ON  public.m_master_leads_weekly_device (master_business_id,date,device,master_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_master_leads_yearly as 
-        SELECT 
+        create materialized view if not exists public.m_master_leads_yearly as
+        SELECT
             master_business_id,
             date_trunc('year',created_at) as date,
             lead_content[1] AS master_lead_type,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3;  
+        GROUP BY
+            1,2,3;
         CREATE unique INDEX IF NOT EXISTS  m_master_leads_yearly_unq_idx ON  public.m_master_leads_yearly (master_business_id,date,master_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_master_leads_yearly_device as 
-        SELECT 
+        create materialized view if not exists public.m_master_leads_yearly_device as
+        SELECT
             master_business_id,
             date_trunc('year',created_at) as date,
             lead_content[1] AS master_lead_type,
             device,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3,4;  
+        GROUP BY
+            1,2,3,4;
         CREATE unique INDEX IF NOT EXISTS  m_master_leads_yearly_device_unq_idx ON  public.m_master_leads_yearly_device (master_business_id,date,device,master_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_mixed_leads_monthly as 
-        SELECT 
+        create materialized view if not exists public.m_mixed_leads_monthly as
+        SELECT
             master_business_id,
             date_trunc('month',created_at) as date,
             array_to_string(lead_content, '-'::text) AS mixed_lead_type,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3;  
+        GROUP BY
+            1,2,3;
         CREATE unique INDEX IF NOT EXISTS  m_mixed_leads_monthly_unq_idx ON  public.m_mixed_leads_monthly (master_business_id,date,mixed_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_mixed_leads_monthly_device as 
-        SELECT 
+        create materialized view if not exists public.m_mixed_leads_monthly_device as
+        SELECT
             master_business_id,
             date_trunc('month',created_at) as date,
             array_to_string(lead_content, '-'::text) AS mixed_lead_type,
             device,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3,4;  
+        GROUP BY
+            1,2,3,4;
         CREATE unique INDEX IF NOT EXISTS  m_mixed_leads_monthly_device_unq_idx ON  public.m_mixed_leads_monthly_device (master_business_id,date,device,mixed_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_mixed_leads_yearly_device as 
-        SELECT 
+        create materialized view if not exists public.m_mixed_leads_yearly_device as
+        SELECT
             master_business_id,
             date_trunc('year',created_at) as date,
             array_to_string(lead_content, '-'::text) AS mixed_lead_type,
             device,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3,4;  
+        GROUP BY
+            1,2,3,4;
         CREATE unique INDEX IF NOT EXISTS  m_mixed_leads_yearly_device_unq_idx ON  public.m_mixed_leads_yearly_device (master_business_id,date,device,mixed_lead_type);
     ''',
     '''
-        create materialized view if not exists public.m_mixed_leads_yearly as 
-        SELECT 
+        create materialized view if not exists public.m_mixed_leads_yearly as
+        SELECT
             master_business_id,
             date_trunc('year',created_at) as date,
             array_to_string(lead_content, '-'::text) AS mixed_lead_type,
             count(*)::numeric as leads
-        FROM 
+        FROM
             autoverify.dashboard_lead_content
-        GROUP BY 
-            1,2,3;  
+        GROUP BY
+            1,2,3;
         CREATE unique INDEX IF NOT EXISTS  m_mixed_leads_yearly_unq_idx ON  public.m_mixed_leads_yearly (master_business_id,date,mixed_lead_type);
     ''',
     '''
         CREATE OR REPLACE VIEW autoverify.v_master_lead_type_estimated_value as
-        SELECT 
+        SELECT
             version as version,
             'trade' as master_lead_type,
             vehicle_sale_profit * (trade_lead_conversion_probability + trade_lead_conversion_probability * high_quality_trade_in_probability) as value,
             trade_lead_conversion_probability as conversion_rate
-        from 
+        from
             autoverify.roi_arguments
-        where 
+        where
             version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
         union
-        SELECT 
+        SELECT
             version as version,
             'credit' as master_lead_type,
             vehicle_sale_profit * (credit_lead_conversion_probability + credit_lead_conversion_probability * high_quality_trade_in_probability * trade_with_credit_lead_probability) as value,
             credit_lead_conversion_probability as conversion_rate
-        from 
+        from
             autoverify.roi_arguments
-        where 
+        where
             version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
         union
-        SELECT 
+        SELECT
             version as version,
             'insurance' as master_lead_type,
             vehicle_sale_profit * (insurance_lead_conversion_probability + insurance_lead_conversion_probability * high_quality_trade_in_probability * trade_with_insurance_lead_probability) as value,
             insurance_lead_conversion_probability as conversion_rate
-        from 
+        from
             autoverify.roi_arguments
-        where 
+        where
             version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
         union
-        SELECT 
+        SELECT
             version as version,
             'finance' as master_lead_type,
             vehicle_sale_profit * (finance_lead_conversion_probability + finance_lead_conversion_probability * high_quality_trade_in_probability * trade_with_finance_lead_probability) as value,
             finance_lead_conversion_probability as conversion_rate
-        from 
+        from
             autoverify.roi_arguments
-        where 
+        where
             version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
         union
-        SELECT 
+        SELECT
             version as version,
             'payments' as master_lead_type,
             vehicle_sale_profit * (payments_lead_conversion_probability + payments_lead_conversion_probability * high_quality_trade_in_probability * trade_with_payments_lead_probability) as value,
             payments_lead_conversion_probability as conversion_rate
-        from 
+        from
             autoverify.roi_arguments
-        where 
+        where
             version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
         union
-        SELECT 
+        SELECT
             version as version,
             'testdrive' as master_lead_type,
             vehicle_sale_profit * (testdrive_lead_conversion_probability + testdrive_lead_conversion_probability * high_quality_trade_in_probability * trade_with_testdrive_lead_probability) as value,
             testdrive_lead_conversion_probability as conversion_rate
-        from 
+        from
             autoverify.roi_arguments
-        where 
+        where
             version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1)
         union
-        SELECT 
+        SELECT
             version as version,
             'spotlight' as master_lead_type,
             vehicle_sale_profit * (spotlight_lead_conversion_probability + spotlight_lead_conversion_probability * high_quality_trade_in_probability * trade_with_spotlight_lead_probability) as value,
             spotlight_lead_conversion_probability as conversion_rate
-        from 
+        from
             autoverify.roi_arguments
-        where 
+        where
             version = (select version from autoverify.roi_arguments_version_history order by autoverify.roi_arguments_version_history."date" desc limit 1);
     ''',
     '''
-        create materialized view if not exists public.m_estimated_revenue_quarterly as 
-        select 
+        create materialized view if not exists public.m_estimated_revenue_quarterly as
+        select
             a.master_business_id,
             a.date,
             sum(a.leads * coalesce(b.value,0)) as estimated_revenue
-        from 
-            (select 
+        from
+            (select
             master_business_id,
             date_trunc('quarter',created_at) as date,
             lead_content[1] as master_lead_type,
             count(*) as leads
-        from 
+        from
             autoverify.dashboard_lead_content
         group by 1,2,3) a
         left join autoverify.v_master_lead_type_estimated_value b on b.master_lead_type = a.master_lead_type
@@ -2321,18 +2350,18 @@ queries = [
         CREATE unique INDEX IF NOT EXISTS m_estimated_revenue_quarterly_unq_idx ON  public.m_estimated_revenue_quarterly (master_business_id,date);
     ''',
     '''
-        create materialized view if not exists public.m_estimated_revenue_yearly as 
-        select 
+        create materialized view if not exists public.m_estimated_revenue_yearly as
+        select
             a.master_business_id,
             a.date,
             sum(a.leads * coalesce(b.value,0)) as estimated_revenue
-        from 
-            (select 
+        from
+            (select
             master_business_id,
             date_trunc('year',created_at) as date,
             lead_content[1] as master_lead_type,
             count(*) as leads
-        from 
+        from
             autoverify.dashboard_lead_content
         group by 1,2,3) a
         left join autoverify.v_master_lead_type_estimated_value b on b.master_lead_type = a.master_lead_type
@@ -2340,16 +2369,16 @@ queries = [
         CREATE unique INDEX IF NOT EXISTS m_estimated_revenue_yearly_unq_idx ON  public.m_estimated_revenue_yearly (master_business_id,date);
     ''',
     '''
-        create materialized view if not exists public.m_lifetime_estimated_revenue as 
-        select 
+        create materialized view if not exists public.m_lifetime_estimated_revenue as
+        select
             a.master_business_id,
             sum(a.leads * coalesce(b.value,0)) as estimated_revenue
-        from 
-            (select 
+        from
+            (select
             master_business_id,
             lead_content[1] as master_lead_type,
             count(*) as leads
-        from 
+        from
             autoverify.dashboard_lead_content
         group by 1,2) a
         left join autoverify.v_master_lead_type_estimated_value b on b.master_lead_type = a.master_lead_type
@@ -2357,61 +2386,61 @@ queries = [
         CREATE unique INDEX IF NOT EXISTS m_lifetime_estimated_revenue_unq_idx ON  public.m_lifetime_estimated_revenue (master_business_id);
     ''',
     '''
-        create materialized view if not exists public.m_estimated_vehicles_sold_monthly as 
-        select 
+        create materialized view if not exists public.m_estimated_vehicles_sold_monthly as
+        select
             a.master_business_id,
             a.date,
             sum(a.leads * b.conversion_rate) as estimated_vehicles_sold
         from
         (
-            select 
+            select
                 master_business_id,
                 date_trunc('month',created_at) as date,
                 lead_content[1] as master_lead_type,
                 count(*) as leads
-            from 
+            from
                 autoverify.dashboard_lead_content
             group by 1,2,3
-        ) a 
+        ) a
         left join autoverify.v_master_lead_type_estimated_value b on b.master_lead_type = a.master_lead_type
         group by 1,2;
         CREATE unique INDEX IF NOT EXISTS m_estimated_vehicles_sold_monthly_unq_idx ON  public.m_estimated_vehicles_sold_monthly (master_business_id,date);
     ''',
     '''
-        create materialized view if not exists public.m_lifetime_estimated_vehicles_sold as 
-        select 
+        create materialized view if not exists public.m_lifetime_estimated_vehicles_sold as
+        select
             a.master_business_id,
             sum(a.leads * b.conversion_rate) as estimated_vehicles_sold
         from
         (
-            select 
+            select
                 master_business_id,
                 lead_content[1] as master_lead_type,
                 count(*) as leads
-            from 
+            from
                 autoverify.dashboard_lead_content
             group by 1,2
-        ) a 
+        ) a
         left join autoverify.v_master_lead_type_estimated_value b on b.master_lead_type = a.master_lead_type
         group by 1;
         CREATE unique INDEX IF NOT EXISTS m_lifetime_estimated_vehicles_sold_unq_idx ON  public.m_lifetime_estimated_vehicles_sold (master_business_id);
     ''',
     '''
-        create or replace view operations.v_alerts as 
-        select 
+        create or replace view operations.v_alerts as
+        select
             a.*,
             now() - a.last_run as time_since_last_run,
-            case 
-                when now() - a.last_run > frequency 
+            case
+                when now() - a.last_run > frequency
                 then 1
                 else 0
             end as is_overdue,
-            case 
-                when status is not null and status != 'success' 
-                then 1 
-                else 0 
+            case
+                when status is not null and status != 'success'
+                then 1
+                else 0
             end as bad_status
-        from 
+        from
             operations.scheduler a;
     ''',
     '''
@@ -2421,7 +2450,7 @@ queries = [
             spotlight text not null,
             region text not null,
             payload jsonb not null,
-            primary key (version,spotlight,region) 
+            primary key (version,spotlight,region)
         );
         insert into autoverify.spotlight_parameters values (1,'low mileage','CA','{"age":"90 days","vehicle_grouping":"make","minimum_milege":"500","minimum_vehicles":"100"}')
         on conflict (version,spotlight,region) do update set payload = excluded.payload;
