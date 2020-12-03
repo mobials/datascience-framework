@@ -76,7 +76,7 @@ p_minimum_difference = .10
 regions = ['']
 minimum_miles = 500
 maximum_miles = 300000
-time_window = '30 days'
+time_window = '10 days'
 payload =   {
                 'date': str(datetime.datetime.now()),
                 'vehicle_grouping_parameters':vehicle_grouping_parameters,
