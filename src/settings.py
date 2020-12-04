@@ -41,13 +41,21 @@ analytics_database = os.getenv('ANALYTICS_DATABASE')
 analytics_port = os.getenv('ANALYTICS_PORT')
 analytics_host = os.getenv('ANALYTICS_HOST')
 
-#cdc_s3_processing_csn
+#cdc ca used
 s3_cdc_ca_bucket=os.getenv('S3_CDC_CA_BUCKET')
 s3_cdc_ca_key=os.getenv('S3_CDC_CA_KEY')
 
-#cdc us
+#cdc ca new
+s3_cdc_ca_new_bucket=os.getenv('S3_CDC_CA_NEW_BUCKET')
+s3_cdc_ca_new_key=os.getenv('S3_CDC_CA_NEW_KEY')
+
+#cdc us used
 s3_cdc_us_bucket=os.getenv('S3_CDC_US_BUCKET')
 s3_cdc_us_key=os.getenv('S3_CDC_US_KEY')
+
+#cdc us new
+s3_cdc_us_new_bucket=os.getenv('S3_CDC_US_NEW_BUCKET')
+s3_cdc_us_new_key=os.getenv('S3_CDC_US_NEW_KEY')
 
 #firehose production
 s3_firehose_bucket_production = os.getenv('S3_FIREHOSE_BUCKET_PRODUCTION')

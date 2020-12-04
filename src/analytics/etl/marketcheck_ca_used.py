@@ -82,7 +82,6 @@ while True:
 
         for version in versions:
             last_modified = version.last_modified
-            print(last_modified)
             file = settings.s3_cdc_ca_bucket + '/' + settings.s3_cdc_ca_key + '/' + version.version_id
             if file in s3_completed_files:
                 continue
@@ -93,10 +92,7 @@ while True:
                 tuples = []
 
                 column_headings = None
-                count = 0
                 for line in gzipfile:
-                    count += 1
-                    #print(count)
                     text = line.decode()
                     split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter=',', quotechar='"'))[0]]
 
@@ -189,8 +185,6 @@ while True:
 
                     tuples.append(tuple)
 
-
-
                 if len(tuples) > 0:
                     with etl_connection.cursor() as cursor:
                         psycopg2.extras.execute_values(cursor,insert_query,tuples)
@@ -201,7 +195,6 @@ while True:
 
     except Exception as e:
         status = str(e)
-        print(e)
     finally:
         etl_connection.close()
 

@@ -225,13 +225,13 @@ queries = [
     ''',
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency)
-        VALUES ('vendors','marketcheck_ca','2020-01-01','1 day')
+        VALUES ('vendors','marketcheck_ca_used','2020-01-01','1 day')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency)
-        VALUES ('vendors','marketcheck_us','2020-01-01','1 day')
+        VALUES ('vendors','marketcheck_us_used','2020-01-01','1 day')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
     ''',
@@ -700,28 +700,6 @@ queries = [
         );
     ''',
     '''
-        CREATE TABLE IF NOT EXISTS vendors.marketcheck_ca
-        (
-            s3_id BIGINT references s3.scanned_files(id) ON DELETE CASCADE,
-            id text,
-            dealer_id integer,
-            vin text,
-            price double precision,
-            miles double precision,
-            taxonomy_vin text,
-            scraped_at timestamptz,
-            status_date timestamptz,
-            zip text,
-            latitude double precision,
-            longitude double precision,
-            city text,
-            state text
-        );
-        CREATE INDEX IF NOT EXISTS marketcheck_ca_s3_id_idx ON vendors.marketcheck_ca (s3_id);
-        CREATE INDEX IF NOT EXISTS marketcheck_ca_status_date_idx ON vendors.marketcheck_ca (status_date);
-        CREATE INDEX IF NOT EXISTS marketcheck_ca_taxonomy_vin_idx ON vendors.marketcheck_ca (taxonomy_vin);
-    ''',
-    '''
         CREATE TABLE IF NOT EXISTS vendors.marketcheck_ca_used
         (
             s3_id BIGINT references s3.scanned_files(id) ON DELETE CASCADE,
@@ -741,6 +719,7 @@ queries = [
         );
         CREATE INDEX IF NOT EXISTS marketcheck_ca_used_s3_id_idx ON vendors.marketcheck_ca_used (s3_id);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_used_status_date_idx ON vendors.marketcheck_ca_used (status_date);
+        CREATE INDEX IF NOT EXISTS marketcheck_ca_used_taxonomy_vin_idx ON vendors.marketcheck_ca_used (taxonomy_vin);
     ''',
     '''
         CREATE TABLE IF NOT EXISTS vendors.marketcheck_ca_new
@@ -762,27 +741,7 @@ queries = [
         );
         CREATE INDEX IF NOT EXISTS marketcheck_ca_new_s3_id_idx ON vendors.marketcheck_ca_new (s3_id);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_new_status_date_idx ON vendors.marketcheck_ca_new (status_date);
-    ''',
-    '''
-        CREATE TABLE IF NOT EXISTS vendors.marketcheck_us
-        (
-            s3_id BIGINT references s3.scanned_files(id) ON DELETE CASCADE,
-            id text,
-            dealer_id integer,
-            vin text,
-            price double precision,
-            miles double precision,
-            taxonomy_vin text,
-            scraped_at timestamptz,
-            status_date timestamptz,
-            zip text,
-            latitude double precision,
-            longitude double precision,
-            city text,
-            state text
-        );
-        CREATE INDEX IF NOT EXISTS marketcheck_us_s3_id_idx ON vendors.marketcheck_us (s3_id);
-        CREATE INDEX IF NOT EXISTS marketcheck_us_status_date_idx ON vendors.marketcheck_us (status_date);
+        CREATE INDEX IF NOT EXISTS marketcheck_ca_new_taxonomy_vin_idx ON vendors.marketcheck_ca_new (taxonomy_vin);
     ''',
     '''
         CREATE TABLE IF NOT EXISTS vendors.marketcheck_us_used
@@ -804,6 +763,7 @@ queries = [
         );
         CREATE INDEX IF NOT EXISTS marketcheck_us_used_s3_id_idx ON vendors.marketcheck_us_used (s3_id);
         CREATE INDEX IF NOT EXISTS marketcheck_us_used_status_date_idx ON vendors.marketcheck_us_used (status_date);
+        CREATE INDEX IF NOT EXISTS marketcheck_us_used_taxonomy_vin_idx ON vendors.marketcheck_us_used (taxonomy_vin);
     ''',
     '''
         CREATE TABLE IF NOT EXISTS vendors.marketcheck_us_new
@@ -825,6 +785,7 @@ queries = [
         );
         CREATE INDEX IF NOT EXISTS marketcheck_us_new_s3_id_idx ON vendors.marketcheck_us_new (s3_id);
         CREATE INDEX IF NOT EXISTS marketcheck_us_new_status_date_idx ON vendors.marketcheck_us_new (status_date);
+        CREATE INDEX IF NOT EXISTS marketcheck_us_new_taxonomy_vin_idx ON vendors.marketcheck_us_new (taxonomy_vin);
     ''',
     '''
         create or replace view zuora.v_account as
