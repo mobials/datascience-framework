@@ -78,12 +78,13 @@ while True:
 
         s3 = boto3.resource("s3")
 
-        versions = s3.Bucket(settings.s3_cdc_ca_bucket).object_versions.filter(Prefix=settings.s3_cdc_ca_key)
+        versions = s3.Bucket(settings.s3_cdc_us_bucket).object_versions.filter(Prefix=settings.s3_cdc_us_key)
 
         for version in versions:
             last_modified = version.last_modified
-            print(last_modified)
-            file = settings.s3_cdc_ca_bucket + '/' + settings.s3_cdc_ca_key + '/' + version.version_id
+            if last_modified < datetime.datetime(2020,8,1).replace(tzinfo=pytz.utc):
+                continue
+            file = settings.s3_cdc_us_bucket + '/' + settings.s3_cdc_us_key + '/' + version.version_id
             if file in s3_completed_files:
                 continue
             obj = version.get()['Body']
@@ -96,7 +97,7 @@ while True:
                 count = 0
                 for line in gzipfile:
                     count += 1
-                    #print(count)
+                    print(count)
                     text = line.decode()
                     split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter=',', quotechar='"'))[0]]
 
@@ -105,12 +106,6 @@ while True:
                         continue
                     else:
                         info = dict(zip(column_headings, split_text))
-
-                    if info['miles_indicator_ss'] != 'KILOMETERS':
-                        continue
-
-                    if info['currency_indicator_ss'] != 'CAD':
-                        continue
 
                     try:
                         miles = float(info['miles_fs'])
@@ -188,8 +183,6 @@ while True:
                     )
 
                     tuples.append(tuple)
-
-
 
                 if len(tuples) > 0:
                     with etl_connection.cursor() as cursor:
