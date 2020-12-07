@@ -474,6 +474,67 @@ queries = [
         SET (autovacuum_vacuum_scale_factor = 0, autovacuum_vacuum_threshold = 10000);
     ''',
     '''
+    CREATE OR REPLACE FUNCTION autoverify.lead_content(is_insurance integer, is_trade integer, is_credit_partial integer, is_credit_verified integer, is_credit_finance integer, is_ecom integer, is_test_drive integer, is_accident_check integer, is_spotlight integer, sub_type text)
+ RETURNS text[]
+ LANGUAGE plpgsql
+AS $function$
+            declare
+                    result text[];
+                begin 
+                    if 
+                        is_credit_finance = 1
+                    then 
+                        result := array_append(result,'finance');
+                    end if;
+                
+                    if
+                        is_credit_finance = 0 and (is_credit_verified = 1 or is_credit_partial = 1)
+                    then 
+                        result := array_append(result,'credit');
+                    end if;
+                
+                    if 
+                        is_test_drive = 1
+                    then 
+                        result := array_append(result,'testdrive');
+                    end if;
+                
+                    if 
+                        is_trade = 1
+                    then 
+                        result := array_append(result,'trade');
+                    end if;
+                
+                    if 
+                        is_insurance = 1
+                    then 
+                        result := array_append(result,'insurance');
+                    end if; 
+                
+                    if 
+                        is_ecom = 1
+                    then 
+                        result := array_append(result,'payments');
+                    end if;
+                   
+                   	if 
+                   		is_spotlight = 1
+                   	then 
+                   		result := array_append(result,'spotlight');
+                   	end if;
+            
+                    if 
+                        result is null
+                    then 
+                        result := array_append(result,'unclassified');
+                    end if;
+                
+                return result;
+            end;
+            $function$
+;
+    '''
+    '''
         CREATE TABLE IF NOT EXISTS autoverify.insuresii_quotes
         (
             id uuid primary key,
