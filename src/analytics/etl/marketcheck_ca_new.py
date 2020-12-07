@@ -78,26 +78,21 @@ while True:
 
         s3 = boto3.resource("s3")
 
-        versions = s3.Bucket(settings.s3_cdc_us_bucket).object_versions.filter(Prefix=settings.s3_cdc_us_key)
+        versions = s3.Bucket(settings.s3_cdc_ca_new_bucket).object_versions.filter(Prefix=settings.s3_cdc_ca_new_key)
 
         for version in versions:
             last_modified = version.last_modified
-            if last_modified < datetime.datetime(2020,8,1).replace(tzinfo=pytz.utc):
-                continue
-            file = settings.s3_cdc_us_bucket + '/' + settings.s3_cdc_us_key + '/' + version.version_id
+            file = settings.s3_cdc_ca_new_bucket + '/' + settings.s3_cdc_ca_new_key + '/' + version.version_id
             if file in s3_completed_files:
                 continue
             obj = version.get()['Body']
             with gzip.GzipFile(fileobj=obj) as gzipfile:
-                s3_id = postgreshandler.insert_s3_file(etl_connection, script, file, last_modified)
+                s3_id = postgreshandler.insert_s3_file(etl_connection,script,file,last_modified)
 
                 tuples = []
 
                 column_headings = None
-                count = 0
                 for line in gzipfile:
-                    count += 1
-                    print(count)
                     text = line.decode()
                     split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter=',', quotechar='"'))[0]]
 
@@ -106,6 +101,12 @@ while True:
                         continue
                     else:
                         info = dict(zip(column_headings, split_text))
+
+                    if info['miles_indicator_ss'] != 'KILOMETERS':
+                        continue
+
+                    if info['currency_indicator_ss'] != 'CAD':
+                        continue
 
                     try:
                         miles = float(info['miles_fs'])
@@ -194,7 +195,6 @@ while True:
 
     except Exception as e:
         status = str(e)
-        print(e)
     finally:
         etl_connection.close()
 
