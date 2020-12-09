@@ -141,12 +141,6 @@ queries = [
     ''',
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency)
-        VALUES ('s3','integrations_widget_interactions','2020-01-01','15 minute')
-        ON CONFLICT ON CONSTRAINT scheduler_pk
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
         VALUES ('s3','avr_widget_interactions','2020-01-01','15 minute')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
@@ -442,19 +436,6 @@ queries = [
         ON s3.integrations_button_widget_was_rendered (s3_id);
         CREATE INDEX IF NOT EXISTS integrations_button_widget_was_rendered_date_idx
         ON s3.integrations_button_widget_was_rendered (happened_at);
-    ''',
-    '''
-        CREATE TABLE IF NOT EXISTS s3.integrations_widget_interactions
-        (
-            s3_id bigint REFERENCES s3.scanned_files(id) ON DELETE CASCADE,
-            event_id uuid,
-            happened_at timestamptz not null,
-            payload jsonb not null
-        );
-        CREATE INDEX IF NOT EXISTS integrations_widget_interactions_s3_id_idx
-        ON s3.integrations_widget_interactions (s3_id);
-        CREATE INDEX IF NOT EXISTS integrations_widget_interactions_happened_at_idx
-        ON s3.integrations_widget_interactions (happened_at);
     ''',
     '''
         CREATE TABLE IF NOT EXISTS avr_unique_impressions_ip_daily
