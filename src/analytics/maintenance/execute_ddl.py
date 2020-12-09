@@ -249,12 +249,6 @@ queries = [
     ''',
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency)
-        VALUES ('autoverify','mpm_lead_details','2020-01-01','3 hour')
-        ON CONFLICT ON CONSTRAINT scheduler_pk
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
         VALUES ('public','dashboard_refresh','2020-01-01 06:00:00','6 hours')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
@@ -2034,111 +2028,6 @@ AS $function$
         FROM autoverify.v_mpm_leads a
         LEFT JOIN autoverify.v_mpm_integration_settings b ON b.id = a.integration_settings_id;
     ''',
-    '''
-        CREATE TABLE IF NOT EXISTS autoverify.mpm_lead_details
-        (
-            master_business_id uuid NULL,
-            id uuid NULL,
-            status text NULL,
-            created_at timestamptz NULL,
-            updated_at timestamptz NULL,
-            customer_first_name text NULL,
-            customer_last_name text NULL,
-            customer_email text NULL,
-            customer_phone text NULL,
-            customer_language text NULL,
-            customer_mobile_phone text NULL,
-            customer_payload json NULL,
-            customer_address_line_1 text NULL,
-            customer_address_line_2 text NULL,
-            customer_city text NULL,
-            customer_postal_code text NULL,
-            customer_country text NULL,
-            customer_province text NULL,
-            trade_high_value float8 NULL,
-            trade_low_value float8 NULL,
-            trade_deductions text NULL,
-            trade_customer_referral_url text NULL,
-            trade_vehicle_year int4 NULL,
-            trade_vehicle_make text NULL,
-            trade_vehicle_model text NULL,
-            trade_vehicle_style text NULL,
-            trade_vehicle_trim text NULL,
-            trade_vehicle_mileage float8 NULL,
-            trade_vehicle_vin text NULL,
-            insurance_quote_id uuid NULL,
-            insurance_referrer_url text NULL,
-            insurance_quote_payload json NULL,
-            insurance_purchase_price float8 NULL,
-            insurance_vehicle_year int4 NULL,
-            insurance_vehicle_make text NULL,
-            insurance_vehicle_model text NULL,
-            insurance_vehicle_trim text NULL,
-            insurance_vehicle_style text NULL,
-            insurance_vehicle_mileage float8 NULL,
-            insurance_vehicle_vin text NULL,
-            customer_birthdate timestamptz NULL,
-            customer_tracking_id text NULL,
-            credit_rating int4 NULL,
-            credit_dealertrack_sent_at timestamptz NULL,
-            source_url text NULL,
-            credit_vehicle_price float8 NULL,
-            credit_trade_in_value float8 NULL,
-            credit_down_payment float8 NULL,
-            credit_sales_tax float8 NULL,
-            credit_interest_rate float8 NULL,
-            credit_loan_amount float8 NULL,
-            language_code text NULL,
-            integration_settings_id uuid NULL,
-            credit_creditor_name text NULL,
-            credit_payload json NULL,
-            trade_low_list float8 NULL,
-            trade_high_list float8 NULL,
-            trade_list_count int4 NULL,
-            trade_aged_discount float8 NULL,
-            trade_reconditioning float8 NULL,
-            trade_advertising float8 NULL,
-            trade_overhead float8 NULL,
-            trade_dealer_profit float8 NULL,
-            trade_in_source text NULL,
-            route_list json NULL,
-            experiment json NULL,
-            credit_payment_frequency int4 NULL,
-            credit_trade_in_owing float8 NULL,
-            credit_payment_amount float8 NULL,
-            credit_term_in_months int4 NULL,
-            credit_regional_rating int4 NULL,
-            ecom_reserved int4 NULL,
-            testdrive_requested_date timestamptz NULL,
-            testdrive_time_of_day_preference text NULL,
-            testdrive_language text NULL,
-            testdrive_gender_preference text NULL,
-            testdrive_technology_interests json NULL,
-            testdrive_route_name text NULL,
-            testdrive_beverage text NULL,
-            testdrive_comments text NULL,
-            oem_of_interest text NULL,
-            billing_key text NULL,
-            spincar_lead_report_url text NULL,
-            is_insurance int4 NULL,
-            is_trade int4 NULL,
-            is_credit_partial int4 NULL,
-            is_credit_verified int4 NULL,
-            is_credit_finance int4 NULL,
-            is_ecom int4 NULL,
-            is_spotlight int4 NULL,
-            device text NULL,
-            is_credit_regional int4 NULL,
-            is_test_drive int4 NULL,
-            lead_content text NULL,
-            sub_type text null,
-            is_accident_check int4 null
-        );
-        CREATE INDEX IF NOT EXISTS mpm_lead_details_created_at_idx ON autoverify.mpm_lead_details USING btree (created_at);
-        CREATE UNIQUE INDEX IF NOT EXISTS mpm_lead_details_id_idx ON autoverify.mpm_lead_details USING btree (id);
-        CREATE INDEX IF NOT EXISTS mpm_lead_details_master_business_id_idx ON autoverify.mpm_lead_details USING btree (master_business_id);
-    '''
-    ,
     '''
         create materialized view if not exists public.m_lifetime_mixed_leads as
         SELECT
