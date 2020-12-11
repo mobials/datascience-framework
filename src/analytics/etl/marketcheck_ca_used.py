@@ -34,7 +34,8 @@ insert_query =  '''
                             latitude,
                             longitude,
                             city,
-                            state
+                            state,
+                            domain
                         )
                         VALUES 
                             %s
@@ -118,9 +119,6 @@ while True:
                     except:
                         continue
 
-                    if price == miles:
-                        continue
-
                     try:
                         dealer_id = int(info['dealer_id_is'])
                     except:
@@ -165,6 +163,7 @@ while True:
 
                     city = None if info['city_ss'] == '' else info['city_ss']
                     state = None if info['state_ss'] == '' else info['state_ss']
+                    domain = None if info['source_ss'] == '' else info['source_ss']
 
                     tuple = (
                         s3_id,
@@ -180,7 +179,8 @@ while True:
                         latitude,
                         longitude,
                         city,
-                        state
+                        state,
+                        domain,
                     )
 
                     tuples.append(tuple)

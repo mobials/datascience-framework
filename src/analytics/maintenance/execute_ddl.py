@@ -81,6 +81,12 @@ queries = [
     ''',
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('autoverify','sda_audit_log','2000-01-01','15 minute')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
         VALUES ('autoverify','tradesii_leads','2020-07-01','15 minute')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
@@ -2500,6 +2506,20 @@ AS $function$
             mileage int not null,
             CONSTRAINT spotlight_low_mileage_us_session_id_vin_pattern_region_pk PRIMARY KEY (session_id,vin_pattern,region)
         );
+    ''',
+    '''
+        create table if not exists autoverify.sda_audit_log
+        (
+            id uuid PRIMARY KEY,
+            user_id uuid,
+            happened_at timestamptz,
+            request_method text,
+            request_payload jsonb,
+            response_code int,
+            response_payload jsonb,
+            endpoint text
+        );
+        CREATE INDEX IF NOT EXISTS sda_audit_log_happened_at_idx ON autoverify.sda_audit_log (happened_at);
     '''
 ]
 
