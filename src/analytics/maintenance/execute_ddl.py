@@ -795,7 +795,8 @@ AS $function$
             latitude double precision,
             longitude double precision,
             city text,
-            state text
+            state text,
+            domain text
         );
         CREATE INDEX IF NOT EXISTS marketcheck_ca_used_s3_id_idx ON vendors.marketcheck_ca_used (s3_id);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_used_status_date_idx ON vendors.marketcheck_ca_used (status_date);
