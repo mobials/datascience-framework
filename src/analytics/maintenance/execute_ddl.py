@@ -243,6 +243,12 @@ queries = [
     ''',
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('vendors','marketcheck_ca_new','2020-01-01','1 hour')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO NOTHING;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
         VALUES ('vendors','marketcheck_us_used','2020-01-01','1 hour')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
@@ -801,6 +807,7 @@ AS $function$
         CREATE INDEX IF NOT EXISTS marketcheck_ca_used_s3_id_idx ON vendors.marketcheck_ca_used (s3_id);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_used_status_date_idx ON vendors.marketcheck_ca_used (status_date);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_used_taxonomy_vin_idx ON vendors.marketcheck_ca_used (taxonomy_vin);
+        CREATE INDEX IF NOT EXISTS marketcheck_ca_used_domain_idx ON vendors.marketcheck_ca_used (domain);
     ''',
     '''
         CREATE TABLE IF NOT EXISTS vendors.marketcheck_ca_new
@@ -818,11 +825,15 @@ AS $function$
             latitude double precision,
             longitude double precision,
             city text,
-            state text
+            state text,
+            domain text,
+            miles_indicator text,
+            currency_indicator text
         );
         CREATE INDEX IF NOT EXISTS marketcheck_ca_new_s3_id_idx ON vendors.marketcheck_ca_new (s3_id);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_new_status_date_idx ON vendors.marketcheck_ca_new (status_date);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_new_taxonomy_vin_idx ON vendors.marketcheck_ca_new (taxonomy_vin);
+        CREATE INDEX IF NOT EXISTS marketcheck_ca_new_domain_idx ON vendors.marketcheck_ca_new (domain);
     ''',
     '''
         CREATE TABLE IF NOT EXISTS vendors.marketcheck_us_used
@@ -2521,6 +2532,15 @@ AS $function$
             endpoint text
         );
         CREATE INDEX IF NOT EXISTS sda_audit_log_happened_at_idx ON autoverify.sda_audit_log (happened_at);
+    ''',
+    '''
+    create table if not exists vendors.marketcheck_ca_used_dealers
+    (
+        dealer_id text,
+        domain text,
+        last_seen timestamptz,
+        CONSTRAINT marketcheck_ca_used_dealers_pk PRIMARY KEY (dealer_id,domain)
+    );
     '''
 ]
 

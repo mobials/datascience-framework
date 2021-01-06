@@ -34,7 +34,10 @@ insert_query =  '''
                             latitude,
                             longitude,
                             city,
-                            state
+                            state,
+                            domain,
+                            miles_indicator,
+                            currency_indicator
                         )
                         VALUES 
                             %s
@@ -82,6 +85,8 @@ while True:
 
         for version in versions:
             last_modified = version.last_modified
+            if last_modified < datetime.datetime(2020,8,27).replace(tzinfo=pytz.utc):
+                continue
             file = settings.s3_cdc_ca_new_bucket + '/' + settings.s3_cdc_ca_new_key + '/' + version.version_id
             if file in s3_completed_files:
                 continue
@@ -102,24 +107,20 @@ while True:
                     else:
                         info = dict(zip(column_headings, split_text))
 
-                    if info['miles_indicator_ss'] != 'KILOMETERS':
-                        continue
-
-                    if info['currency_indicator_ss'] != 'CAD':
-                        continue
+                    miles_indicator = None if info['miles_indicator_ss'] == '' else info['miles_indicator_ss']
+                    currency_indicator = None if info['currency_indicator_ss'] == '' else info['currency_indicator_ss']
 
                     try:
                         miles = float(info['miles_fs'])
                     except:
-                        continue
+                        miles = None
+                        pass
 
                     try:
                         price = float(info['price_fs'])
                     except:
-                        continue
-
-                    if price == miles:
-                        continue
+                        price = None
+                        pass
 
                     try:
                         dealer_id = int(info['dealer_id_is'])
@@ -165,6 +166,7 @@ while True:
 
                     city = None if info['city_ss'] == '' else info['city_ss']
                     state = None if info['state_ss'] == '' else info['state_ss']
+                    domain = None if info['source_ss'] == '' else info['source_ss']
 
                     tuple = (
                         s3_id,
@@ -180,7 +182,10 @@ while True:
                         latitude,
                         longitude,
                         city,
-                        state
+                        state,
+                        domain,
+                        miles_indicator,
+                        currency_indicator,
                     )
 
                     tuples.append(tuple)
