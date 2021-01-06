@@ -2541,6 +2541,15 @@ AS $function$
         last_seen timestamptz,
         CONSTRAINT marketcheck_ca_used_dealers_pk PRIMARY KEY (dealer_id,domain)
     );
+    ''',
+    '''
+    create table if not exists vendors.marketcheck_ca_new_dealers
+    (
+        dealer_id text,
+        domain text,
+        last_seen timestamptz,
+        CONSTRAINT marketcheck_ca_new_dealers_pk PRIMARY KEY (dealer_id,domain)
+    );
     '''
 ]
 
