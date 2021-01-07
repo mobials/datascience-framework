@@ -264,7 +264,25 @@ queries = [
         VALUES ('public','dashboard_refresh','2020-01-01 06:00:00','6 hours')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
+    ''',
     '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('vendors','marketcheck_ca_used_dealers','2020-01-01 21:00:00','24 hours')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO UPDATE
+        SET 
+            start_date = EXCLUDED.start_date,
+            frequency = EXCLUDED.frequency;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('vendors','marketcheck_ca_new_dealers','2020-01-01 21:00:00','24 hours')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO UPDATE
+        SET 
+            start_date = EXCLUDED.start_date,
+            frequency = EXCLUDED.frequency;
+    ''',
     '''
         CREATE TABLE IF NOT EXISTS autoverify.mpm_leads
         (

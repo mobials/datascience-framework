@@ -130,3 +130,7 @@ def get_vin_pattern(vin):
     result = vin[0:8] + vin[9:11]
     return result
 
+def extract_domain(url):
+    result = None
+    return result
+

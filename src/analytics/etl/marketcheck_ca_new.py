@@ -166,7 +166,7 @@ while True:
 
                     city = None if info['city_ss'] == '' else info['city_ss']
                     state = None if info['state_ss'] == '' else info['state_ss']
-                    domain = None if info['source_ss'] == '' else info['source_ss']
+                    domain = None if info['source_ss'] == '' else info['source_ss'].lower()
 
                     tuple = (
                         s3_id,
