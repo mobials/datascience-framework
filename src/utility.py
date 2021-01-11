@@ -130,7 +130,27 @@ def get_vin_pattern(vin):
     result = vin[0:8] + vin[9:11]
     return result
 
-def extract_domain(url):
+def clean_marketcheck_source_url(source_url):
     result = None
+    if source_url is not None and source_url != '':
+        result = source_url.lower()
+        if result.startswith('www.'):
+            result = result[4:]
+        elif result.startswith('promos.'):
+            result = result[7:]
+        elif result.startswith('en.'):
+            result = result[3:]
+        elif result.startswith('fr.'):
+            result = result[3:]
+        elif result.startswith('vehicles.'):
+            result = result[9:]
+        elif result.startswith('landing.'):
+            result = result[8:]
+        elif result.startswith('m.'):
+            result = result[2:]
+        elif result.startswith('offres.'):
+            result = result[7:]
+        elif result.startswith('promotions.'):
+            result = result[11:]
     return result
 

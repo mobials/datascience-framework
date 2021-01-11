@@ -24,7 +24,7 @@ insert_query =  '''
                     insert into {0}.{1}
                     select 
                         dealer_id,
-                        REGEXP_REPLACE(domain, '^(https?://)?(www\.)?', '') as "domain", 
+                        "domain", 
                         max(status_date) as last_seen
                     from 
                         vendors.marketcheck_ca_used

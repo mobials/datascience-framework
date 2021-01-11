@@ -166,7 +166,7 @@ while True:
 
                     city = None if info['city_ss'] == '' else info['city_ss']
                     state = None if info['state_ss'] == '' else info['state_ss']
-                    domain = None if info['source_ss'] == '' else info['source_ss'].lower()
+                    domain = utility.clean_marketcheck_source_url(info['source_ss'])
 
                     tuple = (
                         s3_id,

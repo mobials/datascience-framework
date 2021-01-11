@@ -62,7 +62,7 @@ while True:
     else:
         next_run = utility.get_next_run(start_date, last_run, frequency)
 
-    if now < next_run:
+    # if now < next_run:
         seconds_between_now_and_next_run = (next_run - now).seconds
         time.sleep(seconds_between_now_and_next_run)
         continue  # continue here becuase it forces a second check on the scheduler, which may have changed during the time the script was asleep
@@ -163,7 +163,7 @@ while True:
 
                     city = None if info['city_ss'] == '' else info['city_ss']
                     state = None if info['state_ss'] == '' else info['state_ss']
-                    domain = None if info['source_ss'] == '' else info['source_ss'].lower()
+                    domain = utility.clean_marketcheck_source_url(info['source_ss'])
 
                     tuple = (
                         s3_id,
@@ -198,7 +198,7 @@ while True:
     finally:
         etl_connection.close()
 
-    #update the scheduler
+    # #update the scheduler
     scheduler_connection = postgreshandler.get_analytics_connection()
     postgreshandler.update_script_schedule(scheduler_connection,schema,script,now,status,run_time,last_update)
     scheduler_connection.commit()

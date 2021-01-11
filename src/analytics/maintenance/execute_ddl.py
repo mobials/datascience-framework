@@ -2556,8 +2556,7 @@ AS $function$
     (
         dealer_id text,
         domain text,
-        last_seen timestamptz,
-        CONSTRAINT marketcheck_ca_used_dealers_pk PRIMARY KEY (dealer_id,domain)
+        last_seen timestamptz
     );
     ''',
     '''
@@ -2565,8 +2564,7 @@ AS $function$
     (
         dealer_id text,
         domain text,
-        last_seen timestamptz,
-        CONSTRAINT marketcheck_ca_new_dealers_pk PRIMARY KEY (dealer_id,domain)
+        last_seen timestamptz
     );
     '''
 ]
