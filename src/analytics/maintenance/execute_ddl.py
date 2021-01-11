@@ -2560,6 +2560,31 @@ AS $function$
         domain text,
         last_seen timestamptz
     );
+    ''',
+    '''
+        CREATE OR REPLACE VIEW utility.v_all_queries
+        AS SELECT pg_stat_activity.datid,
+            pg_stat_activity.datname,
+            pg_stat_activity.pid,
+            pg_stat_activity.usesysid,
+            pg_stat_activity.usename,
+            pg_stat_activity.application_name,
+            pg_stat_activity.client_addr,
+            pg_stat_activity.client_hostname,
+            pg_stat_activity.client_port,
+            pg_stat_activity.backend_start,
+            pg_stat_activity.xact_start,
+            pg_stat_activity.query_start,
+            pg_stat_activity.state_change,
+            pg_stat_activity.wait_event_type,
+            pg_stat_activity.wait_event,
+            pg_stat_activity.state,
+            pg_stat_activity.backend_xid,
+            pg_stat_activity.backend_xmin,
+            pg_stat_activity.query,
+            pg_stat_activity.backend_type,
+            now() - pg_stat_activity.query_start AS running_time
+           FROM pg_stat_activity
     '''
 ]
 
