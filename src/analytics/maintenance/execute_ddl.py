@@ -249,12 +249,6 @@ queries = [
     ''',
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency)
-        VALUES ('vendors','marketcheck_us_used','2020-01-01','1 hour')
-        ON CONFLICT ON CONSTRAINT scheduler_pk
-        DO NOTHING;
-    ''',
-    '''
-        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
         VALUES ('autoverify','dashboard_lead_content','2020-01-01 00:30:00','3 hours')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO NOTHING;
