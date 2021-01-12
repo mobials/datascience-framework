@@ -22,6 +22,8 @@ is_gzip = True
 schema = 'scratch'
 table = 'mc_us_used'
 
+csv.field_size_limit(sys.maxsize)
+
 bucket = settings.s3_cdc_us_bucket
 key = settings.s3_cdc_us_key
 
