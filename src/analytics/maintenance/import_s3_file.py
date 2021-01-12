@@ -22,6 +22,19 @@ is_gzip = True
 schema = 'scratch'
 table = 'mc_us_used'
 
+columns_to_keep = [
+    'dealer_id_is',
+    'source_ss',
+    'zip_is',
+    'address_ss',
+    'city_ss',
+    'state_ss',
+    'street_ss',
+    'seller_email_ss',
+    'seller_phone_ss',
+    'seller_name_orig_ss'
+]
+
 csv.field_size_limit(sys.maxsize)
 
 bucket = settings.s3_cdc_us_bucket
@@ -53,6 +66,15 @@ object = resource.Object(
 )
 response = object.get()['Body']
 
+def clean_info(info,columns_to_keep):
+    if len(columns_to_keep) > 0:
+        result = {}
+        for column in columns_to_keep:
+            if column in info:
+                result[column] = info[column]
+        return result
+    return info
+
 with postgreshandler.get_analytics_connection() as connection:
     with connection.cursor() as cursor:
         cursor.execute(create_table_query)
@@ -72,17 +94,7 @@ with postgreshandler.get_analytics_connection() as connection:
                         continue
                     else:
                         info = dict(zip(column_headings, split_text))
-
-                        if 'photo_links_ss' in info:
-                            del info['photo_links_ss']
-
-                        if 'seller_comments_texts' in info:
-                            del info['seller_comments_texts']
-                        if 'options_texts' in info:
-                            del info['options_texts']
-
-                        if 'features_texts' in info:
-                            del info['features_texts']
+                        info = clean_info(info,columns_to_keep)
 
                         payload = json.dumps(info, default=str)
 
