@@ -58,7 +58,10 @@ with postgreshandler.get_analytics_connection() as connection:
         if is_gzip:
             with gzip.GzipFile(fileobj=response) as gzipfile:
                 column_headings = None
+                count = 0
                 for line in gzipfile:
+                    count += 1
+                    print(count)
                     text = line.decode()
                     split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter=',', quotechar='"'))[0]]
 
@@ -68,13 +71,27 @@ with postgreshandler.get_analytics_connection() as connection:
                     else:
                         info = dict(zip(column_headings, split_text))
 
+                        if 'photo_links_ss' in info:
+                            del info['photo_links_ss']
+
+                        if 'seller_comments_texts' in info:
+                            del info['seller_comments_texts']
+                        if 'options_texts' in info:
+                            del info['options_texts']
+
+                        if 'features_texts' in info:
+                            del info['features_texts']
+
                         payload = json.dumps(info, default=str)
 
                         tuple = (payload,)
                         tuples.append(tuple)
 
         if len(tuples) > 0:
+            print('uploading')
             psycopg2.extras.execute_values(cursor, insert_query, tuples)
+
+print('finished')
 
 
 
