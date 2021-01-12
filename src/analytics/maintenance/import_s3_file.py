@@ -58,12 +58,7 @@ with postgreshandler.get_analytics_connection() as connection:
         if is_gzip:
             with gzip.GzipFile(fileobj=response) as gzipfile:
                 column_headings = None
-                count = 0
                 for line in gzipfile:
-                    count += 1
-                    if count == 10:
-                        break
-                    print(count)
                     text = line.decode()
                     split_text = ['{}'.format(x) for x in list(csv.reader([text], delimiter=',', quotechar='"'))[0]]
 
