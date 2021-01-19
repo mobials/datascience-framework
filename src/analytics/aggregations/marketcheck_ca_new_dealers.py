@@ -25,6 +25,7 @@ insert_query =  '''
                     select 
                         dealer_id,
                         "domain", 
+                        min(status_date) as first_seen,
                         max(status_date) as last_seen
                     from 
                         vendors.marketcheck_ca_new

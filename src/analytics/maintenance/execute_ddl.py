@@ -820,6 +820,7 @@ AS $function$
         CREATE INDEX IF NOT EXISTS marketcheck_ca_used_status_date_idx ON vendors.marketcheck_ca_used (status_date);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_used_taxonomy_vin_idx ON vendors.marketcheck_ca_used (taxonomy_vin);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_used_domain_idx ON vendors.marketcheck_ca_used (domain);
+        CREATE INDEX IF NOT EXISTS marketcheck_ca_used_dealer_id_idx ON vendors.marketcheck_ca_used (dealer_id);
     ''',
     '''
         CREATE TABLE IF NOT EXISTS vendors.marketcheck_ca_new
@@ -846,6 +847,7 @@ AS $function$
         CREATE INDEX IF NOT EXISTS marketcheck_ca_new_status_date_idx ON vendors.marketcheck_ca_new (status_date);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_new_taxonomy_vin_idx ON vendors.marketcheck_ca_new (taxonomy_vin);
         CREATE INDEX IF NOT EXISTS marketcheck_ca_new_domain_idx ON vendors.marketcheck_ca_new (domain);
+        CREATE INDEX IF NOT EXISTS marketcheck_ca_new_dealer_id_idx ON vendors.marketcheck_ca_new (dealer_id);
     ''',
     '''
         CREATE TABLE IF NOT EXISTS vendors.marketcheck_us_used
@@ -2548,16 +2550,18 @@ AS $function$
     '''
     create table if not exists vendors.marketcheck_ca_used_dealers
     (
-        dealer_id text,
+        dealer_id integer,
         domain text,
+        first_seen timestamptz,
         last_seen timestamptz
     );
     ''',
     '''
     create table if not exists vendors.marketcheck_ca_new_dealers
     (
-        dealer_id text,
+        dealer_id integer,
         domain text,
+        first_seen timestamptz,
         last_seen timestamptz
     );
     ''',
