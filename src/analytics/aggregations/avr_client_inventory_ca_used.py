@@ -15,22 +15,30 @@ import pytz
 import time
 import utility
 
-schema = 'vendors'
+schema = 'aggregations'
 script = os.path.basename(__file__)[:-3]
-
+days = 7
+timelapse_seconds = 86400
 insert_query =  '''
                     truncate table {0}.{1};
                     insert into {0}.{1}
-                    select 
-                        dealer_id,
-                        "domain", 
-                        min(status_date) as first_seen,
-                        max(status_date) as last_seen
+                    select distinct on (a.master_business_id,a.dealer_id, b.vin)
+                        a.master_business_id,
+                        a.dealer_id,
+                        b.vin,
+                        b.status_date,
+                        b.price,
+                        b.miles
                     from 
-                        vendors.marketcheck_ca_used
-                    group by 
-                        1,2;
-                '''.format(schema,script)
+                        aggregations.v_client_marketcheck_ca_used a,
+                        vendors.marketcheck_ca_used b 
+                    where 
+                        b.dealer_id = a.dealer_id
+                    and 
+                        b.status_date >= now() - interval '{2} days'
+                    order by 
+                        1,2,3,4 desc;
+                '''.format(schema,script,days)
 
 while True:
     schedule_info = None
@@ -63,11 +71,23 @@ while True:
     postgres_etl_connection = postgreshandler.get_analytics_connection()
     try:
         with postgres_etl_connection.cursor() as cursor:
-            cursor.execute(insert_query)
-            postgres_etl_connection.commit()
-            status = 'success'
-            last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-            run_time = last_update - start_time
+
+            max_marketcheck_status_date = postgreshandler.get_max_value(postgres_etl_connection,'vendors','marketcheck_ca_used','status_date')
+            max_inventory_status_date = postgreshandler.get_max_value(postgres_etl_connection,schema,script,'status_date')
+
+            if max_inventory_status_date is None:
+                max_inventory_status_date = datetime.datetime(2000,1,1).replace(tzinfo=pytz.utc)
+
+            if max_marketcheck_status_date is None:
+                raise Exception('MarketCheck status_date is null.')
+
+            diff = max_marketcheck_status_date - max_inventory_status_date
+            if diff.total_seconds() > timelapse_seconds:
+                cursor.execute(insert_query)
+                postgres_etl_connection.commit()
+                status = 'success'
+                last_update = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+                run_time = last_update - start_time
     except Exception as e:
         status = str(e)
     finally:

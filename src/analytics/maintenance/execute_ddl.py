@@ -38,6 +38,9 @@ queries = [
         CREATE SCHEMA IF NOT EXISTS vendors;
     ''',
     '''
+        CREATE SCHEMA IF NOT EXISTS aggregations;
+    '''
+    '''
         CREATE TABLE IF NOT EXISTS miscellaneous.dealer_socket_sales_reports_gross_profit
         (
             dealer text not null,
@@ -271,6 +274,24 @@ queries = [
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency)
         VALUES ('vendors','marketcheck_ca_new_dealers','2020-01-01 21:00:00','24 hours')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO UPDATE
+        SET 
+            start_date = EXCLUDED.start_date,
+            frequency = EXCLUDED.frequency;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('aggregations','avr_client_inventory_ca_used','2020-01-01 00:00:00','15 minutes')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO UPDATE
+        SET 
+            start_date = EXCLUDED.start_date,
+            frequency = EXCLUDED.frequency;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('aggregations','avr_client_inventory_ca_new','2020-01-01 00:00:00','15 minutes')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO UPDATE
         SET 
@@ -2548,26 +2569,28 @@ AS $function$
         CREATE INDEX IF NOT EXISTS sda_audit_log_happened_at_idx ON autoverify.sda_audit_log (happened_at);
     ''',
     '''
-    create table if not exists vendors.marketcheck_ca_used_dealers
-    (
-        dealer_id integer,
-        domain text,
-        first_seen timestamptz,
-        last_seen timestamptz
-    );
+        create table if not exists vendors.marketcheck_ca_used_dealers
+        (
+            dealer_id integer,
+            domain text,
+            first_seen timestamptz,
+            last_seen timestamptz
+        );
     ''',
     '''
-    create table if not exists vendors.marketcheck_ca_new_dealers
-    (
-        dealer_id integer,
-        domain text,
-        first_seen timestamptz,
-        last_seen timestamptz
-    );
+        create table if not exists vendors.marketcheck_ca_new_dealers
+        (
+            dealer_id integer,
+            domain text,
+            first_seen timestamptz,
+            last_seen timestamptz
+        );
     ''',
     '''
         CREATE OR REPLACE VIEW utility.v_all_queries
-        AS SELECT pg_stat_activity.datid,
+        AS 
+        SELECT 
+            pg_stat_activity.datid,
             pg_stat_activity.datname,
             pg_stat_activity.pid,
             pg_stat_activity.usesysid,
@@ -2588,7 +2611,100 @@ AS $function$
             pg_stat_activity.query,
             pg_stat_activity.backend_type,
             now() - pg_stat_activity.query_start AS running_time
-           FROM pg_stat_activity
+        FROM 
+            pg_stat_activity
+    ''',
+    '''
+        create or replace view aggregations.v_client_marketcheck_ca_used as
+        select 
+            master_business_id, 
+            dealer_id,
+            last_seen
+        from 
+        (
+            select 
+                a.id as master_business_id,
+                b.dealer_id,
+                a.website_url,
+                b."domain" as marketcheck_domain,
+                b.last_seen,
+                rank(*) over (partition by a.id order by length(b."domain") desc) as r
+            from 
+                autoverify.v_sda_master_businesses a
+            inner join 
+            (
+                select 
+                    distinct on ("domain")
+                    dealer_id,
+                    "domain",
+                    last_seen
+                from 
+                    vendors.marketcheck_ca_used_dealers
+                order by 
+                    "domain", last_seen desc		
+            ) b 
+            on 
+                a.website_url like '%' || b."domain" || '%'
+        ) a 
+        where 
+            r = 1
+    ''',
+    '''
+        create or replace view aggregations.v_client_marketcheck_ca_new as
+        select 
+            master_business_id, 
+            dealer_id,
+            last_seen
+        from 
+        (
+            select 
+                a.id as master_business_id,
+                b.dealer_id,
+                a.website_url,
+                b."domain" as marketcheck_domain,
+                b.last_seen,
+                rank(*) over (partition by a.id order by length(b."domain") desc) as r
+            from 
+                autoverify.v_sda_master_businesses a
+            inner join 
+            (
+                select 
+                    distinct on ("domain")
+                    dealer_id,
+                    "domain",
+                    last_seen
+                from 
+                    vendors.marketcheck_ca_new_dealers
+                order by 
+                    "domain", last_seen desc		
+            ) b 
+            on 
+                a.website_url like '%' || b."domain" || '%'
+        ) a 
+        where 
+            r = 1
+    ''',
+    '''
+        create table if not exists aggregations.avr_client_inventory_ca_used
+        (
+            master_business_id uuid,
+            dealer_id integer,
+            vin text,
+            status_date timestamptz,
+            price float8,
+            miles float8
+        );
+    ''',
+    '''
+        create table if not exists aggregations.avr_client_inventory_ca_new
+        (
+            master_business_id uuid,
+            dealer_id integer,
+            vin text,
+            status_date timestamptz,
+            price float8,
+            miles float8
+        );
     '''
 ]
 

@@ -7,7 +7,6 @@ import io
 import zipfile
 import json
 import postgreshandler
-import mysqlhandler
 import os
 import datetime
 import psycopg2
