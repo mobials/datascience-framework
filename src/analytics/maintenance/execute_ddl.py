@@ -282,7 +282,7 @@ queries = [
     ''',
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency)
-        VALUES ('aggregations','avr_client_inventory_ca_used','2020-01-01 00:00:00','15 minutes')
+        VALUES ('aggregations','avr_client_inventory_ca_used','2020-01-01 00:00:00','30 minutes')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO UPDATE
         SET 
@@ -291,7 +291,25 @@ queries = [
     ''',
     '''
         INSERT INTO operations.scheduler (schema,script,start_date,frequency)
-        VALUES ('aggregations','avr_client_inventory_ca_new','2020-01-01 00:00:00','15 minutes')
+        VALUES ('aggregations','avr_client_inventory_ca_new','2020-01-01 00:00:00','30 minutes')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO UPDATE
+        SET 
+            start_date = EXCLUDED.start_date,
+            frequency = EXCLUDED.frequency;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('aggregations','avr_client_new_listings_ca_new','2020-01-01 03:00:00','30 minutes')
+        ON CONFLICT ON CONSTRAINT scheduler_pk
+        DO UPDATE
+        SET 
+            start_date = EXCLUDED.start_date,
+            frequency = EXCLUDED.frequency;
+    ''',
+    '''
+        INSERT INTO operations.scheduler (schema,script,start_date,frequency)
+        VALUES ('aggregations','avr_client_new_listings_ca_used','2020-01-01 03:00:00','30 minutes')
         ON CONFLICT ON CONSTRAINT scheduler_pk
         DO UPDATE
         SET 
@@ -2704,6 +2722,22 @@ AS $function$
             status_date timestamptz,
             price float8,
             miles float8
+        );
+    ''',
+    '''
+        create table if not exists aggregations.avr_client_new_listings_ca_used
+        (
+            master_business_id uuid,
+            vin text,
+            status_date timestamptz
+        );
+    ''',
+    '''
+        create table if not exists aggregations.avr_client_new_listings_ca_new
+        (
+            master_business_id uuid,
+            vin text,
+            status_date timestamptz
         );
     '''
 ]
